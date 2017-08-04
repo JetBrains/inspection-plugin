@@ -6,11 +6,8 @@ import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFileManager
-import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
-import org.gradle.api.file.FileCollection
 import org.gradle.api.logging.LogLevel
-import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceTask
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.TaskExecutionException
@@ -19,11 +16,6 @@ import com.intellij.openapi.project.Project as IdeaProject
 import org.gradle.api.Project as GradleProject
 
 class InspectionTask : SourceTask() {
-
-    lateinit var sourceSet: SourceSet
-
-    private val sourceDirs: FileCollection
-        get() = project.files(sourceSet.allSource.srcDirs.filter { !sourceSet.resources.contains(it) && it.exists() })
 
     private fun ProblemDescriptor.level(default: LogLevel): LogLevel {
         return when (highlightType) {
@@ -51,18 +43,14 @@ class InspectionTask : SourceTask() {
             val ideaProject = ideaProjectManager.defaultProject // FIXME
             val psiManager = PsiManager.getInstance(ideaProject)
             val virtualFileManager = VirtualFileManager.getInstance()
-            val files: MutableList<PsiFile> = mutableListOf()
-            for (sourceDir in sourceDirs) {
-                val virtualFile = virtualFileManager.findFileByUrl(sourceDir.absolutePath) ?: continue
-                val psiDir = psiManager.findDirectory(virtualFile) ?: continue
-                files += psiDir.files
-            }
             val results: MutableMap<String, MutableList<ProblemDescriptor>> = mutableMapOf()
             for (inspectionClass in inspectionClasses) {
                 val inspectionResults = mutableListOf<ProblemDescriptor>()
                 val runner = InspectionRunner(inspectionClass)
-                for (file in files) {
-                    inspectionResults += runner.analyze(file)
+                for (sourceFile in getSource()) {
+                    val virtualFile = virtualFileManager.findFileByUrl(sourceFile.absolutePath) ?: continue
+                    val psiFile = psiManager.findFile(virtualFile) ?: continue
+                    inspectionResults += runner.analyze(psiFile)
                 }
                 results[inspectionClass] = inspectionResults
             }
