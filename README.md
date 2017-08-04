@@ -1,1 +1,1 @@
-Plugin to run kotlin inspections during build
+Plugin to run IDEA inspections during Gradle build. Under construction!
