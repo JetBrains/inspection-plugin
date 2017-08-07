@@ -8,6 +8,7 @@ buildscript {
 	repositories {
 		mavenCentral()
         mavenLocal()
+        jcenter()
 		maven { setUrl("https://dl.bintray.com/kotlin/kotlin-eap-1.1") }
         maven { setUrl("https://plugins.gradle.org/m2/") }
 	}
@@ -29,8 +30,12 @@ apply {
     plugin("kotlin")
 }
 
-group = "org.jetbrains.intellij.plugins"
-version = "0.1"
+val projectGroup = "org.jetbrains.intellij.plugins"
+val projectVersion = "0.1"
+val projectName = "inspection-plugin"
+
+group = projectGroup
+version = projectVersion
 
 configure<IntelliJPluginExtension> {
     version = "IC-2017.2"
@@ -39,8 +44,8 @@ configure<IntelliJPluginExtension> {
 
 configure<GradlePluginDevelopmentExtension> {
     (plugins) {
-        "inspection-plugin" {
-            id = "inspection-plugin"
+        projectName {
+            id = projectName
             implementationClass = "org.jetbrains.intellij.InspectionPlugin"
         }
     }
@@ -53,12 +58,12 @@ configure<PublishingExtension> {
         }
     }
     publications {
-//        maven(MavenPublication) {
-//            groupId "$group"
-//            artifactId 'CustomGradlePlugin'
-//            version "$version"
-//            from components.java
-//        }
+        create<MavenPublication>("JCenterPublication") {
+            from(components.getByName("java"))
+            version = projectVersion
+            groupId = projectGroup
+            artifactId = projectName
+        }
     }
 }
 
