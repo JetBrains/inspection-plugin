@@ -43,9 +43,9 @@ configure<IntelliJPluginExtension> {
 }
 
 configure<GradlePluginDevelopmentExtension> {
-    (plugins) {
-        projectName {
-            id = projectName
+    plugins {
+        create(projectName) {
+            id = "org.jetbrains.intellij.inspections"
             implementationClass = "org.jetbrains.intellij.InspectionPlugin"
         }
     }
