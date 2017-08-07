@@ -31,7 +31,7 @@ apply {
 }
 
 val projectGroup = "org.jetbrains.intellij.plugins"
-val projectVersion = "0.1"
+val projectVersion = "0.1-SNAPSHOT"
 val projectName = "inspection-plugin"
 
 group = projectGroup
