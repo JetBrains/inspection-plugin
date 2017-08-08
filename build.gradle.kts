@@ -83,6 +83,7 @@ tasks {
 		}
 	}
 
+    // TODO: clarify why these strings are needed
     withType<Jar> {
         from("build/classes/kotlin/main") {
             include("org/jetbrains/intellij/*.*", "org/jetbrains/idea/inspections/*.*")
