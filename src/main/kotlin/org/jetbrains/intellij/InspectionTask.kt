@@ -15,7 +15,7 @@ import org.jetbrains.idea.inspections.InspectionRunner
 import com.intellij.openapi.project.Project as IdeaProject
 import org.gradle.api.Project as GradleProject
 
-class InspectionTask : SourceTask() {
+open class InspectionTask : SourceTask() {
 
     private fun ProblemDescriptor.level(default: LogLevel): LogLevel {
         return when (highlightType) {

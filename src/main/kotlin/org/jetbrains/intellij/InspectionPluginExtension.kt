@@ -2,7 +2,7 @@ package org.jetbrains.intellij
 
 import org.gradle.api.logging.LogLevel
 
-class InspectionPluginExtension(
+open class InspectionPluginExtension(
         // Which properties are needed?
         // Number of IDEA version
         var ideaVersion: String,
@@ -13,11 +13,13 @@ class InspectionPluginExtension(
         var warningClasses: List<String>,
         var infoClasses: List<String>
 ) {
+    constructor(): this("", emptyList(), emptyList(), emptyList(), emptyList())
+
     val inspectionClasses get() = errorClasses + warningClasses + infoClasses
 
-    fun getLevel(inspectionClass: String) = when {
-        inspectionClass in errorClasses -> LogLevel.ERROR
-        inspectionClass in warningClasses -> LogLevel.WARN
+    fun getLevel(inspectionClass: String) = when (inspectionClass) {
+        in errorClasses -> LogLevel.ERROR
+        in warningClasses -> LogLevel.WARN
         else -> LogLevel.INFO
     }
 }
