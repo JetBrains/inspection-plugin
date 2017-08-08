@@ -18,6 +18,7 @@ buildscript {
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
         classpath("org.junit.platform:junit-platform-gradle-plugin:1.0.0-RC2")
         classpath("gradle.plugin.org.jetbrains.intellij.plugins:gradle-intellij-plugin:0.2.9")
+        classpath("com.github.jengelman.gradle.plugins:shadow:2.0.1")
     }
 }
 
@@ -29,6 +30,7 @@ apply {
     plugin("java-gradle-plugin")
     plugin("maven-publish")
     plugin("kotlin")
+    plugin("com.github.johnrengelman.shadow")
 }
 
 val projectGroup = "org.jetbrains.intellij.plugins"
