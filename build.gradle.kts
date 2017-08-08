@@ -1,5 +1,6 @@
 import org.jetbrains.intellij.IntelliJPluginExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.gradle.jvm.tasks.Jar
 
 buildscript {
     extra["kotlinVersion"] = "1.1.4-eap-69"
@@ -81,6 +82,12 @@ tasks {
 			jvmTarget = "1.8"
 		}
 	}
+
+    withType<Jar> {
+        from("build/classes/kotlin/main") {
+            include("org/jetbrains/intellij/*.*", "org/jetbrains/idea/inspections/*.*")
+        }
+    }
 
 	dependencies {
 		compile("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
