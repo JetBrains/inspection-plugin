@@ -5,15 +5,15 @@ import org.gradle.api.logging.LogLevel
 open class InspectionPluginExtension(
         // Which properties are needed?
         // Number of IDEA version
-        var ideaVersion: String,
+        open var ideaVersion: String,
         // List of necessary IDEA plugin
-        var ideaPlugins: List<String>,
+        open var ideaPlugins: Array<String>,
         // List of necessary inspections to run
-        var errorClasses: List<String>,
-        var warningClasses: List<String>,
-        var infoClasses: List<String>
+        open var errorClasses: Array<String>,
+        open var warningClasses: Array<String>,
+        open var infoClasses: Array<String>
 ) {
-    constructor(): this("", emptyList(), emptyList(), emptyList(), emptyList())
+    constructor(): this("ideaIC:2017.2", emptyArray(), emptyArray(), emptyArray(), emptyArray())
 
     val inspectionClasses get() = errorClasses + warningClasses + infoClasses
 
