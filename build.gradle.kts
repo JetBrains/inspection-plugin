@@ -77,8 +77,6 @@ repositories {
 }
 
 tasks {
-    val kotlinVersion = "1.1.4-eap-69"
-
 	withType<KotlinCompile> {
 		kotlinOptions {
 			jvmTarget = "1.8"
@@ -91,14 +89,17 @@ tasks {
             include("org/jetbrains/intellij/*.*", "org/jetbrains/idea/inspections/*.*")
         }
     }
-
-	dependencies {
-		compile("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
-		compile("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
-        compile(gradleApi())
-
-		testCompile("org.junit.jupiter:junit-jupiter-api:5.0.0-RC2")
-		testRuntime("org.junit.jupiter:junit-jupiter-engine:5.0.0-RC2")
-		testRuntime("org.junit.platform:junit-platform-launcher:1.0.0-RC2")
-	}
 }
+
+dependencies {
+    compile("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
+    compile("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
+    compile(gradleApi())
+
+    runtime("com.jetbrains:ideaIC:2017.2")
+
+    testCompile("org.junit.jupiter:junit-jupiter-api:5.0.0-RC2")
+    testRuntime("org.junit.jupiter:junit-jupiter-engine:5.0.0-RC2")
+    testRuntime("org.junit.platform:junit-platform-launcher:1.0.0-RC2")
+}
+
