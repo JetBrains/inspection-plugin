@@ -1,6 +1,4 @@
-import org.jetbrains.intellij.IntelliJPluginExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-import org.gradle.jvm.tasks.Jar
 
 buildscript {
     extra["kotlinVersion"] = "1.1.4"
@@ -16,8 +14,6 @@ buildscript {
 	dependencies {
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
         classpath("org.junit.platform:junit-platform-gradle-plugin:1.0.0-RC2")
-        classpath("gradle.plugin.org.jetbrains.intellij.plugins:gradle-intellij-plugin:0.2.9")
-        classpath("com.github.jengelman.gradle.plugins:shadow:2.0.1")
     }
 }
 
@@ -25,11 +21,9 @@ val kotlinVersion: String by extra
 
 apply {
 	plugin("org.junit.platform.gradle.plugin")
-    plugin("org.jetbrains.intellij")
     plugin("java-gradle-plugin")
     plugin("maven-publish")
     plugin("kotlin")
-    plugin("com.github.johnrengelman.shadow")
 }
 
 val projectGroup = "org.jetbrains.intellij.plugins"
@@ -38,11 +32,6 @@ val projectName = "inspection-plugin"
 
 group = projectGroup
 version = projectVersion
-
-configure<IntelliJPluginExtension> {
-    version = "IC-2017.2"
-    setPlugins("Kotlin")
-}
 
 configure<GradlePluginDevelopmentExtension> {
     plugins {
@@ -72,29 +61,41 @@ configure<PublishingExtension> {
 repositories {
 	mavenCentral()
     mavenLocal()
+    maven { setUrl("https://www.jetbrains.com/intellij-repository/releases") }
+    maven { setUrl("https://www.jetbrains.com/intellij-repository/snapshots") }
+}
+
+configurations {
+    create("idea")
+
+    dependencies {
+        add("idea", create("com.jetbrains.intellij.idea:ideaIC:2017.2@zip"))
+    }
+}
+
+task<Sync>(name = "unzip") {
+    val idea = configurations.getByName("idea")
+    dependsOn(idea)
+
+    from(zipTree(idea.singleFile))
+
+    into("$buildDir/idea")
 }
 
 tasks {
 	withType<KotlinCompile> {
+        setShouldRunAfter(listOf(tasks.getByName("unzip")))
 		kotlinOptions {
 			jvmTarget = "1.8"
 		}
 	}
-
-    // TODO: clarify why these strings are needed
-    withType<Jar> {
-        from("build/classes/kotlin/main") {
-            include("org/jetbrains/intellij/*.*", "org/jetbrains/idea/inspections/*.*")
-        }
-    }
 }
 
 dependencies {
     compile("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
     compile("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
     compile(gradleApi())
-
-    runtime("com.jetbrains:ideaIC:2017.2")
+    compile(fileTree(mapOf("dir" to "$buildDir/idea/lib", "include" to "*.jar")))
 
     testCompile("org.junit.jupiter:junit-jupiter-api:5.0.0-RC2")
     testRuntime("org.junit.jupiter:junit-jupiter-engine:5.0.0-RC2")
