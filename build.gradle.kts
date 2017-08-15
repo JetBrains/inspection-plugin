@@ -3,14 +3,13 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.gradle.jvm.tasks.Jar
 
 buildscript {
-    extra["kotlinVersion"] = "1.1.4-eap-69"
+    extra["kotlinVersion"] = "1.1.4"
     val kotlinVersion: String by extra
 
 	repositories {
 		mavenCentral()
         mavenLocal()
         jcenter()
-		maven { setUrl("https://dl.bintray.com/kotlin/kotlin-eap-1.1") }
         maven { setUrl("https://plugins.gradle.org/m2/") }
 	}
 
@@ -73,7 +72,6 @@ configure<PublishingExtension> {
 repositories {
 	mavenCentral()
     mavenLocal()
-	maven { setUrl("https://dl.bintray.com/kotlin/kotlin-eap-1.1") }
 }
 
 tasks {
