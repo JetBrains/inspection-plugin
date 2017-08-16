@@ -12,6 +12,9 @@ import org.gradle.api.logging.Logger
 import org.jetbrains.intellij.InspectionPluginExtension
 
 class InspectionRunner(
+        private val maxErrors: Int,
+        private val maxWarnings: Int,
+        private val showViolations: Boolean,
         private vararg val inspectionClasses: String
 ) {
     private val ideaProjectManager = ProjectManager.getInstance()

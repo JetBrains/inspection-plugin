@@ -1,37 +1,93 @@
 package org.jetbrains.intellij
 
-import org.gradle.api.Project
-import org.gradle.api.Plugin
+import org.gradle.api.artifacts.Configuration
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
+import org.gradle.api.plugins.quality.CodeQualityExtension
+import org.gradle.api.plugins.quality.internal.AbstractCodeQualityPlugin
+import org.gradle.api.tasks.SourceSet
+import java.io.File
+import java.util.concurrent.Callable
 
-open class InspectionPlugin : Plugin<Project> {
-    companion object {
-        private val LOG: Logger = Logging.getLogger(InspectionPlugin::class.java)
+open class InspectionPlugin : AbstractCodeQualityPlugin<Inspection>() {
+
+    private val inspectionExtension: InspectionPluginExtension get() = extension as InspectionPluginExtension
+
+    override fun getToolName(): String = "IDEA Inspections"
+
+    override fun getTaskType(): Class<Inspection> = Inspection::class.java
+
+    override fun getConfigurationName(): String = SHORT_NAME
+
+    override fun getTaskBaseName(): String = SHORT_NAME
+
+    override fun getReportName(): String = SHORT_NAME
+
+    override fun createExtension(): CodeQualityExtension {
+        val extension = project.extensions.create(SHORT_NAME, InspectionPluginExtension::class.java, project)
+        extension.ideaVersion = DEFAULT_IDEA_VERSION
+
+        extension.configDir = project.file("config/$SHORT_NAME")
+        extension.config = project.resources.text.fromFile(Callable<File> { File(extension.configDir, "$SHORT_NAME.xml") })
+        return extension
     }
-    override fun apply(target: Project) {
-        //target.buildscript.dependencies.add("classpath", target.fileTree(UnzipTask.cacheDirectory.name + "/lib"))
-        LOG.debug("1")
-        val idea = target.configurations.create("idea")
-        val inspectionExtension = target.extensions.create("inspections", InspectionPluginExtension::class.java)
-        LOG.debug("2")
-        with (inspectionExtension) {
-            LOG.debug("ideaVersion = $ideaVersion")
-            target.repositories.maven { it.setUrl("https://www.jetbrains.com/intellij-repository/releases") }
-            target.dependencies.add(idea.name, "com.jetbrains.intellij.idea:$ideaVersion")
-        }
-        LOG.debug("3")
-        val unzipTask = target.tasks.create("unzip", UnzipTask::class.java)
-        with (unzipTask) {
 
+    override fun beforeApply() {
+        super.beforeApply()
+
+        project.repositories.maven { it.setUrl("https://www.jetbrains.com/intellij-repository/releases") }
+        project.tasks.create("unzip", UnzipTask::class.java)
+    }
+
+    override fun configureTaskDefaults(task: Inspection, baseName: String) {
+        val configuration = project.configurations.getAt(SHORT_NAME)
+
+        val unzipTask = project.tasks.getAt("unzip")
+        task.setShouldRunAfter(listOf(unzipTask))
+
+        configureDefaultDependencies(configuration)
+        configureTaskConventionMapping(task)
+        configureReportsConventionMapping(task, baseName)
+    }
+
+    private fun configureDefaultDependencies(configuration: Configuration) {
+        configuration.defaultDependencies { dependencies ->
+            LOG.info("XXXXXXXXXXX Configuring default dependencies for configuration ${configuration.name}")
+            dependencies.add(project.dependencies.create("com.jetbrains.intellij.idea:${inspectionExtension.ideaVersion}"))
         }
-        LOG.debug("4")
-        val inspectionTask = target.tasks.create("analyze", InspectionTask::class.java)
-        with (inspectionTask) {
-            this.setShouldRunAfter(listOf(unzipTask))
+    }
+
+    private fun configureTaskConventionMapping(task: Inspection) {
+        LOG.info("XXXXXXXXXXX Configuring task ${task.name} convention mapping")
+        val taskMapping = task.conventionMapping
+        taskMapping.map("config") { inspectionExtension.config }
+        taskMapping.map("configProperties") { inspectionExtension.configProperties }
+        taskMapping.map("ignoreFailures") { inspectionExtension.isIgnoreFailures }
+        taskMapping.map("showViolations") { inspectionExtension.isShowViolations }
+        taskMapping.map("maxErrors") { inspectionExtension.maxErrors }
+        taskMapping.map("maxWarnings") { inspectionExtension.maxWarnings }
+    }
+
+    private fun configureReportsConventionMapping(task: Inspection, baseName: String) {
+        task.reports.all { report ->
+            val reportMapping = AbstractCodeQualityPlugin.conventionMappingOf(report)
+            reportMapping.map("enabled") { true }
+            reportMapping.map("destination") { File(inspectionExtension.reportsDir, "$baseName.${report.name}") }
         }
-        LOG.debug("5")
-        inspectionTask.shouldRunAfter(unzipTask)
-        LOG.debug("6")
+    }
+
+    override fun configureForSourceSet(sourceSet: SourceSet, task: Inspection) {
+        task.description = "Run IDEA inspections for " + sourceSet.name + " classes"
+        task.classpath = sourceSet.output.plus(sourceSet.compileClasspath)
+        task.setSourceSet(sourceSet.allSource)
+    }
+
+    companion object {
+
+        val DEFAULT_IDEA_VERSION = "ideaIC:2017.2"
+
+        private val LOG: Logger = Logging.getLogger(InspectionPlugin::class.java)
+
+        internal val SHORT_NAME = "inspections"
     }
 }
