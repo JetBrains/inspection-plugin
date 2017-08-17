@@ -9,6 +9,7 @@ import com.intellij.psi.PsiManager
 import org.gradle.api.file.FileTree
 import org.gradle.api.logging.LogLevel
 import org.gradle.api.logging.Logger
+import org.gradle.api.logging.Logging
 import org.jdom.Document
 import org.jdom.Element
 import org.jdom.output.XMLOutputter
@@ -22,10 +23,7 @@ class InspectionRunner(
         private val inspectionClasses: InspectionClassesSuite,
         private val reports: IdeaCheckstyleReports
 ) {
-    private val ideaProjectManager = ProjectManager.getInstance()
-    private val ideaProject = ideaProjectManager.defaultProject // FIXME
-    private val psiManager = PsiManager.getInstance(ideaProject)
-    private val virtualFileManager = VirtualFileManager.getInstance()
+    private val logger = Logging.getLogger(InspectionRunner::class.java)
 
     private fun ProblemDescriptor.level(default: LogLevel?): LogLevel? = when (highlightType) {
         ProblemHighlightType.ERROR, ProblemHighlightType.GENERIC_ERROR -> LogLevel.ERROR
@@ -111,6 +109,15 @@ class InspectionRunner(
     }
 
     private fun analyzeTree(tree: FileTree): Map<String, List<ProblemDescriptor>> {
+        logger.info("Before project manager creation")
+        val ideaProjectManager = ProjectManager.getInstance()
+        logger.info("Before project creation")
+        val ideaProject = ideaProjectManager.defaultProject // FIXME
+        logger.info("Before psi manager creation")
+        val psiManager = PsiManager.getInstance(ideaProject)
+        logger.info("Before virtual file manager creation")
+        val virtualFileManager = VirtualFileManager.getInstance()
+
         val results: MutableMap<String, MutableList<ProblemDescriptor>> = mutableMapOf()
         for (inspectionClass in inspectionClasses.classes) {
             @Suppress("UNCHECKED_CAST")
