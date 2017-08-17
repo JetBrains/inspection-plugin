@@ -9,20 +9,25 @@ import com.intellij.psi.PsiManager
 import org.gradle.api.file.FileTree
 import org.gradle.api.logging.LogLevel
 import org.gradle.api.logging.Logger
+import org.jdom.Document
+import org.jdom.Element
+import org.jdom.output.XMLOutputter
+import org.jetbrains.intellij.IdeaCheckstyleReports
 import org.jetbrains.intellij.InspectionClassesSuite
 
 class InspectionRunner(
         private val maxErrors: Int,
         private val maxWarnings: Int,
         private val showViolations: Boolean,
-        private val inspectionClasses: InspectionClassesSuite
+        private val inspectionClasses: InspectionClassesSuite,
+        private val reports: IdeaCheckstyleReports
 ) {
     private val ideaProjectManager = ProjectManager.getInstance()
     private val ideaProject = ideaProjectManager.defaultProject // FIXME
     private val psiManager = PsiManager.getInstance(ideaProject)
     private val virtualFileManager = VirtualFileManager.getInstance()
 
-    private fun ProblemDescriptor.level(default: LogLevel): LogLevel = when (highlightType) {
+    private fun ProblemDescriptor.level(default: LogLevel?): LogLevel? = when (highlightType) {
         ProblemHighlightType.ERROR, ProblemHighlightType.GENERIC_ERROR -> LogLevel.ERROR
         ProblemHighlightType.WEAK_WARNING -> LogLevel.WARN
         ProblemHighlightType.INFORMATION -> LogLevel.INFO
@@ -42,16 +47,44 @@ class InspectionRunner(
         val results = analyzeTree(tree)
         var errors = 0
         var warnings = 0
+
+        val xmlReport = reports.xml
+        val xmlEnabled = xmlReport.isEnabled
+        val xmlRoot = Element("report")
+        val errorsRoot = Element("errors")
+        val errorElements = mutableListOf<Element>()
+        val warningsRoot = Element("warnings")
+        val warningElements = mutableListOf<Element>()
+        val infosRoot = Element("infos")
+        val infoElements = mutableListOf<Element>()
+
         for ((inspectionClass, problems) in results) {
             for (problem in problems) {
-                val level = problem.level(inspectionClasses.getLevel(inspectionClass))
+                val level = problem.level(inspectionClasses.getLevel(inspectionClass)) ?: continue
                 when (level) {
                     LogLevel.ERROR -> errors++
                     LogLevel.WARN -> warnings++
                     else -> {}
                 }
+                val renderedText = problem.render()
                 if (showViolations) {
-                    logger.log(level, problem.render())
+                    logger.log(level, renderedText)
+                }
+                if (xmlEnabled) {
+                    val element = Element(when (level) {
+                        LogLevel.ERROR -> "error"
+                        LogLevel.WARN -> "warning"
+                        else -> "info"
+                    })
+                    element.setAttribute("class", inspectionClass)
+                    element.setAttribute("text", renderedText)
+                    element.setAttribute("file", problem.psiElement.containingFile.name)
+                    element.setAttribute("line", problem.lineNumber.toString())
+                    when (level) {
+                        LogLevel.ERROR -> errorElements += element
+                        LogLevel.WARN -> warningElements += element
+                        else -> infoElements += element
+                    }
                 }
                 if (errors >= maxErrors) {
                     logger.error("Too many errors found: $errors. Analysis stopped")
@@ -62,6 +95,18 @@ class InspectionRunner(
                     return
                 }
             }
+        }
+
+        val xmlReportFile = xmlReport.destination.takeIf { xmlEnabled }
+        if (xmlReportFile != null) {
+            errorsRoot.setContent(errorElements)
+            warningsRoot.setContent(warningElements)
+            infosRoot.setContent(infoElements)
+            xmlRoot.addContent(errorsRoot)
+            xmlRoot.addContent(warningsRoot)
+            xmlRoot.addContent(infosRoot)
+            val document = Document(xmlRoot)
+            XMLOutputter().output(document, xmlReportFile.outputStream())
         }
     }
 
