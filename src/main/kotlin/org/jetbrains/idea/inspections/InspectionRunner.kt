@@ -40,9 +40,27 @@ class InspectionRunner(
     fun analyzeTreeAndLogResults(tree: FileTree, logger: Logger) {
         logger.info("Input classes: " + inspectionClasses.classes)
         val results = analyzeTree(tree)
+        var errors = 0
+        var warnings = 0
         for ((inspectionClass, problems) in results) {
             for (problem in problems) {
-                logger.log(problem.level(inspectionClasses.getLevel(inspectionClass)), problem.render())
+                val level = problem.level(inspectionClasses.getLevel(inspectionClass))
+                when (level) {
+                    LogLevel.ERROR -> errors++
+                    LogLevel.WARN -> warnings++
+                    else -> {}
+                }
+                if (showViolations) {
+                    logger.log(level, problem.render())
+                }
+                if (errors >= maxErrors) {
+                    logger.error("Too many errors found: $errors. Analysis stopped")
+                    return
+                }
+                if (warnings >= maxWarnings) {
+                    logger.error("Too many warnings found: $warnings. Analysis stopped")
+                    return
+                }
             }
         }
     }
