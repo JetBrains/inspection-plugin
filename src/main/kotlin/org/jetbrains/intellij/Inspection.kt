@@ -12,6 +12,7 @@ import org.gradle.api.reporting.Reporting
 import org.gradle.api.resources.TextResource
 import org.gradle.api.tasks.*
 import org.gradle.api.tasks.Optional
+import org.jdom.input.SAXBuilder
 import org.jetbrains.idea.inspections.InspectionRunner
 import java.io.File
 import java.util.*
@@ -136,14 +137,26 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
         return reports
     }
 
+    private fun readInspectionClassesFromConfigFile(): InspectionClassesSuite {
+        val builder = SAXBuilder()
+        val document = builder.build(configFile)
+        val root = document.rootElement
+
+        val errorClasses = root.getChild("errors").children.map { it.getAttributeValue("class") }
+        val warningClasses = root.getChild("warnings").children.map { it.getAttributeValue("class") }
+        val infoClasses = root.getChild("infos").children.map { it.getAttributeValue("class") }
+
+        return InspectionClassesSuite(errorClasses, warningClasses, infoClasses)
+    }
+
     @TaskAction
     fun run() {
         try {
             val extension = project.extensions.findByType(InspectionPluginExtension::class.java)
-            val inspectionClasses = extension.inspectionClasses
+            val inspectionClasses = readInspectionClassesFromConfigFile()
 
-            val runner = InspectionRunner(maxErrors, maxWarnings, showViolations, *inspectionClasses)
-            runner.analyzeTreeAndLogResults(getSource(), extension, logger)
+            val runner = InspectionRunner(maxErrors, maxWarnings, showViolations, inspectionClasses)
+            runner.analyzeTreeAndLogResults(getSource(), logger)
         }
         catch (e: Throwable) {
             logger.error(e.message)

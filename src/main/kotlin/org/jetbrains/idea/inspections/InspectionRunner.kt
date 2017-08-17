@@ -9,13 +9,13 @@ import com.intellij.psi.PsiManager
 import org.gradle.api.file.FileTree
 import org.gradle.api.logging.LogLevel
 import org.gradle.api.logging.Logger
-import org.jetbrains.intellij.InspectionPluginExtension
+import org.jetbrains.intellij.InspectionClassesSuite
 
 class InspectionRunner(
         private val maxErrors: Int,
         private val maxWarnings: Int,
         private val showViolations: Boolean,
-        private vararg val inspectionClasses: String
+        private val inspectionClasses: InspectionClassesSuite
 ) {
     private val ideaProjectManager = ProjectManager.getInstance()
     private val ideaProject = ideaProjectManager.defaultProject // FIXME
@@ -37,19 +37,19 @@ class InspectionRunner(
                             psiElement?.let { ProblemDescriptorUtil.extractHighlightedText(this, it) } ?: ""
                     ), " #loc ", " ")
 
-    fun analyzeTreeAndLogResults(tree: FileTree, extension: InspectionPluginExtension, logger: Logger) {
-        logger.info("Input classes: " + inspectionClasses.toList().toString())
+    fun analyzeTreeAndLogResults(tree: FileTree, logger: Logger) {
+        logger.info("Input classes: " + inspectionClasses.classes)
         val results = analyzeTree(tree)
         for ((inspectionClass, problems) in results) {
             for (problem in problems) {
-                logger.log(problem.level(extension.getLevel(inspectionClass)), problem.render())
+                logger.log(problem.level(inspectionClasses.getLevel(inspectionClass)), problem.render())
             }
         }
     }
 
     private fun analyzeTree(tree: FileTree): Map<String, List<ProblemDescriptor>> {
         val results: MutableMap<String, MutableList<ProblemDescriptor>> = mutableMapOf()
-        for (inspectionClass in inspectionClasses) {
+        for (inspectionClass in inspectionClasses.classes) {
             @Suppress("UNCHECKED_CAST")
             val inspectionTool = (Class.forName(inspectionClass) as Class<LocalInspectionTool>).newInstance()
             val inspectionResults = mutableListOf<ProblemDescriptor>()

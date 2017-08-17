@@ -77,16 +77,4 @@ open class InspectionPluginExtension(private val project: Project) : CodeQuality
     var ideaVersion: String = ""
 
     var ideaPlugins: Array<String> = emptyArray()
-
-    var errorClasses: Array<String> = emptyArray()
-    var warningClasses: Array<String> = emptyArray()
-    var infoClasses: Array<String> = emptyArray()
-
-    val inspectionClasses get() = errorClasses + warningClasses + infoClasses
-
-    fun getLevel(inspectionClass: String) = when (inspectionClass) {
-        in errorClasses -> LogLevel.ERROR
-        in warningClasses -> LogLevel.WARN
-        else -> LogLevel.INFO
-    }
 }
