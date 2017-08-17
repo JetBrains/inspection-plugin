@@ -1,11 +1,18 @@
 package org.jetbrains.idea.inspections
 
 import com.intellij.codeInspection.*
-import com.intellij.openapi.project.ProjectManager
+import com.intellij.core.CoreApplicationEnvironment
+import com.intellij.ide.ApplicationLoadListener
+import com.intellij.ide.impl.ProjectUtil
+import com.intellij.ide.plugins.PluginManagerCore
+import com.intellij.idea.createCommandLineApplication
+import com.intellij.openapi.application.ex.ApplicationManagerEx
+import com.intellij.openapi.extensions.Extensions
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
+import com.intellij.util.PlatformUtils
 import org.gradle.api.file.FileTree
 import org.gradle.api.logging.LogLevel
 import org.gradle.api.logging.Logger
@@ -17,13 +24,16 @@ import org.jetbrains.intellij.IdeaCheckstyleReports
 import org.jetbrains.intellij.InspectionClassesSuite
 
 class InspectionRunner(
+        private val projectPath: String,
         private val maxErrors: Int,
         private val maxWarnings: Int,
         private val showViolations: Boolean,
         private val inspectionClasses: InspectionClassesSuite,
         private val reports: IdeaCheckstyleReports
 ) {
-    private val logger = Logging.getLogger(InspectionRunner::class.java)
+    companion object {
+        val logger = Logging.getLogger(InspectionRunner::class.java)
+    }
 
     private fun ProblemDescriptor.level(default: LogLevel?): LogLevel? = when (highlightType) {
         ProblemHighlightType.ERROR, ProblemHighlightType.GENERIC_ERROR -> LogLevel.ERROR
@@ -42,7 +52,7 @@ class InspectionRunner(
 
     fun analyzeTreeAndLogResults(tree: FileTree, logger: Logger) {
         logger.info("Input classes: " + inspectionClasses.classes)
-        val results = analyzeTree(tree)
+        val results = analyzeTreeInIdea(tree, logger)
         var errors = 0
         var warnings = 0
 
@@ -108,11 +118,46 @@ class InspectionRunner(
         }
     }
 
-    private fun analyzeTree(tree: FileTree): Map<String, List<ProblemDescriptor>> {
-        logger.info("Before project manager creation")
-        val ideaProjectManager = ProjectManager.getInstance()
+    private val AWT_HEADLESS = "java.awt.headless"
+
+    private fun registerExtensionPoints() {
+        val rootArea = Extensions.getRootArea()
+        CoreApplicationEnvironment.registerExtensionPoint(
+                rootArea, ApplicationLoadListener.EP_NAME, ApplicationLoadListener::class.java)
+    }
+
+    private fun analyzeTreeInIdea(tree: FileTree, logger: Logger): Map<String, List<ProblemDescriptor>> {
+        System.setProperty(AWT_HEADLESS, "true")
+        System.setProperty(PlatformUtils.PLATFORM_PREFIX_KEY, PlatformUtils.getPlatformPrefix(PlatformUtils.IDEA_CE_PREFIX))
+        createCommandLineApplication(isInternal = false, isUnitTestMode = false, isHeadless = true)
+        PluginManagerCore.getPlugins()
+        //registerExtensionPoints()
+        ApplicationManagerEx.getApplicationEx().load()
+        val application = ApplicationManagerEx.getApplicationEx() ?: run {
+            logger.error("Cannot create IDEA application")
+            return emptyMap()
+        }
+        var result: Map<String, List<ProblemDescriptor>>? = null
+        application.runReadAction {
+            try {
+                application.doNotSave()
+
+                result = analyzeTree(tree, logger)
+            } catch (e: Exception) {
+                logger.error("EXCEPTION caught in exception plugin (runReadAction): " + e)
+            } finally {
+                application.exit(true, true)
+            }
+        }
+        return result ?: emptyMap()
+    }
+
+    private fun analyzeTree(tree: FileTree, logger: Logger): Map<String, List<ProblemDescriptor>> {
         logger.info("Before project creation")
-        val ideaProject = ideaProjectManager.defaultProject // FIXME
+        val ideaProject = ProjectUtil.openOrImport(projectPath, null, false) ?: run {
+            logger.error("Cannot open IDEA project: $projectPath")
+            return emptyMap()
+        }
         logger.info("Before psi manager creation")
         val psiManager = PsiManager.getInstance(ideaProject)
         logger.info("Before virtual file manager creation")

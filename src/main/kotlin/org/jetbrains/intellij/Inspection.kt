@@ -161,7 +161,8 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
         try {
             val inspectionClasses = readInspectionClassesFromConfigFile()
 
-            val runner = InspectionRunner(maxErrors, maxWarnings, showViolations, inspectionClasses, reports)
+            val runner = InspectionRunner(
+                    project.path, maxErrors, maxWarnings, showViolations, inspectionClasses, reports)
             runner.analyzeTreeAndLogResults(getSource(), logger)
         }
         catch (e: Throwable) {
