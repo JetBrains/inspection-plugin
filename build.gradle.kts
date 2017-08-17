@@ -101,5 +101,6 @@ dependencies {
     testCompile("org.junit.jupiter:junit-jupiter-api:5.0.0-RC2")
     testRuntime("org.junit.jupiter:junit-jupiter-engine:5.0.0-RC2")
     testRuntime("org.junit.platform:junit-platform-launcher:1.0.0-RC2")
+    testCompile(gradleTestKit())
 }
 
