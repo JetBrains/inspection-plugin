@@ -165,7 +165,7 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
             runner.analyzeTreeAndLogResults(getSource(), logger)
         }
         catch (e: Throwable) {
-            logger.error(e.message)
+            logger.error("EXCEPTION caught in inspections plugin: " + e.message)
             throw TaskExecutionException(this, Exception("Exception occurred in analyze task", e))
         }
     }
