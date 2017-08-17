@@ -3,7 +3,6 @@ package org.jetbrains.intellij
 import groovy.lang.Closure
 import groovy.lang.DelegatesTo
 import org.gradle.api.Action
-import org.gradle.api.Incubating
 import org.gradle.api.file.FileCollection
 import org.gradle.api.file.FileTree
 import org.gradle.api.internal.ClosureBackedAction
@@ -32,10 +31,11 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
      *
      * @since 2.2
      */
-    @get:Incubating
-    //@get:Nested
-    @set:Incubating
-    lateinit var config: TextResource
+    var config: TextResource
+        get() = extension.config
+        set(value) {
+            extension.config = value
+        }
 
     /**
      * The properties available for use in the configuration file. These are substituted into the configuration file.
@@ -47,6 +47,7 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
     private val reports = IdeaCheckstyleReports(this)
     private var ignoreFailures: Boolean = false
 
+    private val extension get() = project.extensions.findByType(InspectionPluginExtension::class.java)!!
     /**
      * The maximum number of errors that are tolerated before breaking the build
      * or setting the failure property.
@@ -54,8 +55,11 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
      * @since 3.4
      * @return the maximum number of errors allowed
      */
-    @get:Input
-    var maxErrors: Int = 0
+    var maxErrors: Int
+        @Input get() = extension.maxErrors
+        set(value) {
+            extension.maxErrors = value
+        }
 
     /**
      * The maximum number of warnings that are tolerated before breaking the build
@@ -64,8 +68,11 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
      * @since 3.4
      * @return the maximum number of warnings allowed
      */
-    @get:Input
-    var maxWarnings = Integer.MAX_VALUE
+    var maxWarnings: Int
+        @Input get() = extension.maxWarnings
+        set(value) {
+            extension.maxWarnings = value
+        }
 
     /**
      * Whether rule violations are to be displayed on the console.
@@ -74,7 +81,11 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
      */
 
     @get:Console
-    var showViolations = true
+    var showViolations: Boolean
+        @Input get() = extension.isShowViolations
+        set(value) {
+            extension.isShowViolations = value
+        }
 
 
     /**
@@ -148,7 +159,6 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
     @TaskAction
     fun run() {
         try {
-            val extension = project.extensions.findByType(InspectionPluginExtension::class.java)
             val inspectionClasses = readInspectionClassesFromConfigFile()
 
             val runner = InspectionRunner(maxErrors, maxWarnings, showViolations, inspectionClasses, reports)

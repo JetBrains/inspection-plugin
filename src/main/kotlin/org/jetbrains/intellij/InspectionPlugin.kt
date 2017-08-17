@@ -46,7 +46,6 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<Inspection>() {
         task.setShouldRunAfter(listOf(unzipTask))
 
         configureDefaultDependencies(configuration)
-        configureTaskConventionMapping(task)
         configureReportsConventionMapping(task, baseName)
     }
 
@@ -55,17 +54,6 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<Inspection>() {
             LOG.info("XXXXXXXXXXX Configuring default dependencies for configuration ${configuration.name}")
             dependencies.add(project.dependencies.create("com.jetbrains.intellij.idea:${inspectionExtension.ideaVersion}"))
         }
-    }
-
-    private fun configureTaskConventionMapping(task: Inspection) {
-        LOG.info("XXXXXXXXXXX Configuring task ${task.name} convention mapping")
-        val taskMapping = task.conventionMapping
-        taskMapping.map("config") { inspectionExtension.config }
-        taskMapping.map("configProperties") { inspectionExtension.configProperties }
-        taskMapping.map("ignoreFailures") { inspectionExtension.isIgnoreFailures }
-        taskMapping.map("showViolations") { inspectionExtension.isShowViolations }
-        taskMapping.map("maxErrors") { inspectionExtension.maxErrors }
-        taskMapping.map("maxWarnings") { inspectionExtension.maxWarnings }
     }
 
     private fun configureReportsConventionMapping(task: Inspection, baseName: String) {
