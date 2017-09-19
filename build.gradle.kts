@@ -84,7 +84,7 @@ task<Sync>(name = "unzip") {
 
 tasks {
 	withType<KotlinCompile> {
-        setShouldRunAfter(listOf(tasks.getByName("unzip")))
+        dependsOn(listOf(tasks.getByName("unzip")))
 		kotlinOptions {
 			jvmTarget = "1.8"
 		}
