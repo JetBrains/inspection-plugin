@@ -43,7 +43,7 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<Inspection>() {
         val configuration = project.configurations.getAt(SHORT_NAME)
 
         val unzipTask = project.tasks.getAt("unzip")
-        task.setShouldRunAfter(listOf(unzipTask))
+        task.dependsOn += unzipTask
 
         configureDefaultDependencies(configuration)
         configureReportsConventionMapping(task, baseName)
