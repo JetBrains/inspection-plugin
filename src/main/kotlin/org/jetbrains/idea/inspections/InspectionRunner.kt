@@ -6,6 +6,7 @@ import com.intellij.ide.ApplicationLoadListener
 import com.intellij.ide.impl.ProjectUtil
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.idea.createCommandLineApplication
+import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.application.ex.ApplicationManagerEx
 import com.intellij.openapi.extensions.Extensions
 import com.intellij.openapi.util.text.StringUtil
@@ -16,12 +17,12 @@ import com.intellij.util.PlatformUtils
 import org.gradle.api.file.FileTree
 import org.gradle.api.logging.LogLevel
 import org.gradle.api.logging.Logger
-import org.gradle.api.logging.Logging
 import org.jdom.Document
 import org.jdom.Element
 import org.jdom.output.XMLOutputter
 import org.jetbrains.intellij.IdeaCheckstyleReports
 import org.jetbrains.intellij.InspectionClassesSuite
+import org.jetbrains.intellij.UnzipTask
 
 class InspectionRunner(
         private val projectPath: String,
@@ -32,7 +33,8 @@ class InspectionRunner(
         private val reports: IdeaCheckstyleReports
 ) {
     companion object {
-        val logger = Logging.getLogger(InspectionRunner::class.java)
+        private val AWT_HEADLESS = "java.awt.headless"
+        private val IDEA_HOME_PATH = "idea.home.path"
     }
 
     private fun ProblemDescriptor.level(default: LogLevel?): LogLevel? = when (highlightType) {
@@ -118,8 +120,6 @@ class InspectionRunner(
         }
     }
 
-    private val AWT_HEADLESS = "java.awt.headless"
-
     private fun registerExtensionPoints() {
         val rootArea = Extensions.getRootArea()
         CoreApplicationEnvironment.registerExtensionPoint(
@@ -127,8 +127,10 @@ class InspectionRunner(
     }
 
     private fun analyzeTreeInIdea(tree: FileTree, logger: Logger): Map<String, List<ProblemDescriptor>> {
+        System.setProperty(IDEA_HOME_PATH, UnzipTask.cacheDirectory.path)
         System.setProperty(AWT_HEADLESS, "true")
         System.setProperty(PlatformUtils.PLATFORM_PREFIX_KEY, PlatformUtils.getPlatformPrefix(PlatformUtils.IDEA_CE_PREFIX))
+        logger.warn("IDEA home path: " + PathManager.getHomePath())
         createCommandLineApplication(isInternal = false, isUnitTestMode = false, isHeadless = true)
         PluginManagerCore.getPlugins()
         //registerExtensionPoints()

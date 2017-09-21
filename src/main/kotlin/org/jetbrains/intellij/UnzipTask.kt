@@ -8,7 +8,7 @@ import java.io.File
 open class UnzipTask : ConventionTask() {
 
     companion object {
-        private val cacheDirectory = File("lib/idea")
+        val cacheDirectory = File("lib/idea")
     }
 
     private val inspections: Configuration
