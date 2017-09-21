@@ -32,8 +32,7 @@ open class UnzipTask : ConventionTask() {
 
     @TaskAction
     fun unzip() {
-        logger.info("Unzipping IDEA")
-        logger.debug("Unzip 2")
+        logger.info("Unzip task started, checking marker file")
 
         val markerFile = markerFile
         if (markerFile.exists()) {
@@ -43,19 +42,19 @@ open class UnzipTask : ConventionTask() {
                 return
             }
         }
-        logger.debug("Unzip 3")
+        logger.warn("Unzipping IDEA from ${sourceFile.path} to ${destinationDir.path}")
         if (destinationDir.exists()) {
             destinationDir.deleteRecursively()
         }
         destinationDir.mkdir()
-        logger.debug("Unzip 4")
         project.copy {
             it.from(project.zipTree(sourceFile))
             it.into(destinationDir)
         }
-        logger.debug("Unzip 5")
-        val writer = markerFile.bufferedWriter()
-        writer.append(ideaVersion)
-        logger.debug("Unzip 10")
+        logger.debug("Unzipping finished")
+        markerFile.bufferedWriter().use {
+            it.append(ideaVersion)
+        }
+        logger.warn("IDEA marker file created at: " + markerFile.path)
     }
 }
