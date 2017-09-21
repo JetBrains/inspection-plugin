@@ -13,7 +13,7 @@ buildscript {
 
 	dependencies {
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
-        classpath("org.junit.platform:junit-platform-gradle-plugin:1.0.0-RC2")
+        classpath("org.junit.platform:junit-platform-gradle-plugin:1.0.0")
     }
 }
 
@@ -98,9 +98,9 @@ dependencies {
     compile("jdom:jdom:1.1")
     compile(fileTree(mapOf("dir" to "$buildDir/idea/lib", "include" to "*.jar")))
 
-    testCompile("org.junit.jupiter:junit-jupiter-api:5.0.0-RC2")
-    testRuntime("org.junit.jupiter:junit-jupiter-engine:5.0.0-RC2")
-    testRuntime("org.junit.platform:junit-platform-launcher:1.0.0-RC2")
+    testCompile("org.junit.jupiter:junit-jupiter-api:5.0.0")
+    testRuntime("org.junit.jupiter:junit-jupiter-engine:5.0.0")
+    testRuntime("org.junit.platform:junit-platform-launcher:1.0.0")
     testCompile(gradleTestKit())
 }
 
