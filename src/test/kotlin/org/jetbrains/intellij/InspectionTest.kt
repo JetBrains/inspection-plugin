@@ -26,8 +26,8 @@ class InspectionTest {
         buildFile = testProjectDir.newFile("build.gradle")
         testProjectDir.newFolder("config", "inspections")
         inspectionsFile = testProjectDir.newFile("config/inspections/inspections.xml")
-        testProjectDir.newFolder("src")
-        sourceFile = testProjectDir.newFile("src/main.kt")
+        testProjectDir.newFolder("src", "main", "kotlin")
+        sourceFile = testProjectDir.newFile("src/main/kotlin/main.kt")
     }
 
     @Test
