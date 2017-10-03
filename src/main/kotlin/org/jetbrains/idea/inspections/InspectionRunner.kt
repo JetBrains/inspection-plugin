@@ -14,6 +14,7 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.util.PlatformUtils
+import org.gradle.api.GradleException
 import org.gradle.api.file.FileTree
 import org.gradle.api.logging.LogLevel
 import org.gradle.api.logging.Logger
@@ -97,12 +98,10 @@ class InspectionRunner(
                     }
                 }
                 if (errors >= maxErrors) {
-                    logger.error("Too many errors found: $errors. Analysis stopped")
-                    return
+                    throw GradleException("Too many errors found: $errors. Analysis stopped")
                 }
                 if (warnings >= maxWarnings) {
-                    logger.error("Too many warnings found: $warnings. Analysis stopped")
-                    return
+                    throw GradleException("Too many warnings found: $warnings. Analysis stopped")
                 }
             }
         }
@@ -136,8 +135,7 @@ class InspectionRunner(
         //registerExtensionPoints()
         ApplicationManagerEx.getApplicationEx().load()
         val application = ApplicationManagerEx.getApplicationEx() ?: run {
-            logger.error("Cannot create IDEA application")
-            return emptyMap()
+            throw GradleException("Cannot create IDEA application")
         }
         var result: Map<String, List<ProblemDescriptor>>? = null
         application.runReadAction {
@@ -146,7 +144,8 @@ class InspectionRunner(
 
                 result = analyzeTree(tree, logger)
             } catch (e: Exception) {
-                logger.error("EXCEPTION caught in exception plugin (runReadAction): " + e)
+                if (e is GradleException) throw e
+                throw GradleException("EXCEPTION caught in inspection plugin (IDEA runReadAction): " + e, e)
             } finally {
                 application.exit(true, true)
             }
@@ -155,10 +154,9 @@ class InspectionRunner(
     }
 
     private fun analyzeTree(tree: FileTree, logger: Logger): Map<String, List<ProblemDescriptor>> {
-        logger.info("Before project creation")
+        logger.info("Before project creation at '$projectPath'")
         val ideaProject = ProjectUtil.openOrImport(projectPath, null, false) ?: run {
-            logger.error("Cannot open IDEA project: $projectPath")
-            return emptyMap()
+            throw GradleException("Cannot open IDEA project: '$projectPath'")
         }
         logger.info("Before psi manager creation")
         val psiManager = PsiManager.getInstance(ideaProject)

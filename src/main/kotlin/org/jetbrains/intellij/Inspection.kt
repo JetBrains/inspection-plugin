@@ -3,6 +3,7 @@ package org.jetbrains.intellij
 import groovy.lang.Closure
 import groovy.lang.DelegatesTo
 import org.gradle.api.Action
+import org.gradle.api.GradleException
 import org.gradle.api.file.FileCollection
 import org.gradle.api.file.FileTree
 import org.gradle.api.internal.ClosureBackedAction
@@ -167,7 +168,8 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
         }
         catch (e: Throwable) {
             logger.error("EXCEPTION caught in inspections plugin: " + e.message)
-            throw TaskExecutionException(this, Exception("Exception occurred in analyze task", e))
+            if (e is GradleException) throw e
+            throw GradleException("Exception occurred in analyze task", e)
         }
     }
 
