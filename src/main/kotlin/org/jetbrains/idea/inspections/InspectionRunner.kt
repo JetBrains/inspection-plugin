@@ -6,9 +6,11 @@ import com.intellij.ide.ApplicationLoadListener
 import com.intellij.ide.impl.ProjectUtil
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.idea.createCommandLineApplication
+import com.intellij.openapi.application.Application
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.application.ex.ApplicationManagerEx
 import com.intellij.openapi.extensions.Extensions
+import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiFile
@@ -54,7 +56,7 @@ class InspectionRunner(
                     ), " #loc ", " ")
 
     fun analyzeTreeAndLogResults(tree: FileTree, logger: Logger) {
-        logger.info("Input classes: " + inspectionClasses.classes)
+        logger.info("Input classes: " + inspectionClasses)
         val results = analyzeTreeInIdea(tree, logger)
         var errors = 0
         var warnings = 0
@@ -69,6 +71,7 @@ class InspectionRunner(
         val infosRoot = Element("infos")
         val infoElements = mutableListOf<Element>()
 
+        logger.info("Total of ${results.values.flatten().size} problems found")
         for ((inspectionClass, problems) in results) {
             for (problem in problems) {
                 val level = problem.level(inspectionClasses.getLevel(inspectionClass)) ?: continue
@@ -131,7 +134,9 @@ class InspectionRunner(
         System.setProperty(PlatformUtils.PLATFORM_PREFIX_KEY, PlatformUtils.getPlatformPrefix(PlatformUtils.IDEA_CE_PREFIX))
         logger.warn("IDEA home path: " + PathManager.getHomePath())
         createCommandLineApplication(isInternal = false, isUnitTestMode = false, isHeadless = true)
-        PluginManagerCore.getPlugins()
+        PluginManagerCore.addPluginClass(PluginId.getId("org.jetbrains.kotlin"))
+        PluginManagerCore.enablePlugin("Kotlin")
+        logger.info("Plugins enabled: " + PluginManagerCore.getPlugins().toList())
         //registerExtensionPoints()
         ApplicationManagerEx.getApplicationEx().load()
         val application = ApplicationManagerEx.getApplicationEx() ?: run {
@@ -141,7 +146,7 @@ class InspectionRunner(
         try {
             application.doNotSave()
 
-            result = analyzeTree(tree, logger)
+            result = application.analyzeTree(tree, logger)
         } catch (e: Exception) {
             if (e is GradleException) throw e
             throw GradleException("EXCEPTION caught in inspection plugin (IDEA runReadAction): " + e, e)
@@ -151,7 +156,7 @@ class InspectionRunner(
         return result ?: emptyMap()
     }
 
-    private fun analyzeTree(tree: FileTree, logger: Logger): Map<String, List<ProblemDescriptor>> {
+    private fun Application.analyzeTree(tree: FileTree, logger: Logger): Map<String, List<ProblemDescriptor>> {
         logger.info("Before project creation at '$projectPath'")
         val ideaProject = ProjectUtil.openOrImport(projectPath, null, false) ?: run {
             throw GradleException("Cannot open IDEA project: '$projectPath'")
@@ -160,6 +165,7 @@ class InspectionRunner(
         val psiManager = PsiManager.getInstance(ideaProject)
         logger.info("Before virtual file manager creation")
         val virtualFileManager = VirtualFileManager.getInstance()
+        val virtualFileSystem = virtualFileManager.getFileSystem("file")
 
         val results: MutableMap<String, MutableList<ProblemDescriptor>> = mutableMapOf()
         logger.info("Before inspections launched")
@@ -167,10 +173,15 @@ class InspectionRunner(
             @Suppress("UNCHECKED_CAST")
             val inspectionTool = (Class.forName(inspectionClass) as Class<LocalInspectionTool>).newInstance()
             val inspectionResults = mutableListOf<ProblemDescriptor>()
-            for (sourceFile in tree) {
-                val virtualFile = virtualFileManager.findFileByUrl(sourceFile.absolutePath) ?: continue
-                val psiFile = psiManager.findFile(virtualFile) ?: continue
-                inspectionResults += inspectionTool.analyze(psiFile)
+            runReadAction {
+                for (sourceFile in tree) {
+                    val filePath = sourceFile.absolutePath
+                    val virtualFile = virtualFileSystem.findFileByPath(filePath)
+                            ?: throw GradleException("Cannot find virtual file for $filePath")
+                    val psiFile = psiManager.findFile(virtualFile)
+                            ?: throw GradleException("Cannot find PSI file for $filePath")
+                    inspectionResults += inspectionTool.analyze(psiFile)
+                }
             }
             results[inspectionClass] = inspectionResults
         }
@@ -180,7 +191,7 @@ class InspectionRunner(
     private fun LocalInspectionTool.analyze(file: PsiFile): List<ProblemDescriptor> {
         val holder = ProblemsHolder(InspectionManager.getInstance(file.project), file, false)
         val visitor = this.buildVisitor(holder, false)
-        visitor.visitFile(file)
+        file.acceptChildren(visitor)
         return holder.results
     }
 }
