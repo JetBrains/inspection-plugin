@@ -101,6 +101,7 @@ dependencies {
     testCompile("org.junit.jupiter:junit-jupiter-api:5.0.0")
     testRuntime("org.junit.jupiter:junit-jupiter-engine:5.0.0")
     testRuntime("org.junit.platform:junit-platform-launcher:1.0.0")
+    testCompile(fileTree(mapOf("dir" to "$buildDir/idea/plugins/Kotlin/lib", "include" to "kotlin-plugin.jar")))
     testCompile(gradleTestKit())
 }
 

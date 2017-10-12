@@ -8,6 +8,8 @@ import org.junit.rules.TemporaryFolder
 import java.io.File
 import org.junit.Assert.*
 import org.gradle.testkit.runner.TaskOutcome.*
+import org.jetbrains.kotlin.idea.intentions.ConvertToStringTemplateInspection
+import kotlin.reflect.jvm.jvmName
 
 
 class InspectionTest {
@@ -81,7 +83,7 @@ sourceSets {
 <inspections>
     <errors>    </errors>
     <warnings>
-        <warning class = "org.jetbrains.kotlin.idea.intentions.ConvertToStringTemplateInspection"/>
+        <warning class = "${ConvertToStringTemplateInspection::class.jvmName}"/>
     </warnings>
     <infos>    </infos>
 </inspections>
