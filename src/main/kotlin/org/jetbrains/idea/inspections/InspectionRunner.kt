@@ -137,18 +137,16 @@ class InspectionRunner(
         val application = ApplicationManagerEx.getApplicationEx() ?: run {
             throw GradleException("Cannot create IDEA application")
         }
-        var result: Map<String, List<ProblemDescriptor>>? = null
-        application.runReadAction {
-            try {
-                application.doNotSave()
+        val result: Map<String, List<ProblemDescriptor>>?
+        try {
+            application.doNotSave()
 
-                result = analyzeTree(tree, logger)
-            } catch (e: Exception) {
-                if (e is GradleException) throw e
-                throw GradleException("EXCEPTION caught in inspection plugin (IDEA runReadAction): " + e, e)
-            } finally {
-                application.exit(true, true)
-            }
+            result = analyzeTree(tree, logger)
+        } catch (e: Exception) {
+            if (e is GradleException) throw e
+            throw GradleException("EXCEPTION caught in inspection plugin (IDEA runReadAction): " + e, e)
+        } finally {
+            application.exit(true, true)
         }
         return result ?: emptyMap()
     }
@@ -164,6 +162,7 @@ class InspectionRunner(
         val virtualFileManager = VirtualFileManager.getInstance()
 
         val results: MutableMap<String, MutableList<ProblemDescriptor>> = mutableMapOf()
+        logger.info("Before inspections launched")
         for (inspectionClass in inspectionClasses.classes) {
             @Suppress("UNCHECKED_CAST")
             val inspectionTool = (Class.forName(inspectionClass) as Class<LocalInspectionTool>).newInstance()
