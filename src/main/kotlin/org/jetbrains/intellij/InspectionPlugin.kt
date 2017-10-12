@@ -37,6 +37,7 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<Inspection>() {
 
         project.repositories.maven { it.setUrl("https://www.jetbrains.com/intellij-repository/releases") }
         project.tasks.create("unzip", UnzipTask::class.java)
+        project.plugins.apply("idea")
     }
 
     override fun configureTaskDefaults(task: Inspection, baseName: String) {
@@ -44,6 +45,8 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<Inspection>() {
 
         val unzipTask = project.tasks.getAt("unzip")
         task.dependsOn += unzipTask
+        val ideaTask = project.tasks.getAt("idea")
+        task.dependsOn += ideaTask
 
         configureDefaultDependencies(configuration)
         configureReportsConventionMapping(task, baseName)
