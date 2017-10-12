@@ -8,6 +8,7 @@ import org.junit.rules.TemporaryFolder
 import java.io.File
 import org.junit.Assert.*
 import org.gradle.testkit.runner.TaskOutcome.*
+import org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection
 import org.jetbrains.kotlin.idea.intentions.ConvertToStringTemplateInspection
 import kotlin.reflect.jvm.jvmName
 
@@ -21,7 +22,9 @@ class InspectionTest {
 
     private lateinit var inspectionsFile: File
 
-    private lateinit var sourceFile: File
+    private lateinit var sourceKotlinFile: File
+
+    private lateinit var sourceJavaFile: File
 
     @Before
     fun setup() {
@@ -29,7 +32,9 @@ class InspectionTest {
         testProjectDir.newFolder("config", "inspections")
         inspectionsFile = testProjectDir.newFile("config/inspections/inspections.xml")
         testProjectDir.newFolder("src", "main", "kotlin")
-        sourceFile = testProjectDir.newFile("src/main/kotlin/main.kt")
+        testProjectDir.newFolder("src", "main", "java")
+        sourceKotlinFile = testProjectDir.newFile("src/main/kotlin/main.kt")
+        sourceJavaFile = testProjectDir.newFile("src/main/java/Main.java")
     }
 
     @Test
@@ -51,7 +56,54 @@ class InspectionTest {
     }
 
     @Test
-    fun testInspectionConfiguration() {
+    fun testInspectionConfigurationJava() {
+        val buildFileContent =
+                """
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+}
+
+plugins {
+    id 'java'
+    id 'org.jetbrains.intellij.inspections'
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src']
+        }
+    }
+}
+                """
+        writeFile(buildFile, buildFileContent)
+        val inspectionsFileContent =
+                """<?xml version="1.0" encoding="UTF-8" ?>
+<inspections>
+    <errors>    </errors>
+    <warnings>
+        <warning class = "${ClassHasNoToStringMethodInspection::class.jvmName}"/>
+    </warnings>
+    <infos>    </infos>
+</inspections>
+                """
+        writeFile(inspectionsFile, inspectionsFileContent)
+        writeFile(sourceJavaFile, "public class Main { private int x = 42; }")
+
+        val result = GradleRunner.create()
+                .withProjectDir(testProjectDir.root)
+                .withArguments("--info", "--stacktrace", "inspectionsMain")
+                .withPluginClasspath()
+                .build()
+
+        println(result.output)
+        assertEquals(result.task(":inspectionsMain").outcome, SUCCESS)
+    }
+
+    @Test
+    fun testInspectionConfigurationKotlin() {
         val buildFileContent =
                 """
 buildscript {
@@ -89,7 +141,7 @@ sourceSets {
 </inspections>
                 """
         writeFile(inspectionsFile, inspectionsFileContent)
-        writeFile(sourceFile, "fun foo() = \"a\" + \"b\"")
+        writeFile(sourceKotlinFile, "fun foo() = \"a\" + \"b\"")
 
         val result = GradleRunner.create()
                 .withProjectDir(testProjectDir.root)
