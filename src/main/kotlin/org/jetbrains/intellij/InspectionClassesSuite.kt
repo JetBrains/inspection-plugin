@@ -13,4 +13,6 @@ class InspectionClassesSuite(val errors: Set<String>, val warnings: Set<String>,
 
     constructor(errors: List<String>, warnings: List<String>, infos: List<String>):
             this(errors.toSet(), warnings.toSet(), infos.toSet())
+
+    override fun toString() = "Errors: $errors Warnings: $warnings Info: $infos"
 }
