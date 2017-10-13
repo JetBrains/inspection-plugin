@@ -95,7 +95,7 @@ dependencies {
     compile("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
     compile("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
     compile(gradleApi())
-    compile("jdom:jdom:1.1")
+    compile("org.jdom:jdom2:2.0.6")
     compile(fileTree(mapOf("dir" to "$buildDir/idea/lib", "include" to "*.jar")))
 
     testCompile("org.junit.jupiter:junit-jupiter-api:5.0.0")
