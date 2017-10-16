@@ -129,6 +129,15 @@ sourceSets {
         }
     }
 }
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile "org.jetbrains.kotlin:kotlin-stdlib"
+    compile "org.jetbrains.kotlin:kotlin-runtime"
+}
                 """
         writeFile(buildFile, buildFileContent)
         val inspectionsFileContent =
@@ -142,7 +151,10 @@ sourceSets {
 </inspections>
                 """
         writeFile(inspectionsFile, inspectionsFileContent)
-        writeFile(sourceKotlinFile, "fun foo() = \"a\" + \"b\"")
+        writeFile(sourceKotlinFile,
+                """fun foo(arg: Int) = "(" + arg + ")"
+
+                """)
 
         val result = GradleRunner.create()
                 .withProjectDir(testProjectDir.root)
