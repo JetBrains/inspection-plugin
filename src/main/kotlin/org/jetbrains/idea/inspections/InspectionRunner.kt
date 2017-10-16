@@ -100,10 +100,10 @@ class InspectionRunner(
                         else -> infoElements += element
                     }
                 }
-                if (errors >= maxErrors) {
+                if (errors > maxErrors) {
                     throw GradleException("Too many errors found: $errors. Analysis stopped")
                 }
-                if (warnings >= maxWarnings) {
+                if (warnings > maxWarnings) {
                     throw GradleException("Too many warnings found: $warnings. Analysis stopped")
                 }
             }
