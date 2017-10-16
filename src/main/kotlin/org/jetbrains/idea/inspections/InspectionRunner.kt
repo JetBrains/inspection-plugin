@@ -13,6 +13,8 @@ import com.intellij.openapi.extensions.Extensions
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.util.PlatformUtils
@@ -26,6 +28,8 @@ import org.jdom.output.XMLOutputter
 import org.jetbrains.intellij.IdeaCheckstyleReports
 import org.jetbrains.intellij.InspectionClassesSuite
 import org.jetbrains.intellij.UnzipTask
+import org.jetbrains.kotlin.psi.psiUtil.endOffset
+import org.jetbrains.kotlin.psi.psiUtil.startOffset
 
 class InspectionRunner(
         private val projectPath: String,
@@ -188,10 +192,18 @@ class InspectionRunner(
         return results
     }
 
+    private fun PsiElement.acceptRecursively(visitor: PsiElementVisitor) {
+        this.accept(visitor)
+        for (child in this.children) {
+            child.acceptRecursively(visitor)
+        }
+    }
+
     private fun LocalInspectionTool.analyze(file: PsiFile): List<ProblemDescriptor> {
         val holder = ProblemsHolder(InspectionManager.getInstance(file.project), file, false)
-        val visitor = this.buildVisitor(holder, false)
-        file.acceptChildren(visitor)
+        val session = LocalInspectionToolSession(file, file.startOffset, file.endOffset)
+        val visitor = this.buildVisitor(holder, false, session)
+        file.acceptRecursively(visitor)
         return holder.results
     }
 }
