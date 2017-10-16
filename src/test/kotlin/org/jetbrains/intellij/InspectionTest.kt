@@ -9,7 +9,7 @@ import java.io.File
 import org.junit.Assert.*
 import org.gradle.testkit.runner.TaskOutcome.*
 import org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection
-import org.jetbrains.kotlin.idea.intentions.ConvertToStringTemplateInspection
+import org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection
 import kotlin.reflect.jvm.jvmName
 
 
@@ -145,14 +145,14 @@ dependencies {
 <inspections>
     <errors>    </errors>
     <warnings>
-        <warning class = "${ConvertToStringTemplateInspection::class.jvmName}"/>
+        <warning class = "${RedundantVisibilityModifierInspection::class.jvmName}"/>
     </warnings>
     <infos>    </infos>
 </inspections>
                 """
         writeFile(inspectionsFile, inspectionsFileContent)
         writeFile(sourceKotlinFile,
-                """fun foo(arg: Int) = "(" + arg + ")"
+                """public val x = 42
 
                 """)
 
@@ -163,6 +163,7 @@ dependencies {
                 .build()
 
         println(result.output)
+        assertTrue("Redundant visibility modifier" in result.output)
         assertEquals(result.task(":inspectionsMain").outcome, SUCCESS)
     }
 
