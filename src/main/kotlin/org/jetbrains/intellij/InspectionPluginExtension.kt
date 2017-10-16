@@ -12,8 +12,6 @@ open class InspectionPluginExtension(private val project: Project) : CodeQuality
 
     /**
      * The configuration to use. Replaces the `configFile` property.
-     *
-     * @since 2.2
      */
     @get:Incubating
     @set:Incubating
@@ -31,7 +29,6 @@ open class InspectionPluginExtension(private val project: Project) : CodeQuality
      *
      * Example: maxErrors = 42
      *
-     * @since 3.4
      * @return the maximum number of errors allowed
      */
     var maxErrors: Int = 0
@@ -43,7 +40,6 @@ open class InspectionPluginExtension(private val project: Project) : CodeQuality
      *
      * Example: maxWarnings = 1000
      *
-     * @since 3.4
      * @return the maximum number of warnings allowed
      */
     var maxWarnings = Integer.MAX_VALUE
@@ -58,8 +54,6 @@ open class InspectionPluginExtension(private val project: Project) : CodeQuality
     /**
      * Path to other configuration files. By default, this path is `$projectDir/config/inspections`
      *
-     *
-     * @since 4.0
      */
     @get:Incubating
     @set:Incubating

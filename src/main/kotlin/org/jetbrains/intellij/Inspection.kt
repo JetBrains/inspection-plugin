@@ -29,8 +29,6 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
 
     /**
      * The configuration to use. Replaces the `configFile` property.
-     *
-     * @since 2.2
      */
     var config: TextResource
         get() = extension.config
@@ -49,11 +47,11 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
     private var ignoreFailures: Boolean = false
 
     private val extension get() = project.extensions.findByType(InspectionPluginExtension::class.java)!!
+
     /**
      * The maximum number of errors that are tolerated before breaking the build
      * or setting the failure property.
      *
-     * @since 3.4
      * @return the maximum number of errors allowed
      */
     var maxErrors: Int
@@ -66,7 +64,6 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
      * The maximum number of warnings that are tolerated before breaking the build
      * or setting the failure property.
      *
-     * @since 3.4
      * @return the maximum number of warnings allowed
      */
     var maxWarnings: Int
@@ -128,15 +125,14 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
      *
      * <pre>
      * checkstyleTask {
-     * reports {
-     * html {
-     * destination "build/codenarc.html"
+     *     reports {
+     *         html {
+     *             destination "build/codenarc.html"
+     *         }
+     *     }
      * }
-     * }
-     * }
-    </pre> *
+     * </pre>
      *
-     * @since 3.0
      * @param configureAction The configuration
      * @return The reports container
      */
