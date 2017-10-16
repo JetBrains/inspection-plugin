@@ -99,6 +99,7 @@ sourceSets {
                 .build()
 
         println(result.output)
+        assertTrue("Class 'Main' does not override 'toString()' method" in result.output)
         assertEquals(result.task(":inspectionsMain").outcome, SUCCESS)
     }
 
