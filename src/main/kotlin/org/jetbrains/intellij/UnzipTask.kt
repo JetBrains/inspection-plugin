@@ -9,6 +9,10 @@ open class UnzipTask : ConventionTask() {
 
     companion object {
         val cacheDirectory = File("lib/idea")
+
+        fun buildNumber(): String? = File(cacheDirectory, "build.txt").let {
+            if (it.exists()) it.readText().dropWhile { !it.isDigit() }.takeIf { it.isNotEmpty() } else null
+        } ?: "172.1" // default build number
     }
 
     private val inspections: Configuration

@@ -41,6 +41,7 @@ class InspectionRunner(
     companion object {
         private val AWT_HEADLESS = "java.awt.headless"
         private val IDEA_HOME_PATH = "idea.home.path"
+        private val BUILD_NUMBER = "idea.plugins.compatible.build"
     }
 
     private fun ProblemDescriptor.level(default: LogLevel?): LogLevel? = when (highlightType) {
@@ -128,6 +129,8 @@ class InspectionRunner(
     private fun analyzeTreeInIdea(tree: FileTree, logger: Logger): Map<String, List<PinnedProblemDescriptor>> {
         System.setProperty(IDEA_HOME_PATH, UnzipTask.cacheDirectory.path)
         System.setProperty(AWT_HEADLESS, "true")
+        System.setProperty(BUILD_NUMBER, UnzipTask.buildNumber())
+
         System.setProperty(PlatformUtils.PLATFORM_PREFIX_KEY, PlatformUtils.getPlatformPrefix(PlatformUtils.IDEA_CE_PREFIX))
         logger.warn("IDEA home path: " + PathManager.getHomePath())
         createCommandLineApplication(isInternal = false, isUnitTestMode = false, isHeadless = true)
