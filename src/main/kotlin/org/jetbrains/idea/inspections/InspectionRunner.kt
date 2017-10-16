@@ -1,15 +1,12 @@
 package org.jetbrains.idea.inspections
 
 import com.intellij.codeInspection.*
-import com.intellij.core.CoreApplicationEnvironment
-import com.intellij.ide.ApplicationLoadListener
 import com.intellij.ide.impl.ProjectUtil
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.idea.createCommandLineApplication
 import com.intellij.openapi.application.Application
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.application.ex.ApplicationManagerEx
-import com.intellij.openapi.extensions.Extensions
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFileManager
@@ -126,12 +123,6 @@ class InspectionRunner(
         }
     }
 
-    private fun registerExtensionPoints() {
-        val rootArea = Extensions.getRootArea()
-        CoreApplicationEnvironment.registerExtensionPoint(
-                rootArea, ApplicationLoadListener.EP_NAME, ApplicationLoadListener::class.java)
-    }
-
     private fun analyzeTreeInIdea(tree: FileTree, logger: Logger): Map<String, List<ProblemDescriptor>> {
         System.setProperty(IDEA_HOME_PATH, UnzipTask.cacheDirectory.path)
         System.setProperty(AWT_HEADLESS, "true")
@@ -141,7 +132,6 @@ class InspectionRunner(
         PluginManagerCore.addPluginClass(PluginId.getId("org.jetbrains.kotlin"))
         PluginManagerCore.enablePlugin("Kotlin")
         logger.info("Plugins enabled: " + PluginManagerCore.getPlugins().toList())
-        //registerExtensionPoints()
         ApplicationManagerEx.getApplicationEx().load()
         val application = ApplicationManagerEx.getApplicationEx() ?: run {
             throw GradleException("Cannot create IDEA application")
