@@ -8,6 +8,7 @@ import com.intellij.openapi.application.Application
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.application.ex.ApplicationManagerEx
 import com.intellij.openapi.extensions.PluginId
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiElement
@@ -19,7 +20,7 @@ import org.gradle.api.GradleException
 import org.gradle.api.file.FileTree
 import org.gradle.api.logging.LogLevel
 import org.gradle.api.logging.Logger
-import org.jdom.Document
+import org.jdom.Document as JdomDocument
 import org.jdom.Element
 import org.jdom.output.XMLOutputter
 import org.jetbrains.intellij.IdeaCheckstyleReports
@@ -27,6 +28,7 @@ import org.jetbrains.intellij.InspectionClassesSuite
 import org.jetbrains.intellij.UnzipTask
 import org.jetbrains.kotlin.psi.psiUtil.endOffset
 import org.jetbrains.kotlin.psi.psiUtil.startOffset
+import com.intellij.openapi.editor.Document as IdeaDocument
 
 class InspectionRunner(
         private val projectPath: String,
@@ -47,14 +49,6 @@ class InspectionRunner(
         ProblemHighlightType.INFORMATION -> LogLevel.INFO
         else -> default
     }
-
-    private fun ProblemDescriptor.render() =
-            StringUtil.replace(
-                    StringUtil.replace(
-                            descriptionTemplate,
-                            "#ref",
-                            psiElement?.let { ProblemDescriptorUtil.extractHighlightedText(this, it) } ?: ""
-                    ), " #loc ", " ")
 
     fun analyzeTreeAndLogResults(tree: FileTree, logger: Logger) {
         logger.info("Input classes: " + inspectionClasses)
@@ -118,12 +112,12 @@ class InspectionRunner(
             xmlRoot.addContent(errorsRoot)
             xmlRoot.addContent(warningsRoot)
             xmlRoot.addContent(infosRoot)
-            val document = Document(xmlRoot)
+            val document = JdomDocument(xmlRoot)
             XMLOutputter().output(document, xmlReportFile.outputStream())
         }
     }
 
-    private fun analyzeTreeInIdea(tree: FileTree, logger: Logger): Map<String, List<ProblemDescriptor>> {
+    private fun analyzeTreeInIdea(tree: FileTree, logger: Logger): Map<String, List<PinnedProblemDescriptor>> {
         System.setProperty(IDEA_HOME_PATH, UnzipTask.cacheDirectory.path)
         System.setProperty(AWT_HEADLESS, "true")
         System.setProperty(PlatformUtils.PLATFORM_PREFIX_KEY, PlatformUtils.getPlatformPrefix(PlatformUtils.IDEA_CE_PREFIX))
@@ -136,7 +130,7 @@ class InspectionRunner(
         val application = ApplicationManagerEx.getApplicationEx() ?: run {
             throw GradleException("Cannot create IDEA application")
         }
-        val result: Map<String, List<ProblemDescriptor>>?
+        val result: Map<String, List<PinnedProblemDescriptor>>?
         try {
             application.doNotSave()
 
@@ -150,7 +144,7 @@ class InspectionRunner(
         return result ?: emptyMap()
     }
 
-    private fun Application.analyzeTree(tree: FileTree, logger: Logger): Map<String, List<ProblemDescriptor>> {
+    private fun Application.analyzeTree(tree: FileTree, logger: Logger): Map<String, List<PinnedProblemDescriptor>> {
         logger.info("Before project creation at '$projectPath'")
         val ideaProject = ProjectUtil.openOrImport(projectPath, null, false) ?: run {
             throw GradleException("Cannot open IDEA project: '$projectPath'")
@@ -160,13 +154,14 @@ class InspectionRunner(
         logger.info("Before virtual file manager creation")
         val virtualFileManager = VirtualFileManager.getInstance()
         val virtualFileSystem = virtualFileManager.getFileSystem("file")
+        val documentManager = FileDocumentManager.getInstance()
 
-        val results: MutableMap<String, MutableList<ProblemDescriptor>> = mutableMapOf()
+        val results: MutableMap<String, MutableList<PinnedProblemDescriptor>> = mutableMapOf()
         logger.info("Before inspections launched")
         for (inspectionClass in inspectionClasses.classes) {
             @Suppress("UNCHECKED_CAST")
             val inspectionTool = (Class.forName(inspectionClass) as Class<LocalInspectionTool>).newInstance()
-            val inspectionResults = mutableListOf<ProblemDescriptor>()
+            val inspectionResults = mutableListOf<PinnedProblemDescriptor>()
             runReadAction {
                 for (sourceFile in tree) {
                     val filePath = sourceFile.absolutePath
@@ -174,7 +169,9 @@ class InspectionRunner(
                                       ?: throw GradleException("Cannot find virtual file for $filePath")
                     val psiFile = psiManager.findFile(virtualFile)
                                   ?: throw GradleException("Cannot find PSI file for $filePath")
-                    inspectionResults += inspectionTool.analyze(psiFile)
+                    val document = documentManager.getDocument(virtualFile)
+                                   ?: throw GradleException("Cannot get document for $filePath")
+                    inspectionResults += inspectionTool.analyze(psiFile, document)
                 }
             }
             results[inspectionClass] = inspectionResults
@@ -189,11 +186,49 @@ class InspectionRunner(
         }
     }
 
-    private fun LocalInspectionTool.analyze(file: PsiFile): List<ProblemDescriptor> {
+    private class PinnedProblemDescriptor(
+            val descriptor: ProblemDescriptor,
+            val fileName: String,
+            val line: Int,
+            val row: Int
+    ) : ProblemDescriptor by descriptor {
+        fun renderLocation(): String {
+            return StringBuilder().apply {
+                append(fileName)
+                append(":")
+                append(line + 1)
+                append(":")
+                append(row + 1)
+            }.toString()
+        }
+
+        fun render(): String {
+            return renderLocation() + ": " + StringUtil.replace(
+                    StringUtil.replace(
+                            descriptionTemplate,
+                            "#ref",
+                            psiElement?.let { ProblemDescriptorUtil.extractHighlightedText(this, it) } ?: ""
+                    ),
+                    " #loc ",
+                    " "
+            )
+        }
+
+        constructor(descriptor: ProblemDescriptor, document: IdeaDocument,
+                    lineNumber: Int = document.getLineNumber(descriptor.psiElement.startOffset)):
+                this(descriptor,
+                     descriptor.psiElement.containingFile.name,
+                     lineNumber,
+                     descriptor.psiElement.startOffset - document.getLineStartOffset(lineNumber))
+    }
+
+    private fun LocalInspectionTool.analyze(file: PsiFile, document: IdeaDocument): List<PinnedProblemDescriptor> {
         val holder = ProblemsHolder(InspectionManager.getInstance(file.project), file, false)
         val session = LocalInspectionToolSession(file, file.startOffset, file.endOffset)
         val visitor = this.buildVisitor(holder, false, session)
         file.acceptRecursively(visitor)
-        return holder.results
+        return holder.results.map {
+            PinnedProblemDescriptor(it, document)
+        }
     }
 }

@@ -99,7 +99,7 @@ sourceSets {
                 .build()
 
         println(result.output)
-        assertTrue("Class 'Main' does not override 'toString()' method" in result.output)
+        assertTrue("Main.java:1:14: Class 'Main' does not override 'toString()' method" in result.output)
         assertEquals(result.task(":inspectionsMain").outcome, SUCCESS)
     }
 
@@ -152,7 +152,10 @@ dependencies {
                 """
         writeFile(inspectionsFile, inspectionsFileContent)
         writeFile(sourceKotlinFile,
-                """public val x = 42
+                """
+public val x = 42
+
+public val y = 13
 
                 """)
 
@@ -163,7 +166,8 @@ dependencies {
                 .build()
 
         println(result.output)
-        assertTrue("Redundant visibility modifier" in result.output)
+        assertTrue("main.kt:2:1: Redundant visibility modifier" in result.output)
+        assertTrue("main.kt:4:1: Redundant visibility modifier" in result.output)
         assertEquals(result.task(":inspectionsMain").outcome, SUCCESS)
     }
 
