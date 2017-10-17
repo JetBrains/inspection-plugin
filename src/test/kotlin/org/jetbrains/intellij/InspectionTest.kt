@@ -10,7 +10,9 @@ import org.junit.rules.TemporaryFolder
 import java.io.File
 import org.junit.Assert.*
 import org.gradle.testkit.runner.TaskOutcome.*
+import org.gradle.testkit.runner.UnexpectedBuildFailure
 import org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection
+import org.jetbrains.kotlin.idea.inspections.CanBeValInspection
 import org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection
 import kotlin.reflect.KClass
 import kotlin.reflect.jvm.jvmName
@@ -58,7 +60,12 @@ class InspectionTest {
         assertEquals(result.task(":helloWorld").outcome, SUCCESS)
     }
 
-    private fun generateBuildFile(kotlinNeeded: Boolean, kotlinVersion: String = "1.1.4"): String {
+    private fun generateBuildFile(
+            kotlinNeeded: Boolean,
+            maxErrors: Int = -1,
+            maxWarnings: Int = -1,
+            kotlinVersion: String = "1.1.4"
+    ): String {
                 return StringBuilder().apply {
             val kotlinGradleDependency = if (kotlinNeeded) """
     dependencies {
@@ -81,6 +88,16 @@ plugins {
     id 'org.jetbrains.intellij.inspections'
 }
                 """)
+            if (maxErrors > -1 || maxWarnings > -1) {
+                appendln("inspections {")
+                if (maxErrors > -1) {
+                    appendln("    maxErrors = $maxErrors")
+                }
+                if (maxWarnings > -1) {
+                    appendln("    maxErrors = $maxWarnings")
+                }
+                appendln("}")
+            }
             appendln("""
 sourceSets {
     main {
@@ -109,17 +126,22 @@ dependencies {
             expectedOutcome: TaskOutcome,
             vararg expectedDiagnostics: String
     ) {
-        val result = GradleRunner.create()
-                .withProjectDir(testProjectDir.root)
-                .withArguments("--info", "--stacktrace", "inspectionsMain")
-                .withPluginClasspath()
-                .build()
+        val result = try {
+            GradleRunner.create()
+                    .withProjectDir(testProjectDir.root)
+                    .withArguments("--info", "--stacktrace", "inspectionsMain")
+                    .withPluginClasspath()
+                    .build()
+        }
+        catch (failure: UnexpectedBuildFailure) {
+            failure.buildResult
+        }
 
         println(result.output)
         for (diagnostic in expectedDiagnostics) {
             assertTrue(diagnostic in result.output)
         }
-        assertEquals(result.task(":inspectionsMain").outcome, expectedOutcome)
+        assertEquals(expectedOutcome, result.task(":inspectionsMain").outcome)
     }
 
     private fun writeFile(destination: File, content: String) {
@@ -192,6 +214,32 @@ public val y = 13
                 SUCCESS,
                 "main.kt:2:1: Redundant visibility modifier",
                 "main.kt:4:1: Redundant visibility modifier"
+        )
+    }
+
+    @Test
+    fun testMaxErrors() {
+        val buildFileContent = generateBuildFile(kotlinNeeded = true, maxErrors = 2)
+        writeFile(buildFile, buildFileContent)
+        val inspectionsFileContent = generateInspectionFile(
+                errors = listOf(CanBeValInspection::class)
+        )
+        writeFile(inspectionsFile, inspectionsFileContent)
+        writeFile(sourceKotlinFile,
+                """
+fun foo(a: Int, b: Int, c: Int): Int {
+    var x = a
+    var y = b
+    var z = c
+    return x + y + z
+}
+                """)
+
+        assertInspectionBuild(
+                FAILED,
+                "main.kt:3:5: Variable is never modified and can be declared immutable using 'val'",
+                "main.kt:4:5: Variable is never modified and can be declared immutable using 'val'",
+                "main.kt:5:5: Variable is never modified and can be declared immutable using 'val'"
         )
     }
 }
