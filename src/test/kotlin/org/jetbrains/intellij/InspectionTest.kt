@@ -13,6 +13,7 @@ import org.gradle.testkit.runner.TaskOutcome.*
 import org.gradle.testkit.runner.UnexpectedBuildFailure
 import org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection
 import org.jetbrains.kotlin.idea.inspections.CanBeValInspection
+import org.jetbrains.kotlin.idea.inspections.RedundantModalityModifierInspection
 import org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection
 import kotlin.reflect.KClass
 import kotlin.reflect.jvm.jvmName
@@ -240,6 +241,27 @@ fun foo(a: Int, b: Int, c: Int): Int {
                 "main.kt:3:5: Variable is never modified and can be declared immutable using 'val'",
                 "main.kt:4:5: Variable is never modified and can be declared immutable using 'val'",
                 "main.kt:5:5: Variable is never modified and can be declared immutable using 'val'"
+        )
+    }
+
+    @Test
+    fun testRedundantModality() {
+        val buildFileContent = generateBuildFile(kotlinNeeded = true)
+        writeFile(buildFile, buildFileContent)
+        val inspectionsFileContent = generateInspectionFile(
+                warnings = listOf(RedundantModalityModifierInspection::class)
+        )
+        writeFile(inspectionsFile, inspectionsFileContent)
+        writeFile(sourceKotlinFile,
+                """
+class My {
+    final val x = 42
+}
+                """)
+
+        assertInspectionBuild(
+                SUCCESS,
+                "main.kt:3:5: Redundant modality modifier"
         )
     }
 }
