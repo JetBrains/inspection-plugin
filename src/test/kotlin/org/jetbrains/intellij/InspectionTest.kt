@@ -15,6 +15,7 @@ import org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection
 import org.jetbrains.kotlin.idea.inspections.CanBeValInspection
 import org.jetbrains.kotlin.idea.inspections.RedundantModalityModifierInspection
 import org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection
+import org.jetbrains.kotlin.idea.intentions.ConvertToStringTemplateInspection
 import kotlin.reflect.KClass
 import kotlin.reflect.jvm.jvmName
 
@@ -262,6 +263,25 @@ class My {
         assertInspectionBuild(
                 SUCCESS,
                 "main.kt:3:5: Redundant modality modifier"
+        )
+    }
+
+    @Test
+    fun testConvertToStringTemplate() {
+        val buildFileContent = generateBuildFile(kotlinNeeded = true)
+        writeFile(buildFile, buildFileContent)
+        val inspectionsFileContent = generateInspectionFile(
+                warnings = listOf(ConvertToStringTemplateInspection::class)
+        )
+        writeFile(inspectionsFile, inspectionsFileContent)
+        writeFile(sourceKotlinFile,
+                """
+fun foo(arg: Int) = "(" + arg + ")"
+                """)
+
+        assertInspectionBuild(
+                SUCCESS,
+                "main.kt:2:21: Convert concatenation to template"
         )
     }
 }
