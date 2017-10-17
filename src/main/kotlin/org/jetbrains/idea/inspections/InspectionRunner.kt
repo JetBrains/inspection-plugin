@@ -171,9 +171,9 @@ class InspectionRunner(
                 for (sourceFile in tree) {
                     val filePath = sourceFile.absolutePath
                     val virtualFile = virtualFileSystem.findFileByPath(filePath)
-                            ?: throw GradleException("Cannot find virtual file for $filePath")
+                                      ?: throw GradleException("Cannot find virtual file for $filePath")
                     val psiFile = psiManager.findFile(virtualFile)
-                            ?: throw GradleException("Cannot find PSI file for $filePath")
+                                  ?: throw GradleException("Cannot find PSI file for $filePath")
                     inspectionResults += inspectionTool.analyze(psiFile)
                 }
             }
