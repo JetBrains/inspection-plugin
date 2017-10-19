@@ -50,7 +50,8 @@ class InspectionRunner(
         else -> default
     }
 
-    fun analyzeTreeAndLogResults(tree: FileTree, logger: Logger) {
+    // Returns true if analysis executed successfully
+    fun analyzeTreeAndLogResults(tree: FileTree, logger: Logger): Boolean {
         logger.info("Input classes: " + inspectionClasses)
         val results = analyzeTreeInIdea(tree, logger)
         var errors = 0
@@ -66,8 +67,9 @@ class InspectionRunner(
         val infosRoot = Element("infos")
         val infoElements = mutableListOf<Element>()
 
+        var success = true
         logger.info("Total of ${results.values.flatten().size} problems found")
-        for ((inspectionClass, problems) in results) {
+        analysisLoop@ for ((inspectionClass, problems) in results) {
             for (problem in problems) {
                 val level = problem.level(inspectionClasses.getLevel(inspectionClass)) ?: continue
                 when (level) {
@@ -96,10 +98,14 @@ class InspectionRunner(
                     }
                 }
                 if (errors > maxErrors) {
-                    throw GradleException("Too many errors found: $errors. Analysis stopped")
+                    logger.error("Too many errors found: $errors. Analysis stopped")
+                    success = false
+                    break@analysisLoop
                 }
                 if (warnings > maxWarnings) {
-                    throw GradleException("Too many warnings found: $warnings. Analysis stopped")
+                    logger.error("Too many warnings found: $warnings. Analysis stopped")
+                    success = false
+                    break@analysisLoop
                 }
             }
         }
@@ -115,6 +121,8 @@ class InspectionRunner(
             val document = JdomDocument(xmlRoot)
             XMLOutputter().output(document, xmlReportFile.outputStream())
         }
+
+        return success
     }
 
     private fun analyzeTreeInIdea(tree: FileTree, logger: Logger): Map<String, List<PinnedProblemDescriptor>> {

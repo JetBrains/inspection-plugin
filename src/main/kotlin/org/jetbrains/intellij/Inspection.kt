@@ -160,7 +160,9 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
 
             val runner = InspectionRunner(
                     project.projectDir.absolutePath, maxErrors, maxWarnings, showViolations, inspectionClasses, reports)
-            runner.analyzeTreeAndLogResults(getSource(), logger)
+            if (!runner.analyzeTreeAndLogResults(getSource(), logger)) {
+                throw TaskExecutionException(this, null)
+            }
         }
         catch (e: Throwable) {
             logger.error("EXCEPTION caught in inspections plugin: " + e.message)
