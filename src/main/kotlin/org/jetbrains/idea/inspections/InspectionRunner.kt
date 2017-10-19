@@ -192,6 +192,10 @@ class InspectionRunner(
             val line: Int,
             val row: Int
     ) : ProblemDescriptor by descriptor {
+        private val highlightedText = psiElement?.let {
+            ProblemDescriptorUtil.extractHighlightedText(this, it)
+        } ?: ""
+
         fun renderLocation(): String {
             return StringBuilder().apply {
                 append(fileName)
@@ -207,7 +211,7 @@ class InspectionRunner(
                     StringUtil.replace(
                             descriptionTemplate,
                             "#ref",
-                            psiElement?.let { ProblemDescriptorUtil.extractHighlightedText(this, it) } ?: ""
+                            highlightedText
                     ),
                     " #loc ",
                     " "
