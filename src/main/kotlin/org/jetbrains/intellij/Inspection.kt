@@ -102,14 +102,18 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
      * The contained reports can be configured by name and closures. Example:
      *
      * <pre>
-     * checkstyleTask {
-     * reports {
-     * html {
-     * destination "build/codenarc.html"
+     * inspection {
+     *     reports {
+     *         html {
+     *             destination "build/codenarc.html"
+     *         }
+     *         xml {
+     *             destination "build/report.xml"
+     *         }
+     *     }
      * }
-     * }
-     * }
-    </pre> *
+     * </pre>
+     *
      *
      * @param closure The configuration
      * @return The reports container
