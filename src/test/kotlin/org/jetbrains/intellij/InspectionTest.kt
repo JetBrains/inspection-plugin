@@ -12,6 +12,7 @@ import org.junit.Assert.*
 import org.gradle.testkit.runner.TaskOutcome.*
 import org.gradle.testkit.runner.UnexpectedBuildFailure
 import org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection
+import org.jetbrains.kotlin.idea.inspections.CanBeParameterInspection
 import org.jetbrains.kotlin.idea.inspections.CanBeValInspection
 import org.jetbrains.kotlin.idea.inspections.RedundantModalityModifierInspection
 import org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection
@@ -66,6 +67,7 @@ class InspectionTest {
             kotlinNeeded: Boolean,
             maxErrors: Int = -1,
             maxWarnings: Int = -1,
+            showViolations: Boolean = true,
             kotlinVersion: String = "1.1.4"
     ): String {
                 return StringBuilder().apply {
@@ -90,13 +92,16 @@ plugins {
     id 'org.jetbrains.intellij.inspections'
 }
                 """)
-            if (maxErrors > -1 || maxWarnings > -1) {
+            if (maxErrors > -1 || maxWarnings > -1 || !showViolations) {
                 appendln("inspections {")
                 if (maxErrors > -1) {
                     appendln("    maxErrors = $maxErrors")
                 }
                 if (maxWarnings > -1) {
                     appendln("    maxErrors = $maxWarnings")
+                }
+                if (!showViolations) {
+                    appendln("    showViolations = false")
                 }
                 appendln("}")
             }
@@ -126,7 +131,8 @@ dependencies {
 
     private fun assertInspectionBuild(
             expectedOutcome: TaskOutcome,
-            vararg expectedDiagnostics: String
+            vararg expectedDiagnostics: String,
+            expectedInOutput: Boolean = true
     ) {
         val result = try {
             GradleRunner.create()
@@ -141,7 +147,12 @@ dependencies {
 
         println(result.output)
         for (diagnostic in expectedDiagnostics) {
-            assertTrue(diagnostic in result.output)
+            if (expectedInOutput) {
+                assertTrue(diagnostic in result.output)
+            }
+            else {
+                assertFalse(diagnostic in result.output)
+            }
         }
         assertEquals(expectedOutcome, result.task(":inspectionsMain").outcome)
     }
@@ -282,6 +293,28 @@ fun foo(arg: Int) = "(" + arg + ")"
         assertInspectionBuild(
                 SUCCESS,
                 "main.kt:2:21: Convert concatenation to template"
+        )
+    }
+
+    @Test
+    fun testShowViolations() {
+        val buildFileContent = generateBuildFile(kotlinNeeded = true, showViolations = false)
+        writeFile(buildFile, buildFileContent)
+        val inspectionsFileContent = generateInspectionFile(
+                warnings = listOf(CanBeParameterInspection::class)
+        )
+        writeFile(inspectionsFile, inspectionsFileContent)
+        writeFile(sourceKotlinFile,
+                """
+class My(val x: Int) {
+    val y = x
+}
+                """)
+
+        assertInspectionBuild(
+                SUCCESS,
+                "main.kt:2:10: Constructor parameter is never used as a property",
+                expectedInOutput = false
         )
     }
 }
