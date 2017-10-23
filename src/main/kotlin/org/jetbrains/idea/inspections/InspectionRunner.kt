@@ -90,7 +90,7 @@ class InspectionRunner(
                     element.setAttribute("class", inspectionClass)
                     element.setAttribute("text", renderedText)
                     element.setAttribute("file", problem.psiElement.containingFile.name)
-                    element.setAttribute("line", problem.lineNumber.toString())
+                    element.setAttribute("line", (problem.line + 1).toString())
                     when (level) {
                         LogLevel.ERROR -> errorElements += element
                         LogLevel.WARN -> warningElements += element

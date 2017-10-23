@@ -12,10 +12,7 @@ import org.junit.Assert.*
 import org.gradle.testkit.runner.TaskOutcome.*
 import org.gradle.testkit.runner.UnexpectedBuildFailure
 import org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection
-import org.jetbrains.kotlin.idea.inspections.CanBeParameterInspection
-import org.jetbrains.kotlin.idea.inspections.CanBeValInspection
-import org.jetbrains.kotlin.idea.inspections.RedundantModalityModifierInspection
-import org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection
+import org.jetbrains.kotlin.idea.inspections.*
 import org.jetbrains.kotlin.idea.intentions.ConvertToStringTemplateInspection
 import kotlin.reflect.KClass
 import kotlin.reflect.jvm.jvmName
@@ -41,6 +38,7 @@ class InspectionTest {
         inspectionsFile = testProjectDir.newFile("config/inspections/inspections.xml")
         testProjectDir.newFolder("src", "main", "kotlin")
         testProjectDir.newFolder("src", "main", "java")
+        testProjectDir.newFolder("build")
         sourceKotlinFile = testProjectDir.newFile("src/main/kotlin/main.kt")
         sourceJavaFile = testProjectDir.newFile("src/main/java/Main.java")
     }
@@ -68,6 +66,7 @@ class InspectionTest {
             maxErrors: Int = -1,
             maxWarnings: Int = -1,
             showViolations: Boolean = true,
+            xmlReport: Boolean = false,
             kotlinVersion: String = "1.1.4"
     ): String {
                 return StringBuilder().apply {
@@ -105,6 +104,18 @@ plugins {
                 }
                 appendln("}")
             }
+            if (xmlReport) {
+                appendln("""
+inspectionsMain {
+    reports {
+        xml {
+            destination "build/report.xml"
+        }
+    }
+}
+                    """)
+            }
+
             appendln("""
 sourceSets {
     main {
@@ -316,5 +327,27 @@ class My(val x: Int) {
                 "main.kt:2:10: Constructor parameter is never used as a property",
                 expectedInOutput = false
         )
+    }
+
+    @Test
+    fun testXMLOutput() {
+        val buildFileContent = generateBuildFile(kotlinNeeded = true, xmlReport = true)
+        writeFile(buildFile, buildFileContent)
+        val inspectionsFileContent = generateInspectionFile(
+                warnings = listOf(DataClassPrivateConstructorInspection::class)
+        )
+        writeFile(inspectionsFile, inspectionsFileContent)
+        writeFile(sourceKotlinFile,
+                """
+data class My private constructor(val x: Double, val y: Int, val z: String)
+                """)
+
+        assertInspectionBuild(
+                SUCCESS
+        )
+        val file = File(testProjectDir.root, "build/report.xml")
+        val firstLine = file.readLines().first()
+        assertTrue("warning class=\"org.jetbrains.kotlin.idea.inspections.DataClassPrivateConstructorInspection\"" in firstLine)
+        assertTrue("main.kt:2:15: Private data class constructor is exposed via the generated 'copy' method" in firstLine)
     }
 }
