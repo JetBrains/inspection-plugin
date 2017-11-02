@@ -163,7 +163,7 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
             val inspectionClasses = readInspectionClassesFromConfigFile()
 
             val runner = InspectionRunner(
-                    project.projectDir.absolutePath, maxErrors, maxWarnings, showViolations, inspectionClasses, reports)
+                    project.projectDir, maxErrors, maxWarnings, showViolations, inspectionClasses, reports)
             if (!runner.analyzeTreeAndLogResults(getSource(), logger)) {
                 throw TaskExecutionException(this, null)
             }

@@ -29,10 +29,11 @@ import org.jetbrains.intellij.InspectionClassesSuite
 import org.jetbrains.intellij.UnzipTask
 import org.jetbrains.kotlin.psi.psiUtil.endOffset
 import org.jetbrains.kotlin.psi.psiUtil.startOffset
+import java.io.File
 import com.intellij.openapi.editor.Document as IdeaDocument
 
 class InspectionRunner(
-        private val projectPath: String,
+        private val projectDir: File,
         private val maxErrors: Int,
         private val maxWarnings: Int,
         private val showViolations: Boolean,
@@ -44,6 +45,8 @@ class InspectionRunner(
         private val IDEA_HOME_PATH = "idea.home.path"
         private val BUILD_NUMBER = "idea.plugins.compatible.build"
     }
+
+    private val projectPath: String = projectDir.absolutePath
 
     private fun ProblemDescriptor.level(default: LogLevel?): LogLevel? = when (highlightType) {
         ProblemHighlightType.ERROR, ProblemHighlightType.GENERIC_ERROR -> LogLevel.ERROR
@@ -160,8 +163,10 @@ class InspectionRunner(
         logger.info("Before project creation at '$projectPath'")
         lateinit var ideaProject: Project
         invokeAndWait {
-            ideaProject = ProjectUtil.openOrImport(projectPath, null, false) ?: run {
-                throw GradleException("Cannot open IDEA project: '$projectPath'")
+            val projectFileName = projectDir.name + ".ipr"
+            val projectFile = File(projectPath, projectFileName)
+            ideaProject = ProjectUtil.openOrImport(projectFile.absolutePath, null, false) ?: run {
+                throw GradleException("Cannot open IDEA project: '${projectFile.absolutePath}'")
             }
         }
         logger.info("Before psi manager creation")
