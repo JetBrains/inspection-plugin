@@ -172,7 +172,7 @@ class InspectionRunner(
         val documentManager = FileDocumentManager.getInstance()
 
         val results: MutableMap<String, MutableList<PinnedProblemDescriptor>> = mutableMapOf()
-        logger.info("Before inspections launched")
+        logger.info("Before inspections launched: total of ${tree.files.size} files to analyze")
         for (inspectionClass in inspectionClasses.classes) {
             @Suppress("UNCHECKED_CAST")
             val inspectionTool = (Class.forName(inspectionClass) as Class<LocalInspectionTool>).newInstance()
