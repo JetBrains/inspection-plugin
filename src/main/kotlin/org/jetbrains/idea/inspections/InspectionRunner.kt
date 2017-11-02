@@ -9,6 +9,7 @@ import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.application.ex.ApplicationManagerEx
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiElement
@@ -157,8 +158,11 @@ class InspectionRunner(
 
     private fun Application.analyzeTree(tree: FileTree, logger: Logger): Map<String, List<PinnedProblemDescriptor>> {
         logger.info("Before project creation at '$projectPath'")
-        val ideaProject = ProjectUtil.openOrImport(projectPath, null, false) ?: run {
-            throw GradleException("Cannot open IDEA project: '$projectPath'")
+        lateinit var ideaProject: Project
+        invokeAndWait {
+            ideaProject = ProjectUtil.openOrImport(projectPath, null, false) ?: run {
+                throw GradleException("Cannot open IDEA project: '$projectPath'")
+            }
         }
         logger.info("Before psi manager creation")
         val psiManager = PsiManager.getInstance(ideaProject)
