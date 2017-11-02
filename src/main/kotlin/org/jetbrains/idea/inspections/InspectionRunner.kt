@@ -20,9 +20,9 @@ import org.gradle.api.GradleException
 import org.gradle.api.file.FileTree
 import org.gradle.api.logging.LogLevel
 import org.gradle.api.logging.Logger
-import org.jdom.Document as JdomDocument
-import org.jdom.Element
-import org.jdom.output.XMLOutputter
+import org.jdom2.Document as JdomDocument
+import org.jdom2.Element
+import org.jdom2.output.XMLOutputter
 import org.jetbrains.intellij.IdeaCheckstyleReports
 import org.jetbrains.intellij.InspectionClassesSuite
 import org.jetbrains.intellij.UnzipTask

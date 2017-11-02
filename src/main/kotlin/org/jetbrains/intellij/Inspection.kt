@@ -12,7 +12,7 @@ import org.gradle.api.reporting.Reporting
 import org.gradle.api.resources.TextResource
 import org.gradle.api.tasks.*
 import org.gradle.api.tasks.Optional
-import org.jdom.input.SAXBuilder
+import org.jdom2.input.SAXBuilder
 import org.jetbrains.idea.inspections.InspectionRunner
 import java.io.File
 import java.util.*
