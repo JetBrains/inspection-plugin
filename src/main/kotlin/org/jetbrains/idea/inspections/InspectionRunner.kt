@@ -161,11 +161,14 @@ class InspectionRunner(
 
     private fun Application.analyzeTree(tree: FileTree, logger: Logger): Map<String, List<PinnedProblemDescriptor>> {
         logger.info("Before project creation at '$projectPath'")
-        lateinit var ideaProject: Project
-        invokeAndWait {
+        val ideaProject: Project = run {
+            var project: Project? = null
             val projectFileName = projectDir.name + ".ipr"
             val projectFile = File(projectPath, projectFileName)
-            ideaProject = ProjectUtil.openOrImport(projectFile.absolutePath, null, false) ?: run {
+            invokeAndWait {
+                project = ProjectUtil.openOrImport(projectFile.absolutePath, null, false)
+            }
+            project ?: run {
                 throw GradleException("Cannot open IDEA project: '${projectFile.absolutePath}'")
             }
         }
