@@ -106,17 +106,23 @@ dependencies {
 
     private fun assertInspectionBuild(
             expectedOutcome: TaskOutcome,
-            vararg expectedDiagnostics: String,
-            expectedDiagnosticsStatus: DiagnosticsStatus = SHOULD_PRESENT
+            kotlinClasspathNeeded: Boolean,
+            expectedDiagnosticsStatus: DiagnosticsStatus,
+            vararg expectedDiagnostics: String
     ) {
+        val kotlinPluginFiles = if (kotlinClasspathNeeded) {
+            val kotlinPluginDir = File("build/idea/plugins/Kotlin/lib")
+            kotlinPluginDir.listFiles { _, name -> name.endsWith("jar") }.toList()
+        } else emptyList()
         val result = try {
             GradleRunner.create()
                     .withProjectDir(testProjectDir.root)
                     .withArguments("--info", "--stacktrace", "inspectionsMain")
                     .withPluginClasspath()
-                    .build()
-        }
-        catch (failure: UnexpectedBuildFailure) {
+                    .apply {
+                        withPluginClasspath(pluginClasspath + kotlinPluginFiles)
+                    }.build()
+        } catch (failure: UnexpectedBuildFailure) {
             failure.buildResult
         }
 
@@ -211,8 +217,9 @@ dependencies {
             }
             assertInspectionBuild(
                     expectedOutcome,
-                    *expectedDiagnostics,
-                    expectedDiagnosticsStatus = expectedDiagnosticsStatus
+                    kotlinText != null,
+                    expectedDiagnosticsStatus,
+                    *expectedDiagnostics
             )
         }
     }
