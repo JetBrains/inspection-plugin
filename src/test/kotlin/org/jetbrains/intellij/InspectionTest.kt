@@ -10,6 +10,8 @@ import java.io.File
 import org.junit.Assert.*
 import org.gradle.testkit.runner.TaskOutcome.*
 import org.gradle.testkit.runner.UnexpectedBuildFailure
+import org.jetbrains.intellij.InspectionTest.DiagnosticsStatus.SHOULD_BE_ABSENT
+import org.jetbrains.intellij.InspectionTest.DiagnosticsStatus.SHOULD_PRESENT
 import org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection
 import org.jetbrains.kotlin.idea.inspections.*
 import org.jetbrains.kotlin.idea.intentions.ConvertToStringTemplateInspection
@@ -105,7 +107,7 @@ dependencies {
     private fun assertInspectionBuild(
             expectedOutcome: TaskOutcome,
             vararg expectedDiagnostics: String,
-            expectedInOutput: Boolean = true
+            expectedDiagnosticsStatus: DiagnosticsStatus = SHOULD_PRESENT
     ) {
         val result = try {
             GradleRunner.create()
@@ -120,11 +122,9 @@ dependencies {
 
         println(result.output)
         for (diagnostic in expectedDiagnostics) {
-            if (expectedInOutput) {
-                assertTrue(diagnostic in result.output)
-            }
-            else {
-                assertFalse(diagnostic in result.output)
+            when (expectedDiagnosticsStatus) {
+                SHOULD_PRESENT -> assertTrue(diagnostic in result.output)
+                SHOULD_BE_ABSENT -> assertFalse(diagnostic in result.output)
             }
         }
         assertEquals(expectedOutcome, result.task(":inspectionsMain").outcome)
@@ -164,6 +164,11 @@ dependencies {
         }.toString()
     }
 
+    private enum class DiagnosticsStatus {
+        SHOULD_PRESENT,
+        SHOULD_BE_ABSENT
+    }
+
     private inner class InspectionTestConfiguration(
             val maxErrors: Int = -1,
             val maxWarnings: Int = -1,
@@ -177,7 +182,7 @@ dependencies {
             val kotlinText: String? = null,
             val expectedOutcome: TaskOutcome = SUCCESS,
             vararg val expectedDiagnostics: String,
-            val expectedInOutput: Boolean = true
+            val expectedDiagnosticsStatus: DiagnosticsStatus = SHOULD_PRESENT
     ) {
         fun doTest() {
             val buildFile = testProjectDir.newFile("build.gradle")
@@ -207,7 +212,7 @@ dependencies {
             assertInspectionBuild(
                     expectedOutcome,
                     *expectedDiagnostics,
-                    expectedInOutput= expectedInOutput
+                    expectedDiagnosticsStatus = expectedDiagnosticsStatus
             )
         }
     }
@@ -319,7 +324,7 @@ class My(val x: Int) {
                 expectedDiagnostics = *arrayOf(
                         "main.kt:2:10: Constructor parameter is never used as a property"
                 ),
-                expectedInOutput = false
+                expectedDiagnosticsStatus = SHOULD_BE_ABSENT
         ).doTest()
     }
 
