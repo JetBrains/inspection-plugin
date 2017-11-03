@@ -24,12 +24,14 @@ import org.gradle.api.logging.Logger
 import org.jdom2.Document as JdomDocument
 import org.jdom2.Element
 import org.jdom2.output.XMLOutputter
+import org.jetbrains.intellij.Analyzer
 import org.jetbrains.intellij.IdeaCheckstyleReports
 import org.jetbrains.intellij.InspectionClassesSuite
 import org.jetbrains.intellij.UnzipTask
 import java.io.File
 import com.intellij.openapi.editor.Document as IdeaDocument
 
+@Suppress("unused")
 class InspectionRunner(
         private val projectDir: File,
         private val maxErrors: Int,
@@ -38,7 +40,7 @@ class InspectionRunner(
         private val inspectionClasses: InspectionClassesSuite,
         private val reports: IdeaCheckstyleReports,
         private val logger: Logger
-) {
+) : Analyzer {
     companion object {
         private val AWT_HEADLESS = "java.awt.headless"
         private val IDEA_HOME_PATH = "idea.home.path"
@@ -55,7 +57,8 @@ class InspectionRunner(
     }
 
     // Returns true if analysis executed successfully
-    fun analyzeTreeAndLogResults(tree: FileTree): Boolean {
+    override fun analyzeTreeAndLogResults(tree: FileTree): Boolean {
+        logger.info("Class loader: " + this.javaClass.classLoader)
         logger.info("Input classes: " + inspectionClasses)
         val results = analyzeTreeInIdea(tree)
         var errors = 0
