@@ -97,8 +97,8 @@ dependencies {
     compile(gradleApi())
     compile("org.jdom:jdom2:2.0.6")
     compile(fileTree(mapOf("dir" to "$buildDir/idea/lib", "include" to "*.jar")))
-    compile(fileTree(mapOf("dir" to "$buildDir/idea/plugins/Kotlin/lib", "include" to "*.jar")))
 
+    testCompile(fileTree(mapOf("dir" to "$buildDir/idea/plugins/Kotlin/lib", "include" to "*.jar")))
     testCompile("org.junit.jupiter:junit-jupiter-api:5.0.0")
     testRuntime("org.junit.jupiter:junit-jupiter-engine:5.0.0")
     testRuntime("org.junit.platform:junit-platform-launcher:1.0.0")
