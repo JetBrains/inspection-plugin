@@ -36,7 +36,8 @@ class InspectionRunner(
         private val maxWarnings: Int,
         private val showViolations: Boolean,
         private val inspectionClasses: InspectionClassesSuite,
-        private val reports: IdeaCheckstyleReports
+        private val reports: IdeaCheckstyleReports,
+        private val logger: Logger
 ) {
     companion object {
         private val AWT_HEADLESS = "java.awt.headless"
@@ -54,9 +55,9 @@ class InspectionRunner(
     }
 
     // Returns true if analysis executed successfully
-    fun analyzeTreeAndLogResults(tree: FileTree, logger: Logger): Boolean {
+    fun analyzeTreeAndLogResults(tree: FileTree): Boolean {
         logger.info("Input classes: " + inspectionClasses)
-        val results = analyzeTreeInIdea(tree, logger)
+        val results = analyzeTreeInIdea(tree)
         var errors = 0
         var warnings = 0
 
@@ -128,7 +129,7 @@ class InspectionRunner(
         return success
     }
 
-    private fun analyzeTreeInIdea(tree: FileTree, logger: Logger): Map<String, List<PinnedProblemDescriptor>> {
+    private fun analyzeTreeInIdea(tree: FileTree): Map<String, List<PinnedProblemDescriptor>> {
         System.setProperty(IDEA_HOME_PATH, UnzipTask.cacheDirectory.path)
         System.setProperty(AWT_HEADLESS, "true")
         System.setProperty(BUILD_NUMBER, UnzipTask.buildNumber())
@@ -147,7 +148,7 @@ class InspectionRunner(
         try {
             application.doNotSave()
 
-            result = application.analyzeTree(tree, logger)
+            result = application.analyzeTree(tree)
         } catch (e: Exception) {
             if (e is GradleException) throw e
             throw GradleException("EXCEPTION caught in inspection plugin (IDEA runReadAction): " + e, e)
@@ -157,7 +158,7 @@ class InspectionRunner(
         return result ?: emptyMap()
     }
 
-    private fun Application.analyzeTree(tree: FileTree, logger: Logger): Map<String, List<PinnedProblemDescriptor>> {
+    private fun Application.analyzeTree(tree: FileTree): Map<String, List<PinnedProblemDescriptor>> {
         logger.info("Before project creation at '$projectPath'")
         val ideaProject: Project = run {
             var project: Project? = null

@@ -15,11 +15,21 @@ import org.gradle.api.tasks.Optional
 import org.jdom2.input.SAXBuilder
 import org.jetbrains.idea.inspections.InspectionRunner
 import java.io.File
-import java.util.*
 import org.gradle.api.Project as GradleProject
 
 @CacheableTask
 open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleReports> {
+
+    object ClassloaderContainer {
+        @JvmField
+        var customClassLoader: ClassLoader? = null
+
+        fun getOrInit(init: () -> ClassLoader): ClassLoader {
+            return customClassLoader ?: init().apply {
+                customClassLoader = this
+            }
+        }
+    }
 
     /**
      * The class path containing the compiled classes for the source files to be analyzed.
@@ -160,11 +170,31 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
     @TaskAction
     fun run() {
         try {
-            val inspectionClasses = readInspectionClassesFromConfigFile()
+            val ideaDirectory = UnzipTask.cacheDirectory
+            val ideaAndKotlinClasspath = listOf(
+                File(ideaDirectory, "lib"),
+                File(ideaDirectory, "plugins/Kotlin/lib")
+            )
+            // Not sure if classpath is required...
+            val fullClasspath = (ideaAndKotlinClasspath + classpath).map { it.toURI().toURL() }
+            val loader = ClassloaderContainer.getOrInit {
+                ChildFirstClassLoader(
+                        classpath = fullClasspath.toTypedArray(),
+                        parent = this.javaClass.classLoader
+                )
+            }
 
-            val runner = InspectionRunner(
-                    project.projectDir, maxErrors, maxWarnings, showViolations, inspectionClasses, reports)
-            if (!runner.analyzeTreeAndLogResults(getSource(), logger)) {
+            val inspectionClasses = readInspectionClassesFromConfigFile()
+            @Suppress("UNCHECKED_CAST")
+            val runnerClass = loader.loadClass(
+                    "org.jetbrains.idea.inspections.InspectionRunner"
+            ) as Class<InspectionRunner>
+            val runner = runnerClass.constructors.first().newInstance(
+                    project.projectDir, maxErrors, maxWarnings,
+                    showViolations, inspectionClasses, reports,
+                    logger
+            ).let { runnerClass.cast(it) }
+            if (!runner.analyzeTreeAndLogResults(getSource())) {
                 throw TaskExecutionException(this, null)
             }
         }
