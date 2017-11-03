@@ -27,8 +27,6 @@ import org.jdom2.output.XMLOutputter
 import org.jetbrains.intellij.IdeaCheckstyleReports
 import org.jetbrains.intellij.InspectionClassesSuite
 import org.jetbrains.intellij.UnzipTask
-import org.jetbrains.kotlin.psi.psiUtil.endOffset
-import org.jetbrains.kotlin.psi.psiUtil.startOffset
 import java.io.File
 import com.intellij.openapi.editor.Document as IdeaDocument
 
@@ -242,16 +240,16 @@ class InspectionRunner(
         }
 
         constructor(descriptor: ProblemDescriptor, document: IdeaDocument,
-                    lineNumber: Int = document.getLineNumber(descriptor.psiElement.startOffset)):
+                    lineNumber: Int = document.getLineNumber(descriptor.psiElement.textRange.startOffset)):
                 this(descriptor,
                      descriptor.psiElement.containingFile.name,
                      lineNumber,
-                     descriptor.psiElement.startOffset - document.getLineStartOffset(lineNumber))
+                     descriptor.psiElement.textRange.startOffset - document.getLineStartOffset(lineNumber))
     }
 
     private fun LocalInspectionTool.analyze(file: PsiFile, document: IdeaDocument): List<PinnedProblemDescriptor> {
         val holder = ProblemsHolder(InspectionManager.getInstance(file.project), file, false)
-        val session = LocalInspectionToolSession(file, file.startOffset, file.endOffset)
+        val session = LocalInspectionToolSession(file, file.textRange.startOffset, file.textRange.endOffset)
         val visitor = this.buildVisitor(holder, false, session)
         file.acceptRecursively(visitor)
         return holder.results.map {
