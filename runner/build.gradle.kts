@@ -1,3 +1,5 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import org.gradle.api.tasks.bundling.Jar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 buildscript {
@@ -13,6 +15,7 @@ buildscript {
 
 	dependencies {
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+        classpath("com.github.jengelman.gradle.plugins:shadow:1.2.3")
     }
 }
 
@@ -20,6 +23,43 @@ val kotlinVersion: String by extra
 
 apply {
     plugin("kotlin")
+    plugin("maven-publish")
+    plugin("com.github.johnrengelman.shadow")
+}
+
+val projectGroup = "org.jetbrains.intellij.plugins"
+val projectVersion = "0.1-SNAPSHOT"
+val projectName = "inspection-runner"
+
+val jar: Jar by tasks
+jar.apply {
+    manifest {
+        attributes(mapOf("Main-Class" to "org.jetbrains.idea.inspections.InspectionRunner"))
+    }
+}
+
+val shadowJar: ShadowJar by tasks
+shadowJar.apply {
+    baseName = projectName
+    classifier = ""
+    exclude("idea/**")
+
+}
+
+configure<PublishingExtension> {
+    repositories {
+        maven {
+            url = uri("build/repository")
+        }
+    }
+    publications {
+        create<MavenPublication>("RunnerJar") {
+            from(components.getByName("shadow"))
+            version = projectVersion
+            groupId = projectGroup
+            artifactId = projectName
+        }
+    }
 }
 
 repositories {

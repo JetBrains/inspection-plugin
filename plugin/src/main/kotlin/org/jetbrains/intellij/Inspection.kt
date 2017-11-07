@@ -14,6 +14,7 @@ import org.gradle.api.tasks.*
 import org.gradle.api.tasks.Optional
 import org.jdom2.input.SAXBuilder
 import java.io.File
+import java.lang.Exception
 import org.gradle.api.Project as GradleProject
 
 @CacheableTask
@@ -166,15 +167,26 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
         return InspectionClassesSuite(errorClasses, warningClasses, infoClasses)
     }
 
+    private fun tryResolveRunnerJar(project: org.gradle.api.Project): File = try {
+        val dependency = project.buildscript.dependencies.create(
+                "org.jetbrains.intellij.plugins:inspection-runner:0.1-SNAPSHOT"
+        )
+        val configuration = project.buildscript.configurations.detachedConfiguration(dependency)
+        configuration.description = "Runner main jar"
+        configuration.resolve().first()
+    } catch (e: Exception) {
+        project.parent?.let { tryResolveRunnerJar(it) } ?: throw e
+    }
+
     @TaskAction
     fun run() {
         try {
             val ideaDirectory = UnzipTask.cacheDirectory
             val ideaAndKotlinClasspath = listOf(
+                tryResolveRunnerJar(project),
                 File(ideaDirectory, "lib"),
                 File(ideaDirectory, "plugins/Kotlin/lib")
             )
-            // add classpath of inspection runner jar (!!!)
             val fullClasspath = ideaAndKotlinClasspath.map { it.toURI().toURL() }
             val loader = ClassloaderContainer.getOrInit {
                 ChildFirstClassLoader(
