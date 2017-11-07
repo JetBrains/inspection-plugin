@@ -1,1 +1,4 @@
-rootProject.name = 'inspection-plugin'
+rootProject.name = 'inspections'
+include 'runner'
+include 'plugin'
+

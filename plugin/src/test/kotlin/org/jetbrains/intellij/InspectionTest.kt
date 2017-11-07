@@ -1,24 +1,19 @@
 package org.jetbrains.intellij
 
-import com.intellij.codeInspection.InspectionProfileEntry
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
-import org.junit.Rule
-import org.junit.Test
-import org.junit.rules.TemporaryFolder
 import java.io.File
-import org.junit.Assert.*
 import org.gradle.testkit.runner.TaskOutcome.*
 import org.gradle.testkit.runner.UnexpectedBuildFailure
 import org.jetbrains.intellij.InspectionTest.DiagnosticsStatus.SHOULD_BE_ABSENT
 import org.jetbrains.intellij.InspectionTest.DiagnosticsStatus.SHOULD_PRESENT
-import org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection
-import org.jetbrains.kotlin.idea.inspections.*
-import org.jetbrains.kotlin.idea.intentions.ConvertToStringTemplateInspection
-import kotlin.reflect.KClass
-import kotlin.reflect.jvm.jvmName
+import org.junit.Rule
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.migrationsupport.rules.EnableRuleMigrationSupport
+import org.junit.rules.TemporaryFolder
 
-
+@EnableRuleMigrationSupport
 class InspectionTest {
     @Rule
     @JvmField
@@ -144,21 +139,21 @@ dependencies {
 
     private fun generateInspectionTags(
             tagName: String,
-            inspections: List<KClass<out InspectionProfileEntry>>
+            inspections: List<String>
     ): String {
         return StringBuilder().apply {
             appendln("    <${tagName}s>")
             for (inspectionClass in inspections) {
-                appendln("        <$tagName class = \"${inspectionClass.jvmName}\"/>")
+                appendln("        <$tagName class = \"$inspectionClass\"/>")
             }
             appendln("    </${tagName}s>")
         }.toString()
     }
 
     private fun generateInspectionFile(
-            errors: List<KClass<out InspectionProfileEntry>> = emptyList(),
-            warnings: List<KClass<out InspectionProfileEntry>> = emptyList(),
-            infos: List<KClass<out InspectionProfileEntry>> = emptyList()
+            errors: List<String> = emptyList(),
+            warnings: List<String> = emptyList(),
+            infos: List<String> = emptyList()
     ): String {
         return StringBuilder().apply {
             appendln("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>")
@@ -181,9 +176,9 @@ dependencies {
             val showViolations: Boolean = true,
             val xmlReport: Boolean = false,
             val kotlinVersion: String = "1.1.3-2",
-            val errors: List<KClass<out InspectionProfileEntry>> = emptyList(),
-            val warnings: List<KClass<out InspectionProfileEntry>> = emptyList(),
-            val infos: List<KClass<out InspectionProfileEntry>> = emptyList(),
+            val errors: List<String> = emptyList(),
+            val warnings: List<String> = emptyList(),
+            val infos: List<String> = emptyList(),
             val javaText: String? = null,
             val kotlinText: String? = null,
             val expectedOutcome: TaskOutcome = SUCCESS,
@@ -246,7 +241,7 @@ dependencies {
     @Test
     fun testInspectionConfigurationJava() {
         InspectionTestConfiguration(
-                warnings = listOf(ClassHasNoToStringMethodInspection::class),
+                warnings = listOf("org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection"),
                 javaText = "public class Main { private int x = 42; }",
                 expectedDiagnostics = "Main.java:1:14: Class 'Main' does not override 'toString()' method"
         ).doTest()
@@ -255,7 +250,7 @@ dependencies {
     @Test
     fun testInspectionConfigurationKotlin() {
         InspectionTestConfiguration(
-                warnings = listOf(RedundantVisibilityModifierInspection::class),
+                warnings = listOf("org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection"),
                 kotlinText =                 """
 public val x = 42
 
@@ -272,7 +267,7 @@ public val y = 13
     @Test
     fun testMaxErrors() {
         InspectionTestConfiguration(
-                errors = listOf(CanBeValInspection::class),
+                errors = listOf("org.jetbrains.kotlin.idea.inspections.CanBeValInspection"),
                 maxErrors = 2,
                 kotlinText =                 """
 fun foo(a: Int, b: Int, c: Int): Int {
@@ -293,7 +288,7 @@ fun foo(a: Int, b: Int, c: Int): Int {
     @Test
     fun testRedundantModality() {
         InspectionTestConfiguration(
-                warnings = listOf(RedundantModalityModifierInspection::class),
+                warnings = listOf("org.jetbrains.kotlin.idea.inspections.RedundantModalityModifierInspection"),
                 kotlinText =                 """
 class My {
     final val x = 42
@@ -308,7 +303,7 @@ class My {
     @Test
     fun testConvertToStringTemplate() {
         InspectionTestConfiguration(
-                warnings = listOf(ConvertToStringTemplateInspection::class),
+                warnings = listOf("org.jetbrains.kotlin.idea.intentions.ConvertToStringTemplateInspection"),
                 kotlinText =                 """
 fun foo(arg: Int) = "(" + arg + ")"
                 """,
@@ -321,7 +316,7 @@ fun foo(arg: Int) = "(" + arg + ")"
     @Test
     fun testShowViolations() {
         InspectionTestConfiguration(
-                warnings = listOf(CanBeParameterInspection::class),
+                warnings = listOf("org.jetbrains.kotlin.idea.inspections.CanBeParameterInspection"),
                 showViolations = false,
                 kotlinText =                 """
 class My(val x: Int) {
@@ -338,7 +333,7 @@ class My(val x: Int) {
     @Test
     fun testXMLOutput() {
         InspectionTestConfiguration(
-                warnings = listOf(DataClassPrivateConstructorInspection::class),
+                warnings = listOf("org.jetbrains.kotlin.idea.inspections.DataClassPrivateConstructorInspection"),
                 xmlReport = true,
                 kotlinText =                 """
 data class My private constructor(val x: Double, val y: Int, val z: String)
