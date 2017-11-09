@@ -142,6 +142,8 @@ class InspectionRunner(
         createCommandLineApplication(isInternal = false, isUnitTestMode = false, isHeadless = true)
         PluginManagerCore.disablePlugin("org.jetbrains.android")
         PluginManagerCore.disablePlugin("NodeJS")
+        PluginManagerCore.disablePlugin("mobi.hsz.idea.gitignore")
+
         logger.info("Plugins enabled: " + PluginManagerCore.getPlugins().toList())
         ApplicationManagerEx.getApplicationEx().load()
         val application = ApplicationManagerEx.getApplicationEx() ?: run {
