@@ -8,7 +8,10 @@ import java.io.File
 open class UnzipTask : ConventionTask() {
 
     companion object {
-        val cacheDirectory = File("lib/idea")
+        val cacheDirectory = run {
+            val tempDir = File(System.getProperty("java.io.tmpdir"))
+            File(tempDir, "inspection-plugin/idea")
+        }
 
         fun buildNumber(): String? = File(cacheDirectory, "build.txt").let {
             if (it.exists()) it.readText().dropWhile { !it.isDigit() }.takeIf { it.isNotEmpty() } else null
@@ -36,7 +39,7 @@ open class UnzipTask : ConventionTask() {
 
     @TaskAction
     fun unzip() {
-        logger.info("Unzip task started, checking marker file")
+        logger.info("Unzip task started, checking marker file $markerFile")
 
         val markerFile = markerFile
         if (markerFile.exists()) {
