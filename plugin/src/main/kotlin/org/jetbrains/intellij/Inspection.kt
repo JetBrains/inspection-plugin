@@ -181,14 +181,12 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
     fun run() {
         try {
             val ideaDirectory = UnzipTask.cacheDirectory
-            val ideaAndKotlinClasspath = listOf(
-                File(ideaDirectory, "lib"),
-                File(ideaDirectory, "plugins/Kotlin/lib")
+            val ideaClasspath = listOf(
+                File(ideaDirectory, "lib")
             ).map {
                 it.listFiles { _, name -> name.endsWith("jar") }.toList()
             }.flatten()
-            val fullClasspath = (listOf(tryResolveRunnerJar(project)) +
-                                 ideaAndKotlinClasspath).map { it.toURI().toURL() }
+            val fullClasspath = (listOf(tryResolveRunnerJar(project)) + ideaClasspath).map { it.toURI().toURL() }
             logger.info("Inspection runner classpath: $fullClasspath")
             val loader = ClassloaderContainer.getOrInit {
                 ChildFirstClassLoader(
