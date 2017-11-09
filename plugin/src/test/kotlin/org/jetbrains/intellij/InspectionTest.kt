@@ -35,6 +35,7 @@ class InspectionTest {
 buildscript {
     repositories {
         mavenCentral()
+        mavenLocal()
     }
     dependencies {
         $kotlinGradleDependency
