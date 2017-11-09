@@ -13,14 +13,12 @@ buildscript {
 
 	dependencies {
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
-        classpath("org.junit.platform:junit-platform-gradle-plugin:1.0.0")
     }
 }
 
 val kotlinVersion: String by extra
 
 apply {
-	plugin("org.junit.platform.gradle.plugin")
     plugin("java-gradle-plugin")
     plugin("maven-publish")
     plugin("kotlin")
