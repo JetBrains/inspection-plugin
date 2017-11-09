@@ -141,6 +141,7 @@ class InspectionRunner(
         logger.warn("IDEA home path: " + PathManager.getHomePath())
         createCommandLineApplication(isInternal = false, isUnitTestMode = false, isHeadless = true)
         PluginManagerCore.disablePlugin("org.jetbrains.android")
+        PluginManagerCore.disablePlugin("NodeJS")
         logger.info("Plugins enabled: " + PluginManagerCore.getPlugins().toList())
         ApplicationManagerEx.getApplicationEx().load()
         val application = ApplicationManagerEx.getApplicationEx() ?: run {
