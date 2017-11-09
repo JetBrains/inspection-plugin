@@ -7,13 +7,11 @@ import org.gradle.testkit.runner.TaskOutcome.*
 import org.gradle.testkit.runner.UnexpectedBuildFailure
 import org.jetbrains.intellij.InspectionTest.DiagnosticsStatus.SHOULD_BE_ABSENT
 import org.jetbrains.intellij.InspectionTest.DiagnosticsStatus.SHOULD_PRESENT
+import org.junit.Assert.*
 import org.junit.Rule
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.migrationsupport.rules.EnableRuleMigrationSupport
+import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
-@EnableRuleMigrationSupport
 class InspectionTest {
     @Rule
     @JvmField

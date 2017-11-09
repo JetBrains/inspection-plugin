@@ -73,10 +73,7 @@ dependencies {
     compile(gradleApi())
     compile("org.jdom:jdom2:2.0.6")
 
-    testCompile("org.junit.jupiter:junit-jupiter-api:5.0.0")
-    testCompile("org.junit.jupiter:junit-jupiter-migrationsupport:5.0.0")
-    testRuntime("org.junit.jupiter:junit-jupiter-engine:5.0.0")
-    testRuntime("org.junit.platform:junit-platform-launcher:1.0.0")
+    testCompile("junit:junit:4.12")
     testCompile(gradleTestKit())
 }
 
