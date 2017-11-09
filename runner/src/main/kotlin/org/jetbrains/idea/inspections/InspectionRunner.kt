@@ -1,6 +1,7 @@
 package org.jetbrains.idea.inspections
 
 import com.intellij.codeInspection.*
+import com.intellij.codeInspection.ex.InspectionToolRegistrar
 import com.intellij.ide.impl.ProjectUtil
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.idea.createCommandLineApplication
@@ -181,9 +182,20 @@ class InspectionRunner(
 
         val results: MutableMap<String, MutableList<PinnedProblemDescriptor>> = mutableMapOf()
         logger.info("Before inspections launched: total of ${tree.files.size} files to analyze")
-        for (inspectionClass in inspectionClasses.classes) {
-            @Suppress("UNCHECKED_CAST")
-            val inspectionTool = (Class.forName(inspectionClass) as Class<LocalInspectionTool>).newInstance()
+        val tools = InspectionToolRegistrar.getInstance().createTools()
+        inspectionLoop@ for (inspectionClassName in inspectionClasses.classes) {
+            val inspectionTool = tools.find { it.tool.javaClass.name == inspectionClassName }?.tool
+            when (inspectionTool) {
+                is LocalInspectionTool -> {}
+                is GlobalInspectionTool -> {
+                    logger.warn("Global inspection tools like $inspectionClassName are not yet supported")
+                    continue@inspectionLoop
+                }
+                else -> {
+                    logger.error("Unexpected $inspectionClassName which is neither local nor global")
+                    continue@inspectionLoop
+                }
+            }
             val inspectionResults = mutableListOf<PinnedProblemDescriptor>()
             runReadAction {
                 for (sourceFile in tree) {
@@ -197,7 +209,7 @@ class InspectionRunner(
                     inspectionResults += inspectionTool.analyze(psiFile, document)
                 }
             }
-            results[inspectionClass] = inspectionResults
+            results[inspectionClassName] = inspectionResults
         }
         return results
     }
