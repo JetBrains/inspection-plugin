@@ -42,8 +42,12 @@ val shadowJar: ShadowJar by tasks
 shadowJar.apply {
     baseName = projectName
     classifier = ""
-    exclude("idea/**")
-
+    exclude("*.jar")
+    dependencies {
+        exclude(dependency("org.jetbrains.kotlin:kotlin-.*"))
+        exclude(dependency("org.jdom:jdom.*"))
+        exclude(dependency("org.jetbrains.intellij.plugins:.*"))
+    }
 }
 
 configure<PublishingExtension> {
