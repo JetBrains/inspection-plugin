@@ -14,7 +14,6 @@ import org.gradle.api.tasks.*
 import org.gradle.api.tasks.Optional
 import org.jdom2.input.SAXBuilder
 import java.io.File
-import java.lang.Exception
 import org.gradle.api.Project as GradleProject
 
 @CacheableTask
@@ -183,11 +182,14 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
         try {
             val ideaDirectory = UnzipTask.cacheDirectory
             val ideaAndKotlinClasspath = listOf(
-                tryResolveRunnerJar(project),
                 File(ideaDirectory, "lib"),
                 File(ideaDirectory, "plugins/Kotlin/lib")
-            )
-            val fullClasspath = ideaAndKotlinClasspath.map { it.toURI().toURL() }
+            ).map {
+                it.listFiles { _, name -> name.endsWith("jar") }.toList()
+            }.flatten()
+            val fullClasspath = (listOf(tryResolveRunnerJar(project)) +
+                                 ideaAndKotlinClasspath).map { it.toURI().toURL() }
+            logger.info("Inspection runner classpath: $fullClasspath")
             val loader = ClassloaderContainer.getOrInit {
                 ChildFirstClassLoader(
                         classpath = fullClasspath.toTypedArray(),
