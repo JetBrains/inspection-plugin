@@ -7,7 +7,6 @@ import com.intellij.idea.createCommandLineApplication
 import com.intellij.openapi.application.Application
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.application.ex.ApplicationManagerEx
-import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.text.StringUtil
@@ -140,8 +139,7 @@ class InspectionRunner(
         System.setProperty(PlatformUtils.PLATFORM_PREFIX_KEY, PlatformUtils.getPlatformPrefix(PlatformUtils.IDEA_CE_PREFIX))
         logger.warn("IDEA home path: " + PathManager.getHomePath())
         createCommandLineApplication(isInternal = false, isUnitTestMode = false, isHeadless = true)
-        PluginManagerCore.addPluginClass(PluginId.getId("org.jetbrains.kotlin"))
-        PluginManagerCore.enablePlugin("Kotlin")
+        PluginManagerCore.disablePlugin("org.jetbrains.android")
         logger.info("Plugins enabled: " + PluginManagerCore.getPlugins().toList())
         ApplicationManagerEx.getApplicationEx().load()
         val application = ApplicationManagerEx.getApplicationEx() ?: run {
