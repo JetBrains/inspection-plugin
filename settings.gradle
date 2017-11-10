@@ -1,4 +1,5 @@
 rootProject.name = 'inspections'
 include 'runner'
 include 'plugin'
+include 'sample'
 
