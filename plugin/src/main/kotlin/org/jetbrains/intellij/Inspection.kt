@@ -201,7 +201,7 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
                     "org.jetbrains.idea.inspections.InspectionRunner"
             ) as Class<Analyzer>
             val analyzer = analyzerClass.constructors.first().newInstance(
-                    project.projectDir, maxErrors, maxWarnings,
+                    project, maxErrors, maxWarnings,
                     showViolations, inspectionClasses, reports,
                     logger
             ).let { analyzerClass.cast(it) }

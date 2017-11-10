@@ -9,7 +9,7 @@ import com.intellij.openapi.application.Application
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.application.ex.ApplicationManagerEx
 import com.intellij.openapi.fileEditor.FileDocumentManager
-import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.Project as IdeaProject
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiElement
@@ -18,6 +18,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.util.PlatformUtils
 import org.gradle.api.GradleException
+import org.gradle.api.Project as GradleProject
 import org.gradle.api.file.FileTree
 import org.gradle.api.logging.LogLevel
 import org.gradle.api.logging.Logger
@@ -33,7 +34,7 @@ import com.intellij.openapi.editor.Document as IdeaDocument
 
 @Suppress("unused")
 class InspectionRunner(
-        private val projectDir: File,
+        private val project: GradleProject,
         private val maxErrors: Int,
         private val maxWarnings: Int,
         private val showViolations: Boolean,
@@ -46,6 +47,8 @@ class InspectionRunner(
         private val IDEA_HOME_PATH = "idea.home.path"
         private val BUILD_NUMBER = "idea.plugins.compatible.build"
     }
+
+    private val projectDir: File = project.projectDir
 
     private val projectPath: String = projectDir.absolutePath
 
@@ -165,14 +168,14 @@ class InspectionRunner(
 
     private fun Application.analyzeTree(tree: FileTree): Map<String, List<PinnedProblemDescriptor>> {
         logger.info("Before project creation at '$projectPath'")
-        val ideaProject: Project = run {
-            var project: Project? = null
-            val projectFileName = projectDir.name + ".ipr"
+        val ideaProject: IdeaProject = run {
+            var ideaProject: IdeaProject? = null
+            val projectFileName = project.name + ".ipr"
             val projectFile = File(projectPath, projectFileName)
             invokeAndWait {
-                project = ProjectUtil.openOrImport(projectFile.absolutePath, null, false)
+                ideaProject = ProjectUtil.openOrImport(projectFile.absolutePath, null, false)
             }
-            project ?: run {
+            ideaProject ?: run {
                 throw GradleException("Cannot open IDEA project: '${projectFile.absolutePath}'")
             }
         }
