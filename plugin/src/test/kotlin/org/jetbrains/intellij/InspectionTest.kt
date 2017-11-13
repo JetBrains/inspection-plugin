@@ -228,10 +228,10 @@ class InspectionTest {
             return line.split("=")[1].trim()
         }
 
-        val maxErrors = getParameterValue("maxErrors", "-1")
-        val maxWarnings = getParameterValue("maxWarnings", "-1")
-        val showViolations = getParameterValue("showViolations", "true")
-        val xmlReport = getParameterValue("xmlReport", "false")
+        val maxErrors = getParameterValue("maxErrors", "-1").toInt()
+        val maxWarnings = getParameterValue("maxWarnings", "-1").toInt()
+        val showViolations = getParameterValue("showViolations", "true").toBoolean()
+        val xmlReport = getParameterValue("xmlReport", "false").toBoolean()
         val kotlinVersion = getParameterValue("kotlinVersion", "1.1.3-2")
 
         val expectedDiagnosticsStatus = if (lines.contains("// SHOULD_BE_ABSENT")) SHOULD_BE_ABSENT else SHOULD_PRESENT
@@ -239,10 +239,10 @@ class InspectionTest {
 
         InspectionTestConfiguration(
                 testFilePath,
-                maxErrors.toInt(),
-                maxWarnings.toInt(),
-                showViolations.toBoolean(),
-                xmlReport.toBoolean(),
+                maxErrors,
+                maxWarnings,
+                showViolations,
+                xmlReport,
                 kotlinVersion,
                 errors,
                 warnings,
