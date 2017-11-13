@@ -1,0 +1,42 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        mavenLocal()
+    }
+    dependencies {
+        <kotlinGradleDependency>
+    }
+}
+plugins {
+    id 'java'
+    <kotlinPlugin>
+    id 'org.jetbrains.intellij.inspections'
+}
+inspections {
+    <maxErrors>
+    <maxWarnings>
+    <showViolations>
+}
+inspectionsMain {
+    reports {
+        xml {
+            <xmlDestination>
+        }
+    }
+}
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src']
+        }
+    }
+}
+repositories {
+    mavenCentral()
+}
+dependencies {
+    <kotlin-stdlib>
+    <kotlin-runtime>
+}
+
+

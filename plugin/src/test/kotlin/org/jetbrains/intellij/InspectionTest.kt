@@ -25,74 +25,40 @@ class InspectionTest {
             xmlReport: Boolean = false,
             kotlinVersion: String = "1.1.3-2"
     ): String {
+        val templateLines = File("testData/inspection/build.gradle.template").readLines()
         return StringBuilder().apply {
-            val kotlinGradleDependency = if (kotlinNeeded) """
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
-                """ else ""
-            appendln("""
-buildscript {
-    repositories {
-        mavenCentral()
-        mavenLocal()
-    }
-    dependencies {
-        $kotlinGradleDependency
-    }
-}
-                """)
-            val kotlinPlugin = if (kotlinNeeded) "id 'org.jetbrains.kotlin.jvm' version '$kotlinVersion'" else ""
-            appendln("""
-plugins {
-    id 'java'
-    $kotlinPlugin
-    id 'org.jetbrains.intellij.inspections'
-}
-                """)
-            if (maxErrors > -1 || maxWarnings > -1 || !showViolations) {
-                appendln("inspections {")
-                if (maxErrors > -1) {
-                    appendln("    maxErrors = $maxErrors")
+            for (line in templateLines) {
+                val template = Regex("<.*>").find(line)
+                if (template == null) {
+                    appendln(line)
+                    continue
                 }
-                if (maxWarnings > -1) {
-                    appendln("    maxWarnings = $maxWarnings")
+                when (template.value.drop(1).dropLast(1)) {
+                    "kotlinGradleDependency" -> if (kotlinNeeded) {
+                        appendln("        classpath \"org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion\"")
+                    }
+                    "kotlinPlugin" -> if (kotlinNeeded) {
+                        appendln("    id 'org.jetbrains.kotlin.jvm' version '$kotlinVersion'")
+                    }
+                    "maxErrors" -> if (maxErrors > -1) {
+                        appendln("    maxErrors = $maxErrors")
+                    }
+                    "maxWarnings" -> if (maxWarnings > -1) {
+                        appendln("    maxWarnings = $maxWarnings")
+                    }
+                    "showViolations" -> if (!showViolations) {
+                        appendln("    showViolations = false")
+                    }
+                    "xmlDestination" -> if (xmlReport) {
+                        appendln("            destination \"build/report.xml\"")
+                    }
+                    "kotlin-stdlib" -> if (kotlinNeeded) {
+                        appendln("    compile \"org.jetbrains.kotlin:kotlin-stdlib\"")
+                    }
+                    "kotlin-runtime" -> if (kotlinNeeded) {
+                        appendln("    compile \"org.jetbrains.kotlin:kotlin-runtime\"")
+                    }
                 }
-                if (!showViolations) {
-                    appendln("    showViolations = false")
-                }
-                appendln("}")
-            }
-            if (xmlReport) {
-                appendln("""
-inspectionsMain {
-    reports {
-        xml {
-            destination "build/report.xml"
-        }
-    }
-}
-                    """)
-            }
-
-            appendln("""
-sourceSets {
-    main {
-        java {
-            srcDirs = ['src']
-        }
-    }
-}
-                """)
-            if (kotlinNeeded) {
-                appendln("""
-repositories {
-    mavenCentral()
-}
-
-dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib"
-    compile "org.jetbrains.kotlin:kotlin-runtime"
-}
-                    """)
             }
             println(this)
         }.toString()
