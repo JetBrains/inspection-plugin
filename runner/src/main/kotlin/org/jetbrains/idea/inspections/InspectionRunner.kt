@@ -87,20 +87,21 @@ class InspectionRunner(
                     LogLevel.WARN -> warnings++
                     else -> {}
                 }
-                val renderedText = problem.render()
                 if (showViolations) {
-                    logger.log(level, renderedText)
+                    logger.log(level, problem.renderWithLocation())
                 }
                 if (xmlEnabled) {
-                    val element = Element(when (level) {
-                        LogLevel.ERROR -> "error"
-                        LogLevel.WARN -> "warning"
-                        else -> "info"
-                    })
-                    element.setAttribute("class", inspectionClass)
-                    element.setAttribute("text", renderedText)
-                    element.setAttribute("file", problem.psiElement.containingFile.name)
-                    element.setAttribute("line", (problem.line + 1).toString())
+                    val element = Element("problem")
+                    element.addContent(Element("file").addContent(problem.psiElement.containingFile.name))
+                    element.addContent(Element("line").addContent((problem.line + 1).toString()))
+                    element.addContent(Element("row").addContent((problem.row + 1).toString()))
+                    element.addContent(Element("java_class").addContent(inspectionClass))
+                    element.addContent(Element("problem_class").setAttribute("severity", when (level) {
+                        LogLevel.ERROR -> "ERROR"
+                        LogLevel.WARN -> "WARNING"
+                        else -> "INFORMATION"
+                    }).addContent(problem.displayName))
+                    element.addContent(Element("description").addContent(problem.render()))
                     when (level) {
                         LogLevel.ERROR -> errorElements += element
                         LogLevel.WARN -> warningElements += element
@@ -190,7 +191,12 @@ class InspectionRunner(
         logger.info("Before inspections launched: total of ${tree.files.size} files to analyze")
         val tools = InspectionToolRegistrar.getInstance().createTools()
         inspectionLoop@ for (inspectionClassName in inspectionClasses.classes) {
-            val inspectionTool = tools.find { it.tool.javaClass.name == inspectionClassName }?.tool
+            val inspectionToolWrapper = tools.find { it.tool.javaClass.name == inspectionClassName }
+            if (inspectionToolWrapper == null) {
+                logger.error("Inspection $inspectionClassName is not found in registrar")
+                continue
+            }
+            val inspectionTool = inspectionToolWrapper.tool
             when (inspectionTool) {
                 is LocalInspectionTool -> {}
                 is GlobalInspectionTool -> {
@@ -202,6 +208,8 @@ class InspectionRunner(
                     continue@inspectionLoop
                 }
             }
+            val inspectionExtension = inspectionToolWrapper.extension
+            val displayName = inspectionExtension.displayName
             val inspectionResults = mutableListOf<PinnedProblemDescriptor>()
             runReadAction {
                 for (sourceFile in tree) {
@@ -212,7 +220,7 @@ class InspectionRunner(
                                   ?: throw GradleException("Cannot find PSI file for $filePath")
                     val document = documentManager.getDocument(virtualFile)
                                    ?: throw GradleException("Cannot get document for $filePath")
-                    inspectionResults += inspectionTool.analyze(psiFile, document)
+                    inspectionResults += inspectionTool.analyze(psiFile, document, displayName)
                 }
             }
             results[inspectionClassName] = inspectionResults
@@ -231,49 +239,51 @@ class InspectionRunner(
             val descriptor: ProblemDescriptor,
             val fileName: String,
             val line: Int,
-            val row: Int
+            val row: Int,
+            val displayName: String
     ) : ProblemDescriptor by descriptor {
         private val highlightedText = psiElement?.let {
             ProblemDescriptorUtil.extractHighlightedText(this, it)
         } ?: ""
 
-        fun renderLocation(): String {
-            return StringBuilder().apply {
-                append(fileName)
-                append(":")
-                append(line + 1)
-                append(":")
-                append(row + 1)
-            }.toString()
-        }
+        fun renderLocation(): String = StringBuilder().apply {
+            append(fileName)
+            append(":")
+            append(line + 1)
+            append(":")
+            append(row + 1)
+        }.toString()
 
-        fun render(): String {
-            return renderLocation() + ": " + StringUtil.replace(
-                    StringUtil.replace(
-                            descriptionTemplate,
-                            "#ref",
-                            highlightedText
-                    ),
-                    " #loc ",
-                    " "
-            )
-        }
+        fun renderWithLocation(): String = renderLocation() + ": " + render()
 
-        constructor(descriptor: ProblemDescriptor, document: IdeaDocument,
+        fun render(): String = StringUtil.replace(
+                StringUtil.replace(
+                        descriptionTemplate,
+                        "#ref",
+                        highlightedText
+                ),
+                " #loc ",
+                " "
+        )
+
+        constructor(descriptor: ProblemDescriptor, document: IdeaDocument, displayName: String,
                     lineNumber: Int = document.getLineNumber(descriptor.psiElement.textRange.startOffset)):
-                this(descriptor,
-                     descriptor.psiElement.containingFile.name,
-                     lineNumber,
-                     descriptor.psiElement.textRange.startOffset - document.getLineStartOffset(lineNumber))
+                this(descriptor, descriptor.psiElement.containingFile.name, lineNumber,
+                     descriptor.psiElement.textRange.startOffset - document.getLineStartOffset(lineNumber),
+                     displayName)
     }
 
-    private fun LocalInspectionTool.analyze(file: PsiFile, document: IdeaDocument): List<PinnedProblemDescriptor> {
+    private fun LocalInspectionTool.analyze(
+            file: PsiFile,
+            document: IdeaDocument,
+            displayName: String
+    ): List<PinnedProblemDescriptor> {
         val holder = ProblemsHolder(InspectionManager.getInstance(file.project), file, false)
         val session = LocalInspectionToolSession(file, file.textRange.startOffset, file.textRange.endOffset)
         val visitor = this.buildVisitor(holder, false, session)
         file.acceptRecursively(visitor)
         return holder.results.map {
-            PinnedProblemDescriptor(it, document)
+            PinnedProblemDescriptor(it, document, displayName)
         }
     }
 }
