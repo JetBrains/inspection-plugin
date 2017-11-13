@@ -119,8 +119,9 @@ dependencies {
         println(result.output)
         for (diagnostic in expectedDiagnostics) {
             when (expectedDiagnosticsStatus) {
-                SHOULD_PRESENT -> assertTrue(diagnostic in result.output)
-                SHOULD_BE_ABSENT -> assertFalse(diagnostic in result.output)
+                SHOULD_PRESENT -> assertTrue("$diagnostic is not found (but should)",
+                        diagnostic in result.output)
+                SHOULD_BE_ABSENT -> assertFalse("$diagnostic is found (but should not)", diagnostic in result.output)
             }
         }
         assertEquals(expectedOutcome, result.task(":inspectionsMain").outcome)
@@ -166,6 +167,7 @@ dependencies {
     }
 
     private inner class InspectionTestConfiguration(
+            val testFilePath: String,
             val maxErrors: Int = -1,
             val maxWarnings: Int = -1,
             val showViolations: Boolean = true,
@@ -174,11 +176,9 @@ dependencies {
             val errors: List<String> = emptyList(),
             val warnings: List<String> = emptyList(),
             val infos: List<String> = emptyList(),
-            val javaText: String? = null,
-            val kotlinText: String? = null,
             val expectedOutcome: TaskOutcome = SUCCESS,
-            vararg val expectedDiagnostics: String,
-            val expectedDiagnosticsStatus: DiagnosticsStatus = SHOULD_PRESENT
+            val expectedDiagnosticsStatus: DiagnosticsStatus = SHOULD_PRESENT,
+            vararg val expectedDiagnostics: String
     ) {
         fun doTest() {
             val buildFile = testProjectDir.newFile("build.gradle")
@@ -187,10 +187,10 @@ dependencies {
             testProjectDir.newFolder("src", "main", "kotlin")
             testProjectDir.newFolder("src", "main", "java")
             testProjectDir.newFolder("build")
-            val sourceJavaFile = testProjectDir.newFile("src/main/java/Main.java")
 
+            val isKotlinFile = testFilePath.endsWith("kt")
             val buildFileContent = generateBuildFile(
-                    kotlinText != null,
+                    isKotlinFile,
                     maxErrors,
                     maxWarnings,
                     showViolations,
@@ -200,11 +200,23 @@ dependencies {
             writeFile(buildFile, buildFileContent)
             val inspectionsFileContent = generateInspectionFile(errors, warnings, infos)
             writeFile(inspectionsFile, inspectionsFileContent)
-            javaText?.let { writeFile(sourceJavaFile, it) }
-            if (kotlinText != null) {
-                val sourceKotlinFile = testProjectDir.newFile("src/main/kotlin/main.kt")
-                writeFile(sourceKotlinFile, kotlinText)
+
+            fun buildSourceFileName(): String {
+                val sb = StringBuilder()
+                sb.append("src/main/")
+                if (isKotlinFile) {
+                    sb.append("kotlin")
+                }
+                else {
+                    sb.append("java")
+                }
+                sb.append("/")
+                sb.append(testFilePath.replace("\\", "/").substringAfterLast('/'))
+                return sb.toString()
             }
+            val testFile = File(testFilePath)
+            val sourceFile = testProjectDir.newFile(buildSourceFileName())
+            testFile.copyTo(sourceFile, overwrite = true)
             assertInspectionBuild(
                     expectedOutcome,
                     expectedDiagnosticsStatus,
@@ -232,111 +244,87 @@ dependencies {
         assertEquals(result.task(":helloWorld").outcome, SUCCESS)
     }
 
+    private fun doTest(testFilePath: String) {
+        val testFile = File(testFilePath)
+        val lines = testFile.readLines()
+        fun getDiagnosticList(diagnosticKind: String) =
+                lines.filter { it.startsWith("// $diagnosticKind:") }.map { it.split(":")[1].trim() }
+
+        val errors = getDiagnosticList("error")
+        val warnings = getDiagnosticList("warning")
+        val infos = getDiagnosticList("info")
+
+        val testFileName = testFilePath.replace("\\", "/").substringAfterLast('/')
+        val expectedDiagnostics = lines.filter { it.startsWith("// :") }.map { testFileName + it.drop(3) }
+
+        fun getParameterValue(parameterName: String, defaultValue: String): String {
+            val line = lines.singleOrNull { it.startsWith("// $parameterName =") } ?: return defaultValue
+            return line.split("=")[1].trim()
+        }
+
+        val maxErrors = getParameterValue("maxErrors", "-1")
+        val maxWarnings = getParameterValue("maxWarnings", "-1")
+        val showViolations = getParameterValue("showViolations", "true")
+        val xmlReport = getParameterValue("xmlReport", "false")
+        val kotlinVersion = getParameterValue("kotlinVersion", "1.1.3-2")
+
+        val expectedDiagnosticsStatus = if (lines.contains("// SHOULD_BE_ABSENT")) SHOULD_BE_ABSENT else SHOULD_PRESENT
+        val expectedOutcome = if (lines.contains("// FAIL")) FAILED else SUCCESS
+
+        InspectionTestConfiguration(
+                testFilePath,
+                maxErrors.toInt(),
+                maxWarnings.toInt(),
+                showViolations.toBoolean(),
+                xmlReport.toBoolean(),
+                kotlinVersion,
+                errors,
+                warnings,
+                infos,
+                expectedOutcome,
+                expectedDiagnosticsStatus,
+                *expectedDiagnostics.toTypedArray()
+        ).doTest()
+    }
+
     @Test
     fun testInspectionConfigurationJava() {
-        InspectionTestConfiguration(
-                warnings = listOf("org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection"),
-                javaText = "public class Main { private int x = 42; }",
-                expectedDiagnostics = "Main.java:1:14: Class 'Main' does not override 'toString()' method"
-        ).doTest()
+        doTest("testData/inspection/configurationJava/Main.java")
     }
 
     @Test
     fun testInspectionConfigurationKotlin() {
-        InspectionTestConfiguration(
-                warnings = listOf("org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection"),
-                kotlinText =                 """
-public val x = 42
-
-public val y = 13
-
-                """,
-                expectedDiagnostics = *arrayOf(
-                        "main.kt:2:1: Redundant visibility modifier",
-                        "main.kt:4:1: Redundant visibility modifier"
-                )
-        ).doTest()
+        doTest("testData/inspection/configurationKotlin/main.kt")
     }
 
     @Test
     fun testMaxErrors() {
-        InspectionTestConfiguration(
-                errors = listOf("org.jetbrains.kotlin.idea.inspections.CanBeValInspection"),
-                maxErrors = 2,
-                kotlinText =                 """
-fun foo(a: Int, b: Int, c: Int): Int {
-    var x = a
-    var y = b
-    var z = c
-    return x + y + z
-}
-                """,
-                expectedOutcome = FAILED,
-                expectedDiagnostics = *arrayOf(
-                        "main.kt:3:5: Variable is never modified and can be declared immutable using 'val'",
-                        "main.kt:4:5: Variable is never modified and can be declared immutable using 'val'",
-                        "main.kt:5:5: Variable is never modified and can be declared immutable using 'val'"                )
-        ).doTest()
+        doTest("testData/inspection/maxErrors/foo.kt")
     }
 
     @Test
     fun testRedundantModality() {
-        InspectionTestConfiguration(
-                warnings = listOf("org.jetbrains.kotlin.idea.inspections.RedundantModalityModifierInspection"),
-                kotlinText =                 """
-class My {
-    final val x = 42
-}
-                """,
-                expectedDiagnostics = *arrayOf(
-                        "main.kt:3:5: Redundant modality modifier"
-                )
-        ).doTest()
+        doTest("testData/inspection/redundantModality/My.kt")
     }
 
     @Test
     fun testConvertToStringTemplate() {
-        InspectionTestConfiguration(
-                warnings = listOf("org.jetbrains.kotlin.idea.intentions.ConvertToStringTemplateInspection"),
-                kotlinText =                 """
-fun foo(arg: Int) = "(" + arg + ")"
-                """,
-                expectedDiagnostics = *arrayOf(
-                        "main.kt:2:21: Convert concatenation to template"
-                )
-        ).doTest()
+        doTest("testData/inspection/convertToStringTemplate/foo.kt")
     }
 
     @Test
-    fun testShowViolations() {
-        InspectionTestConfiguration(
-                warnings = listOf("org.jetbrains.kotlin.idea.inspections.CanBeParameterInspection"),
-                showViolations = false,
-                kotlinText =                 """
-class My(val x: Int) {
-    val y = x
-}
-                """,
-                expectedDiagnostics = *arrayOf(
-                        "main.kt:2:10: Constructor parameter is never used as a property"
-                ),
-                expectedDiagnosticsStatus = SHOULD_BE_ABSENT
-        ).doTest()
+    fun testDoNotShowViolations() {
+        doTest("testData/inspection/doNotShowViolations/My.kt")
     }
 
     @Test
     fun testXMLOutput() {
-        InspectionTestConfiguration(
-                warnings = listOf("org.jetbrains.kotlin.idea.inspections.DataClassPrivateConstructorInspection"),
-                xmlReport = true,
-                kotlinText =                 """
-data class My private constructor(val x: Double, val y: Int, val z: String)
-                """
-        ).doTest()
+        doTest("testData/inspection/xmlOutput/My.kt")
+
         val file = File(testProjectDir.root, "build/report.xml")
         val lines = file.readLines()
         val allLines = lines.joinToString(separator = " ")
         assertTrue("warning class=\"org.jetbrains.kotlin.idea.inspections.DataClassPrivateConstructorInspection\"" in allLines)
-        assertTrue("main.kt:2:15: Private data class constructor is exposed via the generated 'copy' method" in allLines)
+        assertTrue("My.kt:4:15: Private data class constructor is exposed via the generated 'copy' method" in allLines)
     }
 }
