@@ -5,6 +5,9 @@ import org.gradle.testkit.runner.TaskOutcome
 import java.io.File
 import org.gradle.testkit.runner.TaskOutcome.*
 import org.gradle.testkit.runner.UnexpectedBuildFailure
+import org.jdom2.input.SAXBuilder
+import org.jdom2.output.Format
+import org.jdom2.output.XMLOutputter
 import org.jetbrains.intellij.InspectionTest.DiagnosticsStatus.SHOULD_BE_ABSENT
 import org.jetbrains.intellij.InspectionTest.DiagnosticsStatus.SHOULD_PRESENT
 import org.junit.Assert.*
@@ -251,6 +254,19 @@ class InspectionTest {
                 expectedDiagnosticsStatus,
                 *expectedDiagnostics.toTypedArray()
         ).doTest()
+
+        if (xmlReport) {
+            fun File.toRootElement() = SAXBuilder().build(this).rootElement
+
+            val actualFile = File(testProjectDir.root, "build/report.xml")
+            val expectedFile = File(testFilePath.dropLast(testFileName.length) + "report.xml")
+            val actualRoot = actualFile.toRootElement()
+            val expectedRoot = expectedFile.toRootElement()
+            val xmlOutputter = XMLOutputter(Format.getPrettyFormat())
+            val actualRepresentation = xmlOutputter.outputString(actualRoot)
+            val expectedRepresentation = xmlOutputter.outputString(expectedRoot)
+            assertEquals(expectedRepresentation, actualRepresentation)
+        }
     }
 
     @Test
@@ -286,11 +302,5 @@ class InspectionTest {
     @Test
     fun testXMLOutput() {
         doTest("testData/inspection/xmlOutput/My.kt")
-
-        val file = File(testProjectDir.root, "build/report.xml")
-        val lines = file.readLines()
-        val allLines = lines.joinToString(separator = " ")
-        assertTrue("warning class=\"org.jetbrains.kotlin.idea.inspections.DataClassPrivateConstructorInspection\"" in allLines)
-        assertTrue("My.kt:4:15: Private data class constructor is exposed via the generated 'copy' method" in allLines)
     }
 }

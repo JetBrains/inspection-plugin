@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<report>
+    <errors />
+    <warnings>
+        <warning class="org.jetbrains.kotlin.idea.inspections.DataClassPrivateConstructorInspection"
+                 text="My.kt:4:15: Private data class constructor is exposed via the generated 'copy' method."
+                 file="My.kt" line="4">
+        </warning>
+    </warnings>
+    <infos />
+</report>
