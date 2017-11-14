@@ -100,7 +100,7 @@ class InspectionRunner(
                         LogLevel.ERROR -> "ERROR"
                         LogLevel.WARN -> "WARNING"
                         else -> "INFORMATION"
-                    }).addContent(problem.displayName))
+                    }).addContent(problem.displayName ?: "<ANONYMOUS>"))
                     element.addContent(Element("description").addContent(problem.render()))
                     when (level) {
                         LogLevel.ERROR -> errorElements += element
@@ -266,7 +266,7 @@ class InspectionRunner(
             val fileName: String,
             val line: Int,
             val row: Int,
-            val displayName: String
+            val displayName: String?
     ) : ProblemDescriptor by descriptor {
         private val highlightedText = psiElement?.let {
             ProblemDescriptorUtil.extractHighlightedText(this, it)
@@ -292,7 +292,7 @@ class InspectionRunner(
                 " "
         )
 
-        constructor(descriptor: ProblemDescriptor, document: IdeaDocument, displayName: String,
+        constructor(descriptor: ProblemDescriptor, document: IdeaDocument, displayName: String?,
                     lineNumber: Int = document.getLineNumber(descriptor.psiElement.textRange.startOffset)):
                 this(descriptor, descriptor.psiElement.containingFile.name, lineNumber,
                      descriptor.psiElement.textRange.startOffset - document.getLineStartOffset(lineNumber),
@@ -302,7 +302,7 @@ class InspectionRunner(
     private fun LocalInspectionTool.analyze(
             file: PsiFile,
             document: IdeaDocument,
-            displayName: String
+            displayName: String?
     ): List<PinnedProblemDescriptor> {
         val holder = ProblemsHolder(InspectionManager.getInstance(file.project), file, false)
         val session = LocalInspectionToolSession(file, file.textRange.startOffset, file.textRange.endOffset)
