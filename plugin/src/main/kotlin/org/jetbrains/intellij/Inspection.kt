@@ -172,7 +172,7 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
 
     private fun tryResolveRunnerJar(project: org.gradle.api.Project): File = try {
         val dependency = project.buildscript.dependencies.create(
-                "org.jetbrains.intellij.plugins:inspection-runner:${project.version}"
+                "org.jetbrains.intellij.plugins:inspection-runner:0.1-SNAPSHOT"
         )
         val configuration = project.buildscript.configurations.detachedConfiguration(dependency)
         configuration.description = "Runner main jar"
