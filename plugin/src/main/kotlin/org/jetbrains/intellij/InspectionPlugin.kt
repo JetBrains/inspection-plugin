@@ -37,6 +37,7 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<Inspection>() {
 
         project.repositories.maven { it.setUrl("https://www.jetbrains.com/intellij-repository/releases") }
         project.tasks.create("unzip", UnzipTask::class.java)
+        project.rootProject.plugins.apply("idea")
         project.plugins.apply("idea")
     }
 
@@ -45,6 +46,8 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<Inspection>() {
 
         val unzipTask = project.tasks.getAt("unzip")
         task.dependsOn += unzipTask
+        val rootIdeaTask = project.rootProject.tasks.getAt("idea")
+        task.dependsOn += rootIdeaTask
         val ideaTask = project.tasks.getAt("idea")
         task.dependsOn += ideaTask
 

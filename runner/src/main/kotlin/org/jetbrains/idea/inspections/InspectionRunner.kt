@@ -49,9 +49,7 @@ class InspectionRunner(
         private val BUILD_NUMBER = "idea.plugins.compatible.build"
     }
 
-    private val projectDir: File = project.projectDir
-
-    private val projectPath: String = projectDir.absolutePath
+    private val projectPath: String = project.rootProject.projectDir.absolutePath
 
     private fun ProblemDescriptor.level(default: LogLevel?): LogLevel? = when (highlightType) {
         ProblemHighlightType.ERROR, ProblemHighlightType.GENERIC_ERROR -> LogLevel.ERROR
@@ -148,6 +146,8 @@ class InspectionRunner(
         PluginManagerCore.disablePlugin("org.jetbrains.android")
         PluginManagerCore.disablePlugin("NodeJS")
         PluginManagerCore.disablePlugin("mobi.hsz.idea.gitignore")
+        PluginManagerCore.disablePlugin("org.jetbrains.plugins.github")
+        PluginManagerCore.disablePlugin("Git4Idea")
 
         logger.info("Plugins enabled: " + PluginManagerCore.getPlugins().toList())
         ApplicationManagerEx.getApplicationEx().load()
@@ -172,7 +172,7 @@ class InspectionRunner(
         logger.info("Before project creation at '$projectPath'")
         val ideaProject: IdeaProject = run {
             var ideaProject: IdeaProject? = null
-            val projectFileName = project.name + ProjectFileType.DOT_DEFAULT_EXTENSION
+            val projectFileName = project.rootProject.name + ProjectFileType.DOT_DEFAULT_EXTENSION
             val projectFile = File(projectPath, projectFileName)
             invokeAndWait {
                 ideaProject = ProjectUtil.openOrImport(projectFile.absolutePath, null, false)
