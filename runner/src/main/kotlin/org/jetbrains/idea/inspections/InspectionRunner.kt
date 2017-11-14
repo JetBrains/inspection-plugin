@@ -2,6 +2,7 @@ package org.jetbrains.idea.inspections
 
 import com.intellij.codeInspection.*
 import com.intellij.codeInspection.ex.InspectionToolRegistrar
+import com.intellij.ide.highlighter.ProjectFileType
 import com.intellij.ide.impl.ProjectUtil
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.idea.createCommandLineApplication
@@ -171,7 +172,7 @@ class InspectionRunner(
         logger.info("Before project creation at '$projectPath'")
         val ideaProject: IdeaProject = run {
             var ideaProject: IdeaProject? = null
-            val projectFileName = project.name + ".ipr"
+            val projectFileName = project.name + ProjectFileType.DOT_DEFAULT_EXTENSION
             val projectFile = File(projectPath, projectFileName)
             invokeAndWait {
                 ideaProject = ProjectUtil.openOrImport(projectFile.absolutePath, null, false)
