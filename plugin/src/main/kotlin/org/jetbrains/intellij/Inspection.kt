@@ -99,7 +99,7 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
      * The configuration file to use.
      */
     var configFile: File?
-        @Internal
+        @InputFile
         get() = config.asFile()
         set(configFile) {
             config = project.resources.text.fromFile(configFile)
