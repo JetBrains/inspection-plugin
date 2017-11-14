@@ -1,3 +1,4 @@
+import com.jfrog.bintray.gradle.BintrayExtension
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.idea.inspections.*
 
@@ -14,6 +15,7 @@ buildscript {
 
 	dependencies {
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+        classpath("com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3")
     }
 }
 
@@ -23,6 +25,7 @@ apply {
     plugin("java-gradle-plugin")
     plugin("maven-publish")
     plugin("kotlin")
+    plugin("com.jfrog.bintray")
 }
 
 val projectName = "inspection-plugin"
@@ -43,13 +46,32 @@ configure<PublishingExtension> {
         }
     }
     publications {
-        create<MavenPublication>("JCenterPublication") {
+        create<MavenPublication>("Plugin") {
             from(components.getByName("java"))
             version = projectVersion
             groupId = projectGroup
             artifactId = projectName
         }
     }
+}
+
+configure<BintrayExtension> {
+    user = System.getenv("BINTRAY_USER")
+    key = System.getenv("BINTRAY_KEY")
+
+    pkg = PackageConfig().apply {
+        userOrg = "kotlin"
+        repo = "kotlin-dev"
+        name = "inspections"
+        desc = "IDEA inspection offline running tool"
+        vcsUrl = "https://github.com/mglukhikh/inspection-plugin.git"
+        setLicenses("Apache-2.0")
+        version = VersionConfig().apply {
+            name = projectVersion
+        }
+    }
+
+    setPublications("Plugin")
 }
 
 repositories {

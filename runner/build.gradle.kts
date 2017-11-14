@@ -1,4 +1,5 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import com.jfrog.bintray.gradle.BintrayExtension
 import org.gradle.api.tasks.bundling.Jar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.idea.inspections.*
@@ -17,6 +18,7 @@ buildscript {
 	dependencies {
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
         classpath("com.github.jengelman.gradle.plugins:shadow:1.2.3")
+        classpath("com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3")
     }
 }
 
@@ -26,6 +28,7 @@ apply {
     plugin("kotlin")
     plugin("maven-publish")
     plugin("com.github.johnrengelman.shadow")
+    plugin("com.jfrog.bintray")
 }
 
 val projectName = "inspection-runner"
@@ -41,6 +44,25 @@ val shadowJar: ShadowJar by tasks
 shadowJar.apply {
     baseName = projectName
     classifier = ""
+}
+
+configure<BintrayExtension> {
+    user = System.getenv("BINTRAY_USER")
+    key = System.getenv("BINTRAY_KEY")
+
+    pkg = PackageConfig().apply {
+        userOrg = "kotlin"
+        repo = "kotlin-dev"
+        name = "inspections"
+        desc = "IDEA inspection offline running tool"
+        vcsUrl = "https://github.com/mglukhikh/inspection-plugin.git"
+        setLicenses("Apache-2.0")
+        version = VersionConfig().apply {
+            name = projectVersion
+        }
+    }
+
+    setPublications("RunnerJar")
 }
 
 configure<PublishingExtension> {
