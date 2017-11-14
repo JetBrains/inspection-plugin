@@ -42,3 +42,5 @@ gradle-app.setting
 .idea/
 lib/
 *.iml
+*.ipr
+*.iws
