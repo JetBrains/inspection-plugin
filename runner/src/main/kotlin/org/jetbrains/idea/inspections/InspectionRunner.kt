@@ -288,8 +288,8 @@ class InspectionRunner(
                         "#ref",
                         highlightedText
                 ),
-                " #loc ",
-                " "
+                " #loc",
+                ""
         )
 
         constructor(descriptor: ProblemDescriptor, document: IdeaDocument, displayName: String?,
