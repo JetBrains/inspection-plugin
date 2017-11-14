@@ -2,6 +2,7 @@ package org.jetbrains.idea.inspections
 
 import com.intellij.codeInspection.*
 import com.intellij.codeInspection.ex.InspectionToolRegistrar
+import com.intellij.codeInspection.ex.InspectionToolWrapper
 import com.intellij.ide.highlighter.ProjectFileType
 import com.intellij.ide.impl.ProjectUtil
 import com.intellij.ide.plugins.PluginManagerCore
@@ -168,6 +169,34 @@ class InspectionRunner(
         return result ?: emptyMap()
     }
 
+    private class PluginInspectionWrapper(
+            val tool: InspectionProfileEntry,
+            val extension: InspectionEP,
+            val classFqName: String
+    )
+
+    private fun InspectionClassesSuite.getInspectionWrappers(
+            tools: List<InspectionToolWrapper<InspectionProfileEntry, InspectionEP>>
+    ): Sequence<PluginInspectionWrapper> {
+        if (inheritFromIdea) {
+            return tools.asSequence().map {
+                PluginInspectionWrapper(it.tool, it.extension, it.tool.javaClass.name)
+            }
+        }
+        return classes.asSequence().mapNotNull { inspectionClassName ->
+            val inspectionToolWrapper = tools.find { it.tool.javaClass.name == inspectionClassName }
+            if (inspectionToolWrapper == null) {
+                logger.error("Inspection $inspectionClassName is not found in registrar")
+                null
+            }
+            else {
+                inspectionToolWrapper.let {
+                    PluginInspectionWrapper(it.tool, it.extension, inspectionClassName)
+                }
+            }
+        }
+    }
+
     private fun Application.analyzeTree(tree: FileTree): Map<String, List<PinnedProblemDescriptor>> {
         logger.info("Before project creation at '$projectPath'")
         val ideaProject: IdeaProject = run {
@@ -191,13 +220,9 @@ class InspectionRunner(
         val results: MutableMap<String, MutableList<PinnedProblemDescriptor>> = mutableMapOf()
         logger.info("Before inspections launched: total of ${tree.files.size} files to analyze")
         val tools = InspectionToolRegistrar.getInstance().createTools()
-        inspectionLoop@ for (inspectionClassName in inspectionClasses.classes) {
-            val inspectionToolWrapper = tools.find { it.tool.javaClass.name == inspectionClassName }
-            if (inspectionToolWrapper == null) {
-                logger.error("Inspection $inspectionClassName is not found in registrar")
-                continue
-            }
-            val inspectionTool = inspectionToolWrapper.tool
+        inspectionLoop@ for (inspectionWrapper in inspectionClasses.getInspectionWrappers(tools)) {
+            val inspectionClassName = inspectionWrapper.classFqName
+            val inspectionTool = inspectionWrapper.tool
             when (inspectionTool) {
                 is LocalInspectionTool -> {}
                 is GlobalInspectionTool -> {
@@ -209,7 +234,7 @@ class InspectionRunner(
                     continue@inspectionLoop
                 }
             }
-            val inspectionExtension = inspectionToolWrapper.extension
+            val inspectionExtension = inspectionWrapper.extension
             val displayName = inspectionExtension.displayName
             val inspectionResults = mutableListOf<PinnedProblemDescriptor>()
             runReadAction {

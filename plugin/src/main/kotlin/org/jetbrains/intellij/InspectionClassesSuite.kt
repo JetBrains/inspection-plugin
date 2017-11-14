@@ -2,7 +2,12 @@ package org.jetbrains.intellij
 
 import org.gradle.api.logging.LogLevel
 
-class InspectionClassesSuite(val errors: Set<String>, val warnings: Set<String>, val infos: Set<String>) {
+class InspectionClassesSuite private constructor(
+        val errors: Set<String>,
+        val warnings: Set<String>,
+        val infos: Set<String>,
+        val inheritFromIdea: Boolean
+) {
     val classes = errors + warnings + infos
 
     fun getLevel(clazz: String) = when (clazz) {
@@ -11,8 +16,13 @@ class InspectionClassesSuite(val errors: Set<String>, val warnings: Set<String>,
         else -> LogLevel.INFO
     }
 
-    constructor(errors: List<String>, warnings: List<String>, infos: List<String>):
-            this(errors.toSet(), warnings.toSet(), infos.toSet())
+    constructor(
+            errors: List<String> = emptyList(),
+            warnings: List<String> = emptyList(),
+            infos: List<String> = emptyList()
+    ): this(errors.toSet(), warnings.toSet(), infos.toSet(), inheritFromIdea = false)
 
-    override fun toString() = "Errors: $errors Warnings: $warnings Info: $infos"
+    constructor(): this(emptySet(), emptySet(), emptySet(), inheritFromIdea = true)
+
+    override fun toString() = "InheritFromIdea: $inheritFromIdea Errors: $errors Warnings: $warnings Info: $infos"
 }
