@@ -15,6 +15,7 @@ plugins {
 inspections {
     <maxErrors>
     <maxWarnings>
+    <ignoreFailures>
     <showViolations>
 }
 inspectionsMain {

@@ -24,6 +24,7 @@ class InspectionTest {
             kotlinNeeded: Boolean,
             maxErrors: Int = -1,
             maxWarnings: Int = -1,
+            ignoreFailures: Boolean = false,
             showViolations: Boolean = true,
             xmlReport: Boolean = false,
             kotlinVersion: String = "1.1.3-2"
@@ -48,6 +49,9 @@ class InspectionTest {
                     }
                     "maxWarnings" -> if (maxWarnings > -1) {
                         appendln("    maxWarnings = $maxWarnings")
+                    }
+                    "ignoreFailures" -> if (ignoreFailures) {
+                        appendln("    ignoreFailures = $ignoreFailures")
                     }
                     "showViolations" -> if (!showViolations) {
                         appendln("    showViolations = false")
@@ -139,6 +143,7 @@ class InspectionTest {
             val testFilePath: String,
             val maxErrors: Int = -1,
             val maxWarnings: Int = -1,
+            val ignoreFailures: Boolean = false,
             val showViolations: Boolean = true,
             val xmlReport: Boolean = false,
             val kotlinVersion: String = "1.1.3-2",
@@ -162,6 +167,7 @@ class InspectionTest {
                     isKotlinFile,
                     maxErrors,
                     maxWarnings,
+                    ignoreFailures,
                     showViolations,
                     xmlReport,
                     kotlinVersion
@@ -233,6 +239,7 @@ class InspectionTest {
 
         val maxErrors = getParameterValue("maxErrors", "-1").toInt()
         val maxWarnings = getParameterValue("maxWarnings", "-1").toInt()
+        val ignoreFailures = getParameterValue("ignoreFailures", "false").toBoolean()
         val showViolations = getParameterValue("showViolations", "true").toBoolean()
         val xmlReport = getParameterValue("xmlReport", "false").toBoolean()
         val kotlinVersion = getParameterValue("kotlinVersion", "1.1.3-2")
@@ -244,6 +251,7 @@ class InspectionTest {
                 testFilePath,
                 maxErrors,
                 maxWarnings,
+                ignoreFailures,
                 showViolations,
                 xmlReport,
                 kotlinVersion,
@@ -282,6 +290,11 @@ class InspectionTest {
     @Test
     fun testMaxErrors() {
         doTest("testData/inspection/maxErrors/foo.kt")
+    }
+
+    @Test
+    fun testMaxWarningsIgnoreFailures() {
+        doTest("testData/inspection/maxWarningsIgnoreFailures/foo.kt")
     }
 
     @Test

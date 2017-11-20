@@ -55,14 +55,13 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
     var configProperties: Map<String, Any> = LinkedHashMap()
 
     private val reports = IdeaCheckstyleReports(this)
-    private var ignoreFailures: Boolean = false
 
     private val extension: InspectionPluginExtension
         get() = project.extensions.findByType(InspectionPluginExtension::class.java)!!
 
     /**
-     * The maximum number of errors that are tolerated before breaking the build
-     * or setting the failure property.
+     * The maximum number of errors that are tolerated before stopping the build
+     * and setting the failure property (the last if ignoreFailures = false only)
      *
      * @return the maximum number of errors allowed
      */
@@ -73,8 +72,8 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
         }
 
     /**
-     * The maximum number of warnings that are tolerated before breaking the build
-     * or setting the failure property.
+     * The maximum number of warnings that are tolerated before stopping the build
+     * and setting the failure property (the last if ignoreFailures = false only)
      *
      * @return the maximum number of warnings allowed
      */
@@ -212,7 +211,7 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
                     showViolations, inspectionClasses, reports,
                     logger
             ).let { analyzerClass.cast(it) }
-            if (!analyzer.analyzeTreeAndLogResults(getSource())) {
+            if (!analyzer.analyzeTreeAndLogResults(getSource()) && !ignoreFailures) {
                 throw TaskExecutionException(this, null)
             }
         }
@@ -248,21 +247,13 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
      * @return true if failures should be ignored
      */
     @Input
-    override fun getIgnoreFailures(): Boolean = ignoreFailures
-
-    /**
-     * Whether this task will ignore failures and continue running the build.
-     *
-     * @return true if failures should be ignored
-     */
-    @Suppress("unused")
-    open fun isIgnoreFailures(): Boolean = ignoreFailures
+    override fun getIgnoreFailures(): Boolean = extension.isIgnoreFailures
 
     /**
      * Whether this task will ignore failures and continue running the build.
      */
     override fun setIgnoreFailures(ignoreFailures: Boolean) {
-        this.ignoreFailures = ignoreFailures
+        extension.isIgnoreFailures = ignoreFailures
     }
 
     fun setSourceSet(source: FileTree) {
