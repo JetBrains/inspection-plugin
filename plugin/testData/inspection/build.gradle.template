@@ -16,7 +16,7 @@ inspections {
     <maxErrors>
     <maxWarnings>
     <ignoreFailures>
-    <showViolations>
+    <quiet>
 }
 inspectionsMain {
     reports {

@@ -1,9 +1,9 @@
 // warning: org.jetbrains.kotlin.idea.inspections.CanBeParameterInspection
-// showViolations = false
+// quiet = true
 
 class My(val x: Int) {
     val y = x
 }
 
 // SHOULD_BE_ABSENT
-// :2:10: Constructor parameter is never used as a property
+// :4:10: Constructor parameter is never used as a property

@@ -25,7 +25,7 @@ class InspectionTest {
             maxErrors: Int = -1,
             maxWarnings: Int = -1,
             ignoreFailures: Boolean = false,
-            showViolations: Boolean = true,
+            quiet: Boolean = false,
             xmlReport: Boolean = false,
             kotlinVersion: String = "1.1.3-2"
     ): String {
@@ -53,8 +53,8 @@ class InspectionTest {
                     "ignoreFailures" -> if (ignoreFailures) {
                         appendln("    ignoreFailures = $ignoreFailures")
                     }
-                    "showViolations" -> if (!showViolations) {
-                        appendln("    showViolations = false")
+                    "quiet" -> if (quiet) {
+                        appendln("    quiet = true")
                     }
                     "xmlDestination" -> if (xmlReport) {
                         appendln("            destination \"build/report.xml\"")
@@ -144,7 +144,7 @@ class InspectionTest {
             val maxErrors: Int = -1,
             val maxWarnings: Int = -1,
             val ignoreFailures: Boolean = false,
-            val showViolations: Boolean = true,
+            val quiet: Boolean = false,
             val xmlReport: Boolean = false,
             val kotlinVersion: String = "1.1.3-2",
             val errors: List<String> = emptyList(),
@@ -168,7 +168,7 @@ class InspectionTest {
                     maxErrors,
                     maxWarnings,
                     ignoreFailures,
-                    showViolations,
+                    quiet,
                     xmlReport,
                     kotlinVersion
             )
@@ -240,7 +240,7 @@ class InspectionTest {
         val maxErrors = getParameterValue("maxErrors", "-1").toInt()
         val maxWarnings = getParameterValue("maxWarnings", "-1").toInt()
         val ignoreFailures = getParameterValue("ignoreFailures", "false").toBoolean()
-        val showViolations = getParameterValue("showViolations", "true").toBoolean()
+        val quiet = getParameterValue("quiet", "false").toBoolean()
         val xmlReport = getParameterValue("xmlReport", "false").toBoolean()
         val kotlinVersion = getParameterValue("kotlinVersion", "1.1.3-2")
 
@@ -252,7 +252,7 @@ class InspectionTest {
                 maxErrors,
                 maxWarnings,
                 ignoreFailures,
-                showViolations,
+                quiet,
                 xmlReport,
                 kotlinVersion,
                 errors,

@@ -40,7 +40,7 @@ class InspectionRunner(
         private val project: GradleProject,
         private val maxErrors: Int,
         private val maxWarnings: Int,
-        private val showViolations: Boolean,
+        private val quiet: Boolean,
         private val inspectionClasses: InspectionClassesSuite,
         private val reports: IdeaCheckstyleReports,
         private val logger: Logger
@@ -88,7 +88,7 @@ class InspectionRunner(
                     LogLevel.WARN -> warnings++
                     else -> {}
                 }
-                if (showViolations) {
+                if (!quiet) {
                     logger.log(level, problem.renderWithLocation())
                 }
                 if (xmlEnabled) {

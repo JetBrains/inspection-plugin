@@ -44,11 +44,11 @@ open class InspectionPluginExtension(private val project: Project) : CodeQuality
     var maxWarnings = Integer.MAX_VALUE
 
     /**
-     * Whether rule violations are to be displayed on the console. Defaults to <tt>true</tt>.
+     * Whether rule violations are to be displayed on the console. Defaults to <tt>false</tt>.
      *
-     * Example: showViolations = false
+     * Example: quiet = true (do NOT display rule violations)
      */
-    var isShowViolations = true
+    var isQuiet = false
 
     /**
      * Path to other configuration files. By default, this path is `$projectDir/config/inspections`

@@ -86,14 +86,13 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
     /**
      * Whether rule violations are to be displayed on the console.
      *
-     * @return true if violations should be displayed on console
+     * @return false if violations should be displayed on console, true otherwise
      */
-
     @get:Console
-    var showViolations: Boolean
-        @Input get() = extension.isShowViolations
+    var quiet: Boolean
+        @Input get() = extension.isQuiet
         set(value) {
-            extension.isShowViolations = value
+            extension.isQuiet = value
         }
 
 
@@ -208,7 +207,7 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
             ) as Class<Analyzer>
             val analyzer = analyzerClass.constructors.first().newInstance(
                     project, maxErrors, maxWarnings,
-                    showViolations, inspectionClasses, reports,
+                    quiet, inspectionClasses, reports,
                     logger
             ).let { analyzerClass.cast(it) }
             if (!analyzer.analyzeTreeAndLogResults(getSource()) && !ignoreFailures) {
