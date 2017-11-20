@@ -5,7 +5,6 @@ import org.gradle.api.Project
 import org.gradle.api.plugins.quality.CodeQualityExtension
 import org.gradle.api.resources.TextResource
 import java.io.File
-import java.util.LinkedHashMap
 
 open class InspectionPluginExtension(private val project: Project) : CodeQualityExtension() {
 
@@ -15,11 +14,6 @@ open class InspectionPluginExtension(private val project: Project) : CodeQuality
     @get:Incubating
     @set:Incubating
     lateinit var config: TextResource
-
-    /**
-     * The properties available for use in the configuration file. These are substituted into the configuration file.
-     */
-    var configProperties: Map<String, Any> = LinkedHashMap()
 
     /**
      * The maximum number of errors that are tolerated before breaking the build
@@ -57,15 +51,6 @@ open class InspectionPluginExtension(private val project: Project) : CodeQuality
     @get:Incubating
     @set:Incubating
     lateinit var configDir: File
-
-    /**
-     * The configuration file to use.
-     */
-    var configFile: File
-        get() = config.asFile()
-        set(configFile) {
-            config = project.resources.text.fromFile(configFile)
-        }
 
     var ideaPlugins: Array<String> = emptyArray()
 }
