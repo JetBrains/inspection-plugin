@@ -2,7 +2,6 @@ package org.jetbrains.intellij
 
 import org.gradle.api.Incubating
 import org.gradle.api.Project
-import org.gradle.api.logging.LogLevel
 import org.gradle.api.plugins.quality.CodeQualityExtension
 import org.gradle.api.resources.TextResource
 import java.io.File
