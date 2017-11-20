@@ -25,7 +25,7 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<Inspection>() {
 
     override fun createExtension(): CodeQualityExtension {
         val extension = project.extensions.create(SHORT_NAME, InspectionPluginExtension::class.java, project)
-        extension.ideaVersion = DEFAULT_IDEA_VERSION
+        extension.toolVersion = DEFAULT_IDEA_VERSION
 
         extension.configDir = project.file("config/$SHORT_NAME")
         extension.config = project.resources.text.fromFile(Callable<File> { File(extension.configDir, "$SHORT_NAME.xml") })
@@ -58,7 +58,7 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<Inspection>() {
     private fun configureDefaultDependencies(configuration: Configuration) {
         configuration.defaultDependencies { dependencies ->
             LOG.info("XXXXXXXXXXX Configuring default dependencies for configuration ${configuration.name}")
-            dependencies.add(project.dependencies.create("com.jetbrains.intellij.idea:${inspectionExtension.ideaVersion}"))
+            dependencies.add(project.dependencies.create("com.jetbrains.intellij.idea:${inspectionExtension.toolVersion}"))
         }
     }
 

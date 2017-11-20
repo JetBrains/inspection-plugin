@@ -68,7 +68,5 @@ open class InspectionPluginExtension(private val project: Project) : CodeQuality
             config = project.resources.text.fromFile(configFile)
         }
 
-    var ideaVersion: String = ""
-
     var ideaPlugins: Array<String> = emptyArray()
 }

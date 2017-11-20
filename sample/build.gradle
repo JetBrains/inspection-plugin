@@ -21,7 +21,7 @@ apply plugin: 'org.jetbrains.intellij.inspections'
 sourceCompatibility = 1.8
 
 inspections {
-    ideaVersion "ideaIC:2017.2.5"
+    toolVersion "ideaIC:2017.2"
 }
 
 repositories {

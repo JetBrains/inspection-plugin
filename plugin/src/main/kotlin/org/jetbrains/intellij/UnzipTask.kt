@@ -34,7 +34,7 @@ open class UnzipTask : ConventionTask() {
 
     @get:Input
     val ideaVersion: String
-        get() = (project.extensions.getByName(InspectionPlugin.SHORT_NAME) as InspectionPluginExtension).ideaVersion
+        get() = (project.extensions.getByName(InspectionPlugin.SHORT_NAME) as InspectionPluginExtension).toolVersion
 
     @get:OutputDirectory
     val destinationDir: File
