@@ -22,6 +22,7 @@ sourceCompatibility = 1.8
 
 inspections {
     toolVersion "ideaIC:2017.2"
+    reportsDir file("build")
 }
 
 repositories {
