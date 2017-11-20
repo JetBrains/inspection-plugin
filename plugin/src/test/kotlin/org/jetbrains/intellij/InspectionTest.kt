@@ -27,7 +27,8 @@ class InspectionTest {
             ignoreFailures: Boolean = false,
             quiet: Boolean = false,
             xmlReport: Boolean = false,
-            kotlinVersion: String = "1.1.3-2"
+            kotlinVersion: String = "1.1.3-2",
+            configFileName: String = ""
     ): String {
         val templateLines = File("testData/inspection/build.gradle.template").readLines()
         return StringBuilder().apply {
@@ -55,6 +56,9 @@ class InspectionTest {
                     }
                     "quiet" -> if (quiet) {
                         appendln("    quiet = true")
+                    }
+                    "config" -> if (configFileName.isNotEmpty()) {
+                        appendln("    config = resources.text.fromFile(\"$configFileName\")")
                     }
                     "xmlDestination" -> if (xmlReport) {
                         appendln("            destination \"build/report.xml\"")
@@ -97,7 +101,7 @@ class InspectionTest {
                 SHOULD_BE_ABSENT -> assertFalse("$diagnostic is found (but should not)", diagnostic in result.output)
             }
         }
-        assertEquals(expectedOutcome, result.task(":inspectionsMain").outcome)
+        assertEquals(expectedOutcome, result.task(":inspectionsMain")?.outcome)
     }
 
     private fun writeFile(destination: File, content: String) {
@@ -120,6 +124,7 @@ class InspectionTest {
     }
 
     private fun generateInspectionFile(
+            inheritFromIdea: Boolean = false,
             errors: List<String> = emptyList(),
             warnings: List<String> = emptyList(),
             infos: List<String> = emptyList()
@@ -127,6 +132,9 @@ class InspectionTest {
         return StringBuilder().apply {
             appendln("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>")
             appendln("<inspections>")
+            if (inheritFromIdea) {
+                appendln("<inheritFromIdea/>")
+            }
             appendln(generateInspectionTags("error", errors))
             appendln(generateInspectionTags("warning", warnings))
             appendln(generateInspectionTags("info", infos))
@@ -147,6 +155,8 @@ class InspectionTest {
             val quiet: Boolean = false,
             val xmlReport: Boolean = false,
             val kotlinVersion: String = "1.1.3-2",
+            val configFileName: String = "",
+            val inheritFromIdea: Boolean = false,
             val errors: List<String> = emptyList(),
             val warnings: List<String> = emptyList(),
             val infos: List<String> = emptyList(),
@@ -157,7 +167,8 @@ class InspectionTest {
         fun doTest() {
             val buildFile = testProjectDir.newFile("build.gradle")
             testProjectDir.newFolder("config", "inspections")
-            val inspectionsFile = testProjectDir.newFile("config/inspections/inspections.xml")
+            val inspectionsFile = testProjectDir.newFile(
+                    if (configFileName.isNotEmpty()) configFileName else "config/inspections/inspections.xml")
             testProjectDir.newFolder("src", "main", "kotlin")
             testProjectDir.newFolder("src", "main", "java")
             testProjectDir.newFolder("build")
@@ -170,10 +181,11 @@ class InspectionTest {
                     ignoreFailures,
                     quiet,
                     xmlReport,
-                    kotlinVersion
+                    kotlinVersion,
+                    configFileName
             )
             writeFile(buildFile, buildFileContent)
-            val inspectionsFileContent = generateInspectionFile(errors, warnings, infos)
+            val inspectionsFileContent = generateInspectionFile(inheritFromIdea, errors, warnings, infos)
             writeFile(inspectionsFile, inspectionsFileContent)
 
             fun buildSourceFileName(): String {
@@ -243,6 +255,8 @@ class InspectionTest {
         val quiet = getParameterValue("quiet", "false").toBoolean()
         val xmlReport = getParameterValue("xmlReport", "false").toBoolean()
         val kotlinVersion = getParameterValue("kotlinVersion", "1.1.3-2")
+        val configFileName = getParameterValue("config", "")
+        val inheritFromIdea = getParameterValue("inheritFromIdea", "false").toBoolean()
 
         val expectedDiagnosticsStatus = if (lines.contains("// SHOULD_BE_ABSENT")) SHOULD_BE_ABSENT else SHOULD_PRESENT
         val expectedOutcome = if (lines.contains("// FAIL")) FAILED else SUCCESS
@@ -255,6 +269,8 @@ class InspectionTest {
                 quiet,
                 xmlReport,
                 kotlinVersion,
+                configFileName,
+                inheritFromIdea,
                 errors,
                 warnings,
                 infos,
@@ -315,5 +331,10 @@ class InspectionTest {
     @Test
     fun testXMLOutput() {
         doTest("testData/inspection/xmlOutput/My.kt")
+    }
+
+    @Test
+    fun testCustomConfigInheritIdea() {
+        doTest("testData/inspection/customConfigInheritFromIdea/different.kt")
     }
 }
