@@ -95,6 +95,8 @@ tasks {
         dependsOn(listOf(tasks.getByName("unzip")))
 		kotlinOptions {
 			jvmTarget = "1.8"
+            languageVersion = "1.0"
+            apiVersion = "1.0"
 		}
 	}
 }

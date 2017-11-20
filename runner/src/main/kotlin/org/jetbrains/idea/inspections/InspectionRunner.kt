@@ -33,6 +33,7 @@ import org.jetbrains.intellij.InspectionClassesSuite
 import org.jetbrains.intellij.UnzipTask
 import java.io.File
 import com.intellij.openapi.editor.Document as IdeaDocument
+import java.lang.Exception
 
 @Suppress("unused")
 class InspectionRunner(
@@ -121,7 +122,7 @@ class InspectionRunner(
             }
         }
 
-        val xmlReportFile = xmlReport.destination.takeIf { xmlEnabled }
+        val xmlReportFile = if (!xmlEnabled) null else xmlReport.destination
         if (xmlReportFile != null) {
             errorsRoot.setContent(errorElements)
             warningsRoot.setContent(warningElements)

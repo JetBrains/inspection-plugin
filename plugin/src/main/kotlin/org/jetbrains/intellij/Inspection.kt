@@ -15,6 +15,8 @@ import org.gradle.api.tasks.Optional
 import org.jdom2.input.SAXBuilder
 import java.io.File
 import org.gradle.api.Project as GradleProject
+import java.lang.Exception
+import java.util.LinkedHashMap
 
 @CacheableTask
 open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleReports> {
@@ -55,7 +57,8 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
     private val reports = IdeaCheckstyleReports(this)
     private var ignoreFailures: Boolean = false
 
-    private val extension get() = project.extensions.findByType(InspectionPluginExtension::class.java)!!
+    private val extension: InspectionPluginExtension
+        get() = project.extensions.findByType(InspectionPluginExtension::class.java)!!
 
     /**
      * The maximum number of errors that are tolerated before breaking the build
@@ -188,7 +191,7 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
             val ideaClasspath = listOf(
                 File(ideaDirectory, "lib")
             ).map {
-                it.listFiles { _, name -> name.endsWith("jar") }.toList()
+                it.listFiles { dir, name -> name.endsWith("jar") }.toList()
             }.flatten()
             val fullClasspath = (listOf(tryResolveRunnerJar(project)) + ideaClasspath).map { it.toURI().toURL() }
             logger.info("Inspection runner classpath: $fullClasspath")

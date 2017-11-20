@@ -14,7 +14,14 @@ open class UnzipTask : ConventionTask() {
         }
 
         fun buildNumber(): String? = File(cacheDirectory, "build.txt").let {
-            if (it.exists()) it.readText().dropWhile { !it.isDigit() }.takeIf { it.isNotEmpty() } else null
+            if (it.exists()) {
+                it.readText().dropWhile { !it.isDigit() }.let {
+                    if (it.isNotEmpty()) it else null
+                }
+            }
+            else {
+                null
+            }
         } ?: "172.1" // default build number
     }
 
