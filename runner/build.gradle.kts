@@ -42,12 +42,6 @@ val shadowJar: ShadowJar by tasks
 shadowJar.apply {
     baseName = projectName
     classifier = ""
-    exclude("*.jar")
-    dependencies {
-        exclude(dependency("org.jetbrains.kotlin:kotlin-.*"))
-        exclude(dependency("org.jdom:jdom.*"))
-        exclude(dependency("org.jetbrains.intellij.plugins:.*"))
-    }
 }
 
 configure<PublishingExtension> {
@@ -102,11 +96,11 @@ tasks {
 }
 
 dependencies {
-    compile("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
-    compile("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
-    compile(gradleApi())
-    compile("org.jdom:jdom2:2.0.6")
-    compile(fileTree(mapOf("dir" to "$buildDir/idea/lib", "include" to "*.jar")))
-    compile(project(":plugin"))
+    compileOnly("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
+    compileOnly("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
+    compileOnly(gradleApi())
+    compileOnly("org.jdom:jdom2:2.0.6")
+    compileOnly(fileTree(mapOf("dir" to "$buildDir/idea/lib", "include" to "*.jar")))
+    compileOnly(project(":plugin"))
 }
 
