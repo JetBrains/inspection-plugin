@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.idea.inspections.*
 
 buildscript {
     extra["kotlinVersion"] = "1.1.4"
@@ -24,10 +25,7 @@ apply {
     plugin("kotlin")
 }
 
-val projectGroup = "org.jetbrains.intellij.plugins"
-val projectVersion = "0.1-SNAPSHOT"
 val projectName = "inspection-plugin"
-
 
 configure<GradlePluginDevelopmentExtension> {
     plugins {

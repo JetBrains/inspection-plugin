@@ -1,6 +1,7 @@
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.gradle.api.tasks.bundling.Jar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.idea.inspections.*
 
 buildscript {
     extra["kotlinVersion"] = "1.1.4"
@@ -27,8 +28,6 @@ apply {
     plugin("com.github.johnrengelman.shadow")
 }
 
-val projectGroup = "org.jetbrains.intellij.plugins"
-val projectVersion = "0.1-SNAPSHOT"
 val projectName = "inspection-runner"
 
 val jar: Jar by tasks
