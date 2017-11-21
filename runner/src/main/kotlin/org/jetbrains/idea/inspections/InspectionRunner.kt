@@ -49,6 +49,12 @@ class InspectionRunner(
         private val AWT_HEADLESS = "java.awt.headless"
         private val IDEA_HOME_PATH = "idea.home.path"
         private val BUILD_NUMBER = "idea.plugins.compatible.build"
+
+        private val USELESS_PLUGINS = listOf(
+                "mobi.hsz.idea.gitignore",
+                "org.jetbrains.plugins.github",
+                "Git4Idea"
+        )
     }
 
     private val projectPath: String = project.rootProject.projectDir.absolutePath
@@ -145,11 +151,9 @@ class InspectionRunner(
         System.setProperty(PlatformUtils.PLATFORM_PREFIX_KEY, PlatformUtils.getPlatformPrefix(PlatformUtils.IDEA_CE_PREFIX))
         logger.warn("IDEA home path: " + PathManager.getHomePath())
         createCommandLineApplication(isInternal = false, isUnitTestMode = false, isHeadless = true)
-        PluginManagerCore.disablePlugin("org.jetbrains.android")
-        PluginManagerCore.disablePlugin("NodeJS")
-        PluginManagerCore.disablePlugin("mobi.hsz.idea.gitignore")
-        PluginManagerCore.disablePlugin("org.jetbrains.plugins.github")
-        PluginManagerCore.disablePlugin("Git4Idea")
+        for (plugin in USELESS_PLUGINS) {
+            PluginManagerCore.disablePlugin(plugin)
+        }
 
         logger.info("Plugins enabled: " + PluginManagerCore.getPlugins().toList())
         ApplicationManagerEx.getApplicationEx().load()
