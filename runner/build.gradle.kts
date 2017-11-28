@@ -18,7 +18,7 @@ buildscript {
 	dependencies {
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
         classpath("com.github.jengelman.gradle.plugins:shadow:1.2.3")
-        classpath("com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3")
+        classpath("com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.0")
     }
 }
 
