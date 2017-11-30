@@ -1,3 +1,4 @@
+import com.github.jengelman.gradle.plugins.shadow.ShadowExtension
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import com.jfrog.bintray.gradle.BintrayExtension
 import org.gradle.api.tasks.bundling.Jar
@@ -17,7 +18,7 @@ buildscript {
 
 	dependencies {
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
-        classpath("com.github.jengelman.gradle.plugins:shadow:1.2.3")
+        classpath("com.github.jengelman.gradle.plugins:shadow:2.0.1")
         classpath("com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.0")
     }
 }
@@ -73,7 +74,9 @@ configure<PublishingExtension> {
     }
     publications {
         create<MavenPublication>("RunnerJar") {
-            from(components.getByName("shadow"))
+            configure<ShadowExtension> {
+                component(this@create)
+            }
             version = projectVersion
             groupId = projectGroup
             artifactId = projectName
