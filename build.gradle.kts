@@ -15,7 +15,7 @@ buildscript {
         mavenLocal()
     }
     dependencies {
-        classpath("org.jetbrains.intellij.plugins:inspection-plugin:0.1-SNAPSHOT")
+        classpath("org.jetbrains.intellij.plugins:inspection-plugin:0.1")
     }
 }
 
