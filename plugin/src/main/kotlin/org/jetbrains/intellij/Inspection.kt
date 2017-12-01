@@ -15,6 +15,7 @@ import org.jdom2.input.SAXBuilder
 import java.io.File
 import org.gradle.api.Project as GradleProject
 import java.lang.Exception
+import kotlin.concurrent.thread
 
 @CacheableTask
 open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleReports> {
@@ -197,16 +198,25 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
             }
 
             val inspectionClasses = readInspectionClassesFromConfigFile()
-            @Suppress("UNCHECKED_CAST")
-            val analyzerClass = loader.loadClass(
-                    "org.jetbrains.idea.inspections.InspectionRunner"
-            ) as Class<Analyzer>
-            val analyzer = analyzerClass.constructors.first().newInstance(
-                    project, maxErrors, maxWarnings,
-                    quiet, inspectionClasses, reports,
-                    logger
-            ).let { analyzerClass.cast(it) }
-            if (!analyzer.analyzeTreeAndLogResults(getSource()) && !ignoreFailures) {
+            var success = true
+            val inspectionsThread = thread(start = false) {
+                @Suppress("UNCHECKED_CAST")
+                val analyzerClass = loader.loadClass(
+                        "org.jetbrains.idea.inspections.InspectionRunner"
+                ) as Class<Analyzer>
+                val analyzer = analyzerClass.constructors.first().newInstance(
+                        project, maxErrors, maxWarnings,
+                        quiet, inspectionClasses, reports,
+                        logger
+                ).let { analyzerClass.cast(it) }
+                success = analyzer.analyzeTreeAndLogResults(getSource())
+            }
+            inspectionsThread.contextClassLoader = loader
+            inspectionsThread.setUncaughtExceptionHandler { t, e -> throw e }
+            inspectionsThread.start()
+            inspectionsThread.join()
+
+            if (!success && !ignoreFailures) {
                 throw TaskExecutionException(this, null)
             }
         }
