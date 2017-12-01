@@ -85,3 +85,20 @@ inspectionsMain {
     }
 }
 ```
+
+## Bugs and Problems
+
+You can report issues on the relevant tab: https://github.com/mglukhikh/inspection-plugin/issues
+
+It's quite probable that plugin does not work yet in some environment.
+It may result in various exceptions during IDEA configuration process. 
+If you found such a case, please execute:
+
+```
+gradlew --stop
+gradlew --info --stacktrace inspectionsMain > inspections.log
+```
+
+and attach `inspections.log` to the issue. 
+Also it's very helpful to specify Gradle version, OS and 
+IDEA version used in inspection plugin (which is set in `toolVersion` parameter).
