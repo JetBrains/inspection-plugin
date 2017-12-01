@@ -21,6 +21,11 @@ import java.util.LinkedHashMap
 @CacheableTask
 open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleReports> {
 
+    companion object {
+        // TODO: take the same version as plugin
+        val runnerVersion = "0.1.1-SNAPSHOT"
+    }
+
     object ClassloaderContainer {
         @JvmField
         var customClassLoader: ClassLoader? = null
@@ -173,7 +178,7 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
 
     private fun tryResolveRunnerJar(project: org.gradle.api.Project): File = try {
         val dependency = project.buildscript.dependencies.create(
-                "org.jetbrains.intellij.plugins:inspection-runner:0.1"
+                "org.jetbrains.intellij.plugins:inspection-runner:$runnerVersion"
         )
         val configuration = project.buildscript.configurations.detachedConfiguration(dependency)
         configuration.description = "Runner main jar"
