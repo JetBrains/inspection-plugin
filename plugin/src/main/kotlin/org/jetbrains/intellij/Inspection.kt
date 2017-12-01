@@ -11,12 +11,10 @@ import org.gradle.api.plugins.quality.CheckstyleReports
 import org.gradle.api.reporting.Reporting
 import org.gradle.api.resources.TextResource
 import org.gradle.api.tasks.*
-import org.gradle.api.tasks.Optional
 import org.jdom2.input.SAXBuilder
 import java.io.File
 import org.gradle.api.Project as GradleProject
 import java.lang.Exception
-import java.util.LinkedHashMap
 
 @CacheableTask
 open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleReports> {
@@ -51,13 +49,6 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
         set(value) {
             extension.config = value
         }
-
-    /**
-     * The properties available for use in the configuration file. These are substituted into the configuration file.
-     */
-    @get:Input
-    @get:Optional
-    var configProperties: Map<String, Any> = LinkedHashMap()
 
     private val reports = IdeaCheckstyleReports(this)
 
