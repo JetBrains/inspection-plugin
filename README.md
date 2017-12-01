@@ -51,3 +51,37 @@ unzip it to cached temporary dir and launch all inspections.
 You will see inspection messages in console as well as in report XML located in `build/reports/inspections/main.xml`.
 
 You can find example usage in `sample` project subdirectory.
+
+## Additional options
+
+You can specify additional options in `inspections` closure, e.g.:
+
+```groovy
+inspections {
+    maxErrors = 5
+    maxWarnings = 20
+    ignoreFailures = true
+    quiet = true
+    config = "inspections.xml"
+}
+```
+
+The meaning of the parameters is the following:
+
+* `maxErrors`: after exceeding the given number of inspection diagnostics with "error" severity, inspection task stops and fails (1 by default)
+* `maxWarnings`: after exceeding the given number of inspection diagnostics with "warning" severity, inspection task stops and fails (100 by default)
+* `ignoreFailures`: inspection task never fails (false by default)
+* `quiet`: do not report inspection messages to console, only to XML file (false by default)
+* `config`: configuration file location
+
+If you with to change location of report file, you should specify it in closure for particular task, e.g.
+
+```groovy
+inspectionsMain {
+    reports {
+        xml {
+            destination "reportFileName"
+        }
+    }
+}
+```
