@@ -99,7 +99,7 @@ class InspectionRunner(
                 }
                 if (xmlEnabled) {
                     val element = Element("problem")
-                    element.addContent(Element("file").addContent(problem.psiElement.containingFile.name))
+                    element.addContent(Element("file").addContent(problem.fileName))
                     element.addContent(Element("line").addContent((problem.line + 1).toString()))
                     element.addContent(Element("row").addContent((problem.row + 1).toString()))
                     element.addContent(Element("java_class").addContent(inspectionClass))
