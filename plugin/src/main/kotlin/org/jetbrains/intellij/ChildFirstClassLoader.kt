@@ -14,8 +14,13 @@ class ChildFirstClassLoader(classpath: Array<URL>, parent: ClassLoader) : URLCla
     override fun loadClass(name: String, resolve: Boolean): Class<*> {
         // First, check if the class has already been loaded
         val clazz = findLoadedClass(name) ?: try {
-            // checking local
-            findClass(name)
+            if (name.startsWith("org.w3c.dom")) {
+                loadClassFromParent(name, resolve)
+            }
+            else {
+                // checking local
+                findClass(name)
+            }
         } catch (e: ClassNotFoundException) {
             loadClassFromParent(name, resolve)
         } catch (e: SecurityException) {
