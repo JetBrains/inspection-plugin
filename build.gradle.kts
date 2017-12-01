@@ -1,9 +1,4 @@
 allprojects {
-
-    group = "org.jetbrains.intellij.plugins"
-
-    version = "0.1"
-
     repositories {
         jcenter()
     }
