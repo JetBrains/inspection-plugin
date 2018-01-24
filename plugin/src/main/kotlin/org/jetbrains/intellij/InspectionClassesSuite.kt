@@ -3,9 +3,9 @@ package org.jetbrains.intellij
 import org.gradle.api.logging.LogLevel
 
 class InspectionClassesSuite private constructor(
-        val errors: Set<String>,
-        val warnings: Set<String>,
-        val infos: Set<String>,
+        private val errors: Set<String>,
+        private val warnings: Set<String>,
+        private val infos: Set<String>,
         val inheritFromIdea: Boolean
 ) {
     val classes = errors + warnings + infos
