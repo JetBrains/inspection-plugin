@@ -22,15 +22,11 @@ import com.intellij.util.PlatformUtils
 import org.gradle.api.GradleException
 import org.gradle.api.Project as GradleProject
 import org.gradle.api.file.FileTree
-import org.gradle.api.logging.LogLevel
 import org.gradle.api.logging.Logger
 import org.jdom2.Document as JdomDocument
 import org.jdom2.Element
 import org.jdom2.output.XMLOutputter
-import org.jetbrains.intellij.Analyzer
-import org.jetbrains.intellij.IdeaCheckstyleReports
-import org.jetbrains.intellij.InspectionClassesSuite
-import org.jetbrains.intellij.UnzipTask
+import org.jetbrains.intellij.*
 import java.io.File
 import com.intellij.openapi.editor.Document as IdeaDocument
 import java.lang.Exception
@@ -59,13 +55,24 @@ class InspectionRunner(
 
     private val projectPath: String = project.rootProject.projectDir.absolutePath
 
-    private fun ProblemDescriptor.level(default: LogLevel?): LogLevel? = when (highlightType) {
-        ProblemHighlightType.ERROR, ProblemHighlightType.GENERIC_ERROR -> LogLevel.ERROR
-        ProblemHighlightType.WEAK_WARNING -> if (default == LogLevel.INFO) LogLevel.INFO else LogLevel.WARN
-        @Suppress("DEPRECATION")
-        ProblemHighlightType.INFO -> LogLevel.INFO
-        ProblemHighlightType.INFORMATION -> null // This highlight type usually means "isn't a problem"
-        else -> default
+    private fun ProblemDescriptor.level(default: ProblemLevel?): ProblemLevel? = when (highlightType) {
+        // Default (use level either from IDEA configuration or plugin configuration)
+        ProblemHighlightType.GENERIC_ERROR_OR_WARNING,
+        ProblemHighlightType.LIKE_UNKNOWN_SYMBOL,
+        ProblemHighlightType.LIKE_DEPRECATED,
+        ProblemHighlightType.LIKE_UNUSED_SYMBOL ->
+            default
+        // If inspection forces error, report it
+        ProblemHighlightType.ERROR, ProblemHighlightType.GENERIC_ERROR ->
+            ProblemLevel.ERROR
+        // If inspection forces weak warning, never report error
+        ProblemHighlightType.WEAK_WARNING ->
+            if (default == ProblemLevel.ERROR) ProblemLevel.WEAK_WARNING else default
+        // If inspection forces "do not show", it's really not a problem at all
+        ProblemHighlightType.INFORMATION ->
+            null
+        else /* INFO only */ ->
+            ProblemLevel.INFORMATION
     }
 
     // Returns true if analysis executed successfully
@@ -92,12 +99,12 @@ class InspectionRunner(
             for (problem in problems) {
                 val level = problem.level(inspectionClasses.getLevel(inspectionClass)) ?: continue
                 when (level) {
-                    LogLevel.ERROR -> errors++
-                    LogLevel.WARN -> warnings++
-                    else -> {}
+                    ProblemLevel.ERROR -> errors++
+                    ProblemLevel.WARNING, ProblemLevel.WEAK_WARNING -> warnings++
+                    ProblemLevel.INFORMATION -> {}
                 }
                 if (!quiet) {
-                    logger.log(level, problem.renderWithLocation())
+                    logger.log(level.logLevel, problem.renderWithLocation())
                 }
                 if (xmlEnabled) {
                     val element = Element("problem")
@@ -105,16 +112,14 @@ class InspectionRunner(
                     element.addContent(Element("line").addContent((problem.line + 1).toString()))
                     element.addContent(Element("row").addContent((problem.row + 1).toString()))
                     element.addContent(Element("java_class").addContent(inspectionClass))
-                    element.addContent(Element("problem_class").setAttribute("severity", when (level) {
-                        LogLevel.ERROR -> "ERROR"
-                        LogLevel.WARN -> "WARNING"
-                        else -> "INFORMATION"
-                    }).addContent(problem.displayName ?: "<ANONYMOUS>"))
+                    element.addContent(Element("problem_class")
+                            .setAttribute("severity", level.name)
+                            .addContent(problem.displayName ?: "<ANONYMOUS>"))
                     element.addContent(Element("description").addContent(problem.render()))
                     when (level) {
-                        LogLevel.ERROR -> errorElements += element
-                        LogLevel.WARN -> warningElements += element
-                        else -> infoElements += element
+                        ProblemLevel.ERROR -> errorElements += element
+                        ProblemLevel.WARNING, ProblemLevel.WEAK_WARNING -> warningElements += element
+                        ProblemLevel.INFORMATION -> infoElements += element
                     }
                 }
                 if (errors > maxErrors) {

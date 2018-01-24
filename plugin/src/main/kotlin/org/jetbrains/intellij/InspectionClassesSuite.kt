@@ -1,7 +1,5 @@
 package org.jetbrains.intellij
 
-import org.gradle.api.logging.LogLevel
-
 class InspectionClassesSuite private constructor(
         private val errors: Set<String>,
         private val warnings: Set<String>,
@@ -11,9 +9,9 @@ class InspectionClassesSuite private constructor(
     val classes = errors + warnings + infos
 
     fun getLevel(clazz: String) = when (clazz) {
-        in errors -> LogLevel.ERROR
-        in warnings -> LogLevel.WARN
-        in infos -> LogLevel.INFO
+        in errors -> ProblemLevel.ERROR
+        in warnings -> ProblemLevel.WARNING
+        in infos -> ProblemLevel.INFORMATION
         else -> null
     }
 
