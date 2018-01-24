@@ -13,7 +13,8 @@ class InspectionClassesSuite private constructor(
     fun getLevel(clazz: String) = when (clazz) {
         in errors -> LogLevel.ERROR
         in warnings -> LogLevel.WARN
-        else -> LogLevel.INFO
+        in infos -> LogLevel.INFO
+        else -> null
     }
 
     constructor(
