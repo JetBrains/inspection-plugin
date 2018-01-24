@@ -61,8 +61,9 @@ class InspectionRunner(
 
     private fun ProblemDescriptor.level(default: LogLevel?): LogLevel? = when (highlightType) {
         ProblemHighlightType.ERROR, ProblemHighlightType.GENERIC_ERROR -> LogLevel.ERROR
-        ProblemHighlightType.WEAK_WARNING -> LogLevel.WARN
-        ProblemHighlightType.INFORMATION -> LogLevel.INFO
+        ProblemHighlightType.WEAK_WARNING -> if (default == LogLevel.INFO) LogLevel.INFO else LogLevel.WARN
+        ProblemHighlightType.INFO -> LogLevel.INFO
+        ProblemHighlightType.INFORMATION -> null // This highlight type usually means "isn't a problem"
         else -> default
     }
 
