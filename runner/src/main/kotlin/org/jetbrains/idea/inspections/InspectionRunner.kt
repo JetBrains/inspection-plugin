@@ -46,9 +46,9 @@ class InspectionRunner(
         private val logger: Logger
 ) : Analyzer {
     companion object {
-        private val AWT_HEADLESS = "java.awt.headless"
-        private val IDEA_HOME_PATH = "idea.home.path"
-        private val BUILD_NUMBER = "idea.plugins.compatible.build"
+        private const val AWT_HEADLESS = "java.awt.headless"
+        private const val IDEA_HOME_PATH = "idea.home.path"
+        private const val BUILD_NUMBER = "idea.plugins.compatible.build"
 
         private val USELESS_PLUGINS = listOf(
                 "mobi.hsz.idea.gitignore",
@@ -62,6 +62,7 @@ class InspectionRunner(
     private fun ProblemDescriptor.level(default: LogLevel?): LogLevel? = when (highlightType) {
         ProblemHighlightType.ERROR, ProblemHighlightType.GENERIC_ERROR -> LogLevel.ERROR
         ProblemHighlightType.WEAK_WARNING -> if (default == LogLevel.INFO) LogLevel.INFO else LogLevel.WARN
+        @Suppress("DEPRECATION")
         ProblemHighlightType.INFO -> LogLevel.INFO
         ProblemHighlightType.INFORMATION -> null // This highlight type usually means "isn't a problem"
         else -> default
