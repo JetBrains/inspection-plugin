@@ -13,3 +13,5 @@ open class His : Your {
 
 // :4:1: Redundant modality modifier
 // :11:5: Redundant modality modifier
+// :4:13: Class ''My'' is never used
+// :10:12: Class ''His'' is never used

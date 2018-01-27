@@ -14,6 +14,7 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project as IdeaProject
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.profile.codeInspection.InspectionProjectProfileManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiFile
@@ -55,19 +56,19 @@ class InspectionRunner(
 
     private val projectPath: String = project.rootProject.projectDir.absolutePath
 
-    private fun ProblemDescriptor.level(default: ProblemLevel?): ProblemLevel? = when (highlightType) {
+    private fun PinnedProblemDescriptor.actualLevel(default: ProblemLevel?): ProblemLevel? = when (highlightType) {
         // Default (use level either from IDEA configuration or plugin configuration)
         ProblemHighlightType.GENERIC_ERROR_OR_WARNING,
         ProblemHighlightType.LIKE_UNKNOWN_SYMBOL,
         ProblemHighlightType.LIKE_DEPRECATED,
         ProblemHighlightType.LIKE_UNUSED_SYMBOL ->
-            default
+            default ?: this.ideaLevel
         // If inspection forces error, report it
         ProblemHighlightType.ERROR, ProblemHighlightType.GENERIC_ERROR ->
             ProblemLevel.ERROR
         // If inspection forces weak warning, never report error
         ProblemHighlightType.WEAK_WARNING ->
-            if (default == ProblemLevel.ERROR) ProblemLevel.WEAK_WARNING else default
+            if (default == ProblemLevel.ERROR || default == null) ProblemLevel.WEAK_WARNING else default
         // If inspection forces "do not show", it's really not a problem at all
         ProblemHighlightType.INFORMATION ->
             null
@@ -97,7 +98,7 @@ class InspectionRunner(
         logger.info("Total of ${results.values.flatten().size} problems found")
         analysisLoop@ for ((inspectionClass, problems) in results) {
             for (problem in problems) {
-                val level = problem.level(inspectionClasses.getLevel(inspectionClass)) ?: continue
+                val level = problem.actualLevel(inspectionClasses.getLevel(inspectionClass)) ?: continue
                 when (level) {
                     ProblemLevel.ERROR -> errors++
                     ProblemLevel.WARNING, ProblemLevel.WEAK_WARNING -> warnings++
@@ -183,16 +184,26 @@ class InspectionRunner(
 
     private class PluginInspectionWrapper(
             val tool: InspectionProfileEntry,
-            val extension: InspectionEP,
-            val classFqName: String
-    )
+            val extension: InspectionEP?,
+            val classFqName: String,
+            useInspectionEPLevel: Boolean = false
+    ) {
+        val level: ProblemLevel? =
+                if (useInspectionEPLevel) ProblemLevel.fromInspectionEPLevel(extension?.level) else null
+    }
 
     private fun InspectionClassesSuite.getInspectionWrappers(
-            tools: List<InspectionToolWrapper<InspectionProfileEntry, InspectionEP>>
+            tools: List<InspectionToolWrapper<InspectionProfileEntry, InspectionEP>>,
+            ideaProject: IdeaProject
     ): Sequence<PluginInspectionWrapper> {
         if (inheritFromIdea) {
-            return tools.asSequence().map {
-                PluginInspectionWrapper(it.tool, it.extension, it.tool.javaClass.name)
+            val inspectionProjectProfileManager = InspectionProjectProfileManager.getInstance(ideaProject)
+            val inspectionProfile = inspectionProjectProfileManager.currentProfile
+            val profileTools = inspectionProfile.getAllEnabledInspectionTools(ideaProject)
+            return profileTools.asSequence().map {
+                val wrapper = it.tool
+                PluginInspectionWrapper(wrapper.tool, wrapper.extension, wrapper.tool.javaClass.name,
+                        useInspectionEPLevel = true)
             }
         }
         return classes.asSequence().mapNotNull { inspectionClassName ->
@@ -232,7 +243,7 @@ class InspectionRunner(
         val results: MutableMap<String, MutableList<PinnedProblemDescriptor>> = mutableMapOf()
         logger.info("Before inspections launched: total of ${tree.files.size} files to analyze")
         val tools = InspectionToolRegistrar.getInstance().createTools()
-        inspectionLoop@ for (inspectionWrapper in inspectionClasses.getInspectionWrappers(tools)) {
+        inspectionLoop@ for (inspectionWrapper in inspectionClasses.getInspectionWrappers(tools, ideaProject)) {
             val inspectionClassName = inspectionWrapper.classFqName
             val inspectionTool = inspectionWrapper.tool
             when (inspectionTool) {
@@ -247,7 +258,7 @@ class InspectionRunner(
                 }
             }
             val inspectionExtension = inspectionWrapper.extension
-            val displayName = inspectionExtension.displayName
+            val displayName = inspectionExtension?.displayName ?: "<Unknown diagnostic>"
             val inspectionResults = mutableListOf<PinnedProblemDescriptor>()
             runReadAction {
                 for (sourceFile in tree) {
@@ -258,7 +269,7 @@ class InspectionRunner(
                                   ?: throw GradleException("Cannot find PSI file for $filePath")
                     val document = documentManager.getDocument(virtualFile)
                                    ?: throw GradleException("Cannot get document for $filePath")
-                    inspectionResults += inspectionTool.analyze(psiFile, document, displayName)
+                    inspectionResults += inspectionTool.analyze(psiFile, document, displayName, inspectionWrapper.level)
                 }
             }
             results[inspectionClassName] = inspectionResults
@@ -278,7 +289,8 @@ class InspectionRunner(
             val fileName: String,
             val line: Int,
             val row: Int,
-            val displayName: String?
+            val displayName: String?,
+            val ideaLevel: ProblemLevel?
     ) : ProblemDescriptor by descriptor {
         private val highlightedText = psiElement?.let {
             ProblemDescriptorUtil.extractHighlightedText(this, it)
@@ -305,23 +317,25 @@ class InspectionRunner(
         )
 
         constructor(descriptor: ProblemDescriptor, document: IdeaDocument, displayName: String?,
+                    problemLevel: ProblemLevel?,
                     lineNumber: Int = document.getLineNumber(descriptor.psiElement.textRange.startOffset)):
                 this(descriptor, descriptor.psiElement.containingFile.name, lineNumber,
                      descriptor.psiElement.textRange.startOffset - document.getLineStartOffset(lineNumber),
-                     displayName)
+                     displayName, problemLevel)
     }
 
     private fun LocalInspectionTool.analyze(
             file: PsiFile,
             document: IdeaDocument,
-            displayName: String?
+            displayName: String?,
+            problemLevel: ProblemLevel?
     ): List<PinnedProblemDescriptor> {
         val holder = ProblemsHolder(InspectionManager.getInstance(file.project), file, false)
         val session = LocalInspectionToolSession(file, file.textRange.startOffset, file.textRange.endOffset)
         val visitor = this.buildVisitor(holder, false, session)
         file.acceptRecursively(visitor)
         return holder.results.map {
-            PinnedProblemDescriptor(it, document, displayName)
+            PinnedProblemDescriptor(it, document, displayName, problemLevel)
         }
     }
 }

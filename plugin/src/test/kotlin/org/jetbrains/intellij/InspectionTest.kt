@@ -308,7 +308,6 @@ class InspectionTest {
         doTest("testData/inspection/convertToStringTemplate/foo.kt")
     }
 
-    // FAILS
     @Test
     fun testCustomConfigInheritIdea() {
         doTest("testData/inspection/customConfigInheritFromIdea/different.kt")
