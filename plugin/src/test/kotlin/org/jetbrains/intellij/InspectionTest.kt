@@ -294,13 +294,29 @@ class InspectionTest {
     }
 
     @Test
-    fun testInspectionConfigurationJava() {
+    fun testConfigurationJava() {
         doTest("testData/inspection/configurationJava/Main.java")
     }
 
     @Test
-    fun testInspectionConfigurationKotlin() {
+    fun testConfigurationKotlin() {
         doTest("testData/inspection/configurationKotlin/main.kt")
+    }
+
+    @Test
+    fun testConvertToStringTemplate() {
+        doTest("testData/inspection/convertToStringTemplate/foo.kt")
+    }
+
+    // FAILS
+    @Test
+    fun testCustomConfigInheritIdea() {
+        doTest("testData/inspection/customConfigInheritFromIdea/different.kt")
+    }
+
+    @Test
+    fun testDoNotShowViolations() {
+        doTest("testData/inspection/doNotShowViolations/My.kt")
     }
 
     @Test
@@ -319,22 +335,12 @@ class InspectionTest {
     }
 
     @Test
-    fun testConvertToStringTemplate() {
-        doTest("testData/inspection/convertToStringTemplate/foo.kt")
-    }
-
-    @Test
-    fun testDoNotShowViolations() {
-        doTest("testData/inspection/doNotShowViolations/My.kt")
+    fun testWeakWarningNeverBecomesError() {
+        doTest("testData/inspection/weakWarningNeverBecomesError/LeakingThis.kt")
     }
 
     @Test
     fun testXMLOutput() {
         doTest("testData/inspection/xmlOutput/My.kt")
-    }
-
-    @Test
-    fun testCustomConfigInheritIdea() {
-        doTest("testData/inspection/customConfigInheritFromIdea/different.kt")
     }
 }
