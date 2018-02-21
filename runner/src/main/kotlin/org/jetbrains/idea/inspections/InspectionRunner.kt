@@ -28,8 +28,11 @@ import org.jdom2.Element
 import org.jdom2.output.XMLOutputter
 import org.jetbrains.intellij.*
 import java.io.File
+import java.io.IOException
+import java.nio.channels.FileChannel
+import java.nio.file.Paths
+import java.nio.file.StandardOpenOption
 import com.intellij.openapi.editor.Document as IdeaDocument
-import java.lang.Exception
 
 @Suppress("unused")
 class InspectionRunner(
@@ -45,7 +48,10 @@ class InspectionRunner(
         private const val AWT_HEADLESS = "java.awt.headless"
         private const val IDEA_HOME_PATH = "idea.home.path"
         private const val BUILD_NUMBER = "idea.plugins.compatible.build"
+        private const val SYSTEM_PATH = "idea.system.path"
+        private const val USER_HOME = "user.home"
         private const val INSPECTION_PROFILES_PATH = ".idea/inspectionProfiles"
+        private const val SYSTEM_MARKER_FILE = "marker.ipl"
 
         private val USELESS_PLUGINS = listOf(
                 "mobi.hsz.idea.gitignore",
@@ -151,13 +157,46 @@ class InspectionRunner(
         return success
     }
 
+    private fun generateSystemPath(): Pair<String, FileChannel> {
+        val homeDir = System.getProperty(USER_HOME).replace("\\", "/")
+        var path: String
+        var code = 0
+        var channel: FileChannel
+        do {
+            code++
+            path = "$homeDir/.IntellijIDEInspections/code$code/system"
+            val file = File(path)
+            if (!file.exists()) {
+                file.mkdirs()
+            }
+            File(file, SYSTEM_MARKER_FILE).createNewFile()
+            // To prevent usages by multiple processes
+            val lock = try {
+                channel = FileChannel.open(Paths.get(path, SYSTEM_MARKER_FILE), StandardOpenOption.WRITE)
+                channel.tryLock()
+            } catch (e: IOException) {
+                logger.warn("IO exception while locking: ${e.message}")
+                throw GradleException("EXCEPTION caught in inspection plugin (IDEA system dir lock): " + e, e)
+            }
+            if (lock == null) {
+                if (code == 256) {
+                    throw GradleException("Cannot create IDEA system directory (all locked)")
+                }
+            }
+        } while (lock == null)
+        return path to channel
+    }
+
     private fun analyzeTreeInIdea(tree: FileTree): Map<String, List<PinnedProblemDescriptor>> {
         System.setProperty(IDEA_HOME_PATH, UnzipTask.cacheDirectory.path)
         System.setProperty(AWT_HEADLESS, "true")
         System.setProperty(BUILD_NUMBER, UnzipTask.buildNumber())
+        val (systemPath, systemPathMarkerChannel) = generateSystemPath()
+        System.setProperty(SYSTEM_PATH, systemPath)
 
         System.setProperty(PlatformUtils.PLATFORM_PREFIX_KEY, PlatformUtils.getPlatformPrefix(PlatformUtils.IDEA_CE_PREFIX))
         logger.warn("IDEA home path: " + PathManager.getHomePath())
+        logger.warn("IDEA system path: $systemPath")
         createCommandLineApplication(isInternal = false, isUnitTestMode = false, isHeadless = true)
         for (plugin in USELESS_PLUGINS) {
             PluginManagerCore.disablePlugin(plugin)
@@ -173,10 +212,12 @@ class InspectionRunner(
             application.doNotSave()
 
             result = application.analyzeTree(tree)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             if (e is GradleException) throw e
             throw GradleException("EXCEPTION caught in inspection plugin (IDEA runReadAction): " + e, e)
         } finally {
+            systemPathMarkerChannel.close()
+            // NB: exit is actually performed on EDT thread!
             application.exit(true, true)
         }
         return result ?: emptyMap()

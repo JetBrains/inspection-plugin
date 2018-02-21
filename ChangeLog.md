@@ -5,6 +5,7 @@
 Additional features:
 
  * Select and use IDEA inspection profile via `inheritFromIdea profileName="..."` in configuration file
+ * Multi-process mode support (two or more plugin tasks can be launched simultaneously)
  
 Bug fixes:
 
