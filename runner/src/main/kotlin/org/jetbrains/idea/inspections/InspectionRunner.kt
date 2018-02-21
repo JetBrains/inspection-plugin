@@ -1,8 +1,8 @@
 package org.jetbrains.idea.inspections
 
 import com.intellij.codeInspection.*
+import com.intellij.codeInspection.ex.ApplicationInspectionProfileManager
 import com.intellij.codeInspection.ex.InspectionToolRegistrar
-import com.intellij.codeInspection.ex.InspectionToolWrapper
 import com.intellij.ide.highlighter.ProjectFileType
 import com.intellij.ide.impl.ProjectUtil
 import com.intellij.ide.plugins.PluginManagerCore
@@ -14,7 +14,6 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project as IdeaProject
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFileManager
-import com.intellij.profile.codeInspection.InspectionProjectProfileManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiFile
@@ -186,27 +185,29 @@ class InspectionRunner(
             val tool: InspectionProfileEntry,
             val extension: InspectionEP?,
             val classFqName: String,
-            useInspectionEPLevel: Boolean = false
+            level: String? = null
     ) {
-        val level: ProblemLevel? =
-                if (useInspectionEPLevel) ProblemLevel.fromInspectionEPLevel(extension?.level) else null
+        val level: ProblemLevel? = level?.let { ProblemLevel.fromInspectionEPLevel(it) }
     }
 
     private fun InspectionClassesSuite.getInspectionWrappers(
-            tools: List<InspectionToolWrapper<InspectionProfileEntry, InspectionEP>>,
             ideaProject: IdeaProject
     ): Sequence<PluginInspectionWrapper> {
         if (inheritFromIdea) {
-            val inspectionProjectProfileManager = InspectionProjectProfileManager.getInstance(ideaProject)
-            val inspectionProfile = inspectionProjectProfileManager.currentProfile
+            val inspectionProfileManager = ApplicationInspectionProfileManager.getInstanceImpl()
+            val profilePath = "$projectPath/.idea/inspectionProfiles/Project_Default.xml"
+            val inspectionProfile = inspectionProfileManager.loadProfile(profilePath)
+                                    ?: inspectionProfileManager.currentProfile
+
             val profileTools = inspectionProfile.getAllEnabledInspectionTools(ideaProject)
             return profileTools.asSequence().map {
                 val wrapper = it.tool
                 PluginInspectionWrapper(wrapper.tool, wrapper.extension, wrapper.tool.javaClass.name,
-                        useInspectionEPLevel = true)
+                        it.defaultState.level.name)
             }
         }
         return classes.asSequence().mapNotNull { inspectionClassName ->
+            val tools = InspectionToolRegistrar.getInstance().createTools()
             val inspectionToolWrapper = tools.find { it.tool.javaClass.name == inspectionClassName }
             if (inspectionToolWrapper == null) {
                 logger.error("Inspection $inspectionClassName is not found in registrar")
@@ -242,8 +243,7 @@ class InspectionRunner(
 
         val results: MutableMap<String, MutableList<PinnedProblemDescriptor>> = mutableMapOf()
         logger.info("Before inspections launched: total of ${tree.files.size} files to analyze")
-        val tools = InspectionToolRegistrar.getInstance().createTools()
-        inspectionLoop@ for (inspectionWrapper in inspectionClasses.getInspectionWrappers(tools, ideaProject)) {
+        inspectionLoop@ for (inspectionWrapper in inspectionClasses.getInspectionWrappers(ideaProject)) {
             val inspectionClassName = inspectionWrapper.classFqName
             val inspectionTool = inspectionWrapper.tool
             when (inspectionTool) {

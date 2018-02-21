@@ -142,6 +142,36 @@ class InspectionTest {
         }.toString()
     }
 
+    private fun generateInspectionToolTags(
+            level: String,
+            inspections: List<String>
+    ): String {
+        return StringBuilder().apply {
+            for (inspectionClass in inspections) {
+                val shortClass = inspectionClass.substringAfterLast(".").substringBefore("Inspection")
+                appendln("""        <inspection_tool class="$shortClass" enabled="true" level="$level" enabled_by_default="true"/>""")
+            }
+        }.toString()
+
+    }
+
+    private fun generateInspectionProfileFile(
+            errors: List<String> = emptyList(),
+            warnings: List<String> = emptyList(),
+            infos: List<String> = emptyList()
+    ): String {
+        return StringBuilder().apply {
+            appendln("<component name=\"InspectionProjectProfileManager\">")
+            appendln("    <profile version=\"1.0\">\n")
+            appendln("        <option name=\"myName\" value=\"Project Default\" /> \n")
+            appendln(generateInspectionToolTags("ERROR", errors))
+            appendln(generateInspectionToolTags("WARNING", warnings))
+            appendln(generateInspectionToolTags("INFO", infos))
+            appendln("    </profile>")
+            appendln("</component>")
+        }.toString()
+    }
+
     private enum class DiagnosticsStatus {
         SHOULD_PRESENT,
         SHOULD_BE_ABSENT
@@ -187,6 +217,23 @@ class InspectionTest {
             writeFile(buildFile, buildFileContent)
             val inspectionsFileContent = generateInspectionFile(inheritFromIdea, errors, warnings, infos)
             writeFile(inspectionsFile, inspectionsFileContent)
+
+            if (inheritFromIdea && (errors + warnings + infos).isNotEmpty()) {
+                testProjectDir.newFolder(".idea", "inspectionProfiles")
+                val inspectionProfileFile = testProjectDir.newFile(".idea/inspectionProfiles/Project_Default.xml")
+                val inspectionProfileContent = generateInspectionProfileFile(errors, warnings, infos)
+                writeFile(inspectionProfileFile, inspectionProfileContent)
+                val profilesSettingFile = testProjectDir.newFile(".idea/inspectionProfiles/profiles_settings.xml")
+                writeFile(profilesSettingFile, """
+<component name="InspectionProjectProfileManager">
+  <settings>
+    <option name="PROJECT_PROFILE" value="Project Default" />
+    <option name="USE_PROJECT_PROFILE" value="true" />
+    <version value="1.0" />
+  </settings>
+</component>
+                """.trimIndent())
+            }
 
             fun buildSourceFileName(): String {
                 val sb = StringBuilder()
@@ -331,6 +378,11 @@ class InspectionTest {
     @Test
     fun testRedundantModality() {
         doTest("testData/inspection/redundantModality/My.kt")
+    }
+
+    @Test
+    fun testUnusedSymbolByIdeaProfile() {
+        doTest("testData/inspection/unusedSymbolByIdeaProfile/test.kt")
     }
 
     @Test
