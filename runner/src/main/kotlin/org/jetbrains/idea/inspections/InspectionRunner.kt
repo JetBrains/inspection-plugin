@@ -45,6 +45,7 @@ class InspectionRunner(
         private const val AWT_HEADLESS = "java.awt.headless"
         private const val IDEA_HOME_PATH = "idea.home.path"
         private const val BUILD_NUMBER = "idea.plugins.compatible.build"
+        private const val INSPECTION_PROFILES_PATH = ".idea/inspectionProfiles"
 
         private val USELESS_PLUGINS = listOf(
                 "mobi.hsz.idea.gitignore",
@@ -195,7 +196,7 @@ class InspectionRunner(
     ): Sequence<PluginInspectionWrapper> {
         if (inheritFromIdea) {
             val inspectionProfileManager = ApplicationInspectionProfileManager.getInstanceImpl()
-            val profilePath = "$projectPath/.idea/inspectionProfiles/Project_Default.xml"
+            val profilePath = "$projectPath/$INSPECTION_PROFILES_PATH/$ideaProfile"
             val inspectionProfile = inspectionProfileManager.loadProfile(profilePath)
                                     ?: inspectionProfileManager.currentProfile
 

@@ -157,9 +157,9 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
         val document = builder.build(configFile)
         val root = document.rootElement
 
-        val inheritFromIdea = root.getChild("inheritFromIdea") != null
-        if (inheritFromIdea) {
-            return InspectionClassesSuite()
+        val inheritFromIdea = root.getChild("inheritFromIdea")
+        if (inheritFromIdea != null) {
+            return InspectionClassesSuite(inheritFromIdea.getAttributeValue("profileName"))
         }
         val errorClasses = root.getChild("errors").children.map { it.getAttributeValue("class") }
         val warningClasses = root.getChild("warnings").children.map { it.getAttributeValue("class") }

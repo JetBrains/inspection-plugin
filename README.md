@@ -34,16 +34,17 @@ The simplest possible format is the following:
 ```xml
 <?xml version="1.0" encoding="UTF-8" ?>
 <inspections>
-    <inheritFromIdea/>
+    <inheritFromIdea profileName="Project_Default.xml"/>
     <errors/>
     <warnings/>
     <infos/>
 </inspections>
 ```
 
-In this case inspection configuration will be inherited from IDEA.
-If IDEA inspection configuration file does not exist in your project,
-then default inspection severities will be in use.
+In this case inspection configuration will be inherited from IDEA,
+inspection configuration will be read from file `.idea/inspectionProfiles/Project_Default.xml`.
+If this file does not exist in your project, then default inspection severities will be in use.
+If `profileName` is not given, `Project_Default.xml` will be used by default.
 
 To run inspections, execute from terminal: `gradlew inspectionsMain`.
 This will download IDEA artifact to gradle cache,
