@@ -80,6 +80,8 @@ class InspectionTest {
             expectedDiagnosticsStatus: DiagnosticsStatus,
             vararg expectedDiagnostics: String
     ) {
+        // Delay to solve DaemonDisappearedException problem
+        Thread.sleep(5000)
         val result = try {
             GradleRunner.create()
                     .withProjectDir(testProjectDir.root)
