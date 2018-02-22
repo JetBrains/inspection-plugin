@@ -85,9 +85,7 @@ class InspectionTest {
                     .withProjectDir(testProjectDir.root)
                     .withArguments("--info", "--stacktrace", "inspectionsMain")
                     .withPluginClasspath()
-                    .apply {
-                        withPluginClasspath(pluginClasspath)
-                    }.build()
+                    .build()
         } catch (failure: UnexpectedBuildFailure) {
             println("Exception caught in test: $failure")
             failure.buildResult
