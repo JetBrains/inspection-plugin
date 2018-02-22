@@ -12,7 +12,7 @@ buildscript {
         maven { setUrl("https://plugins.gradle.org/m2/") }
     }
     dependencies {
-        classpath("org.jetbrains.intellij.plugins:inspection-plugin:0.1.1")
+        classpath("org.jetbrains.intellij.plugins:inspection-plugin:0.1.2-SNAPSHOT")
         classpath("com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.0")
     }
 }
