@@ -87,7 +87,7 @@ class InspectionRunner(
         var errors = 0
         var warnings = 0
 
-        val xmlGenerator = XMLGenerator(reports.xml)
+        val generators = listOf(XMLGenerator(reports.xml), HTMLGenerator(reports.html)).filter { it.enabled }
 
         var success = true
         logger.info("Total of ${results.values.flatten().size} problems found")
@@ -102,9 +102,7 @@ class InspectionRunner(
                 if (!quiet) {
                     logger.log(level.logLevel, problem.renderWithLocation())
                 }
-                if (xmlGenerator.enabled) {
-                    xmlGenerator.report(problem, level, inspectionClass)
-                }
+                generators.forEach { it.report(problem, level, inspectionClass) }
                 if (errors > maxErrors) {
                     logger.error("Too many errors found: $errors. Analysis stopped")
                     success = false
@@ -118,9 +116,7 @@ class InspectionRunner(
             }
         }
 
-        if (xmlGenerator.enabled) {
-            xmlGenerator.generate()
-        }
+        generators.forEach { it.generate() }
         return success
     }
 
