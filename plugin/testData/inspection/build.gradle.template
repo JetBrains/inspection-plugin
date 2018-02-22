@@ -25,6 +25,9 @@ inspectionsMain {
         xml {
             <xmlDestination>
         }
+        html {
+            <htmlDestination>
+        }
     }
 }
 sourceSets {

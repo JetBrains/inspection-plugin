@@ -40,8 +40,8 @@ class PinnedProblemDescriptor(
 
     constructor(descriptor: ProblemDescriptor, document: Document, displayName: String?,
                 problemLevel: ProblemLevel?,
-                lineNumber: Int = document.getLineNumber(descriptor.psiElement.textRange.startOffset)):
+                lineNumber: Int = descriptor.psiElement.getLine(document)):
             this(descriptor, descriptor.psiElement.containingFile.name, lineNumber,
-                 descriptor.psiElement.textRange.startOffset - document.getLineStartOffset(lineNumber),
+                 descriptor.psiElement.getRow(document, lineNumber),
                  displayName, problemLevel)
 }

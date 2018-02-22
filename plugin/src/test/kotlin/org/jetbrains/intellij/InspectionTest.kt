@@ -27,6 +27,7 @@ class InspectionTest {
             ignoreFailures: Boolean = false,
             quiet: Boolean = false,
             xmlReport: Boolean = false,
+            htmlReport: Boolean = false,
             kotlinVersion: String = "1.1.3-2",
             configFileName: String = ""
     ): String {
@@ -62,6 +63,9 @@ class InspectionTest {
                     }
                     "xmlDestination" -> if (xmlReport) {
                         appendln("            destination \"build/report.xml\"")
+                    }
+                    "htmlDestination" -> if (htmlReport) {
+                        appendln("            destination \"build/report.html\"")
                     }
                     "kotlin-stdlib" -> if (kotlinNeeded) {
                         appendln("    compile \"org.jetbrains.kotlin:kotlin-stdlib\"")
@@ -184,6 +188,7 @@ class InspectionTest {
             val ignoreFailures: Boolean = false,
             val quiet: Boolean = false,
             val xmlReport: Boolean = false,
+            val htmlReport: Boolean = false,
             val kotlinVersion: String = "1.1.3-2",
             val configFileName: String = "",
             val inheritFromIdea: Boolean = false,
@@ -211,6 +216,7 @@ class InspectionTest {
                     ignoreFailures,
                     quiet,
                     xmlReport,
+                    htmlReport,
                     kotlinVersion,
                     configFileName
             )
@@ -301,6 +307,7 @@ class InspectionTest {
         val ignoreFailures = getParameterValue("ignoreFailures", "false").toBoolean()
         val quiet = getParameterValue("quiet", "false").toBoolean()
         val xmlReport = getParameterValue("xmlReport", "false").toBoolean()
+        val htmlReport = getParameterValue("htmlReport", "false").toBoolean()
         val kotlinVersion = getParameterValue("kotlinVersion", "1.1.3-2")
         val configFileName = getParameterValue("config", "")
         val inheritFromIdea = getParameterValue("inheritFromIdea", "false").toBoolean()
@@ -315,6 +322,7 @@ class InspectionTest {
                 ignoreFailures,
                 quiet,
                 xmlReport,
+                htmlReport,
                 kotlinVersion,
                 configFileName,
                 inheritFromIdea,
@@ -337,6 +345,11 @@ class InspectionTest {
             val actualRepresentation = xmlOutputter.outputString(actualRoot)
             val expectedRepresentation = xmlOutputter.outputString(expectedRoot)
             assertEquals(expectedRepresentation, actualRepresentation)
+        }
+        if (htmlReport) {
+            val actualFile = File(testProjectDir.root, "build/report.html")
+            val expectedFile = File(testFilePath.dropLast(testFileName.length) + "report.html")
+            assertEquals(expectedFile.readText(), actualFile.readText())
         }
     }
 
@@ -363,6 +376,11 @@ class InspectionTest {
     @Test
     fun testDoNotShowViolations() {
         doTest("testData/inspection/doNotShowViolations/My.kt")
+    }
+
+    @Test
+    fun testHTMLOutput() {
+        doTest("testData/inspection/htmlOutput/My.kt")
     }
 
     @Test

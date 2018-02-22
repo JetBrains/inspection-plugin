@@ -9,12 +9,11 @@ import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.idea.createCommandLineApplication
 import com.intellij.openapi.application.Application
 import com.intellij.openapi.application.PathManager
+import com.intellij.openapi.application.ex.ApplicationEx
 import com.intellij.openapi.application.ex.ApplicationManagerEx
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project as IdeaProject
 import com.intellij.openapi.vfs.VirtualFileManager
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.util.PlatformUtils
@@ -83,41 +82,56 @@ class InspectionRunner(
     override fun analyzeTreeAndLogResults(tree: FileTree): Boolean {
         logger.info("Class loader: " + this.javaClass.classLoader)
         logger.info("Input classes: " + inspectionClasses)
-        val results = analyzeTreeInIdea(tree)
-        var errors = 0
-        var warnings = 0
+        val (application, systemPathMarkerChannel) = loadApplication()
+        try {
+            application.doNotSave()
+            val results = application.analyzeTree(tree)
+            var errors = 0
+            var warnings = 0
 
-        val generators = listOf(XMLGenerator(reports.xml), HTMLGenerator(reports.html)).filter { it.enabled }
+            val generators = listOf(
+                    XMLGenerator(reports.xml),
+                    HTMLGenerator(reports.html, application)
+            ).filter { it.enabled }
 
-        var success = true
-        logger.info("Total of ${results.values.flatten().size} problems found")
-        analysisLoop@ for ((inspectionClass, problems) in results) {
-            for (problem in problems) {
-                val level = problem.actualLevel(inspectionClasses.getLevel(inspectionClass)) ?: continue
-                when (level) {
-                    ProblemLevel.ERROR -> errors++
-                    ProblemLevel.WARNING, ProblemLevel.WEAK_WARNING -> warnings++
-                    ProblemLevel.INFORMATION -> {}
-                }
-                if (!quiet) {
-                    logger.log(level.logLevel, problem.renderWithLocation())
-                }
-                generators.forEach { it.report(problem, level, inspectionClass) }
-                if (errors > maxErrors) {
-                    logger.error("Too many errors found: $errors. Analysis stopped")
-                    success = false
-                    break@analysisLoop
-                }
-                if (warnings > maxWarnings) {
-                    logger.error("Too many warnings found: $warnings. Analysis stopped")
-                    success = false
-                    break@analysisLoop
+            var success = true
+            logger.info("Total of ${results.values.flatten().size} problems found")
+            analysisLoop@ for ((inspectionClass, problems) in results) {
+                for (problem in problems) {
+                    val level = problem.actualLevel(inspectionClasses.getLevel(inspectionClass)) ?: continue
+                    when (level) {
+                        ProblemLevel.ERROR -> errors++
+                        ProblemLevel.WARNING, ProblemLevel.WEAK_WARNING -> warnings++
+                        ProblemLevel.INFORMATION -> {
+                        }
+                    }
+                    if (!quiet) {
+                        logger.log(level.logLevel, problem.renderWithLocation())
+                    }
+                    generators.forEach { it.report(problem, level, inspectionClass) }
+                    if (errors > maxErrors) {
+                        logger.error("Too many errors found: $errors. Analysis stopped")
+                        success = false
+                        break@analysisLoop
+                    }
+                    if (warnings > maxWarnings) {
+                        logger.error("Too many warnings found: $warnings. Analysis stopped")
+                        success = false
+                        break@analysisLoop
+                    }
                 }
             }
-        }
 
-        generators.forEach { it.generate() }
-        return success
+            generators.forEach { it.generate() }
+            return success
+        } catch (e: Throwable) {
+            if (e is GradleException) throw e
+            throw GradleException("EXCEPTION caught in inspection plugin (IDEA runReadAction): " + e, e)
+        } finally {
+            systemPathMarkerChannel.close()
+            // NB: exit is actually performed on EDT thread!
+            application.exit(true, true)
+        }
     }
 
     private fun generateSystemPath(buildNumber: String): Pair<String, FileChannel> {
@@ -151,7 +165,7 @@ class InspectionRunner(
         return path to channel
     }
 
-    private fun analyzeTreeInIdea(tree: FileTree): Map<String, List<PinnedProblemDescriptor>> {
+    private fun loadApplication(): Pair<ApplicationEx, FileChannel> {
         System.setProperty(IDEA_HOME_PATH, UnzipTask.cacheDirectory.path)
         System.setProperty(AWT_HEADLESS, "true")
         val buildNumber = UnzipTask.buildNumber()
@@ -169,23 +183,9 @@ class InspectionRunner(
 
         logger.info("Plugins enabled: " + PluginManagerCore.getPlugins().toList())
         ApplicationManagerEx.getApplicationEx().load()
-        val application = ApplicationManagerEx.getApplicationEx() ?: run {
+        return (ApplicationManagerEx.getApplicationEx() ?: run {
             throw GradleException("Cannot create IDEA application")
-        }
-        val result: Map<String, List<PinnedProblemDescriptor>>?
-        try {
-            application.doNotSave()
-
-            result = application.analyzeTree(tree)
-        } catch (e: Throwable) {
-            if (e is GradleException) throw e
-            throw GradleException("EXCEPTION caught in inspection plugin (IDEA runReadAction): " + e, e)
-        } finally {
-            systemPathMarkerChannel.close()
-            // NB: exit is actually performed on EDT thread!
-            application.exit(true, true)
-        }
-        return result ?: emptyMap()
+        }) to systemPathMarkerChannel
     }
 
     private class PluginInspectionWrapper(
@@ -282,13 +282,6 @@ class InspectionRunner(
             results[inspectionClassName] = inspectionResults
         }
         return results
-    }
-
-    private fun PsiElement.acceptRecursively(visitor: PsiElementVisitor) {
-        this.accept(visitor)
-        for (child in this.children) {
-            child.acceptRecursively(visitor)
-        }
     }
 
     private fun LocalInspectionTool.analyze(
