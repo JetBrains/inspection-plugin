@@ -87,9 +87,7 @@ class InspectionRunner(
         var errors = 0
         var warnings = 0
 
-        val xmlReport = reports.xml
-        val xmlEnabled = xmlReport.isEnabled
-        val xmlGenerator = XMLGenerator(xmlReport)
+        val xmlGenerator = XMLGenerator(reports.xml)
 
         var success = true
         logger.info("Total of ${results.values.flatten().size} problems found")
@@ -104,7 +102,7 @@ class InspectionRunner(
                 if (!quiet) {
                     logger.log(level.logLevel, problem.renderWithLocation())
                 }
-                if (xmlEnabled) {
+                if (xmlGenerator.enabled) {
                     xmlGenerator.report(problem, level, inspectionClass)
                 }
                 if (errors > maxErrors) {
@@ -120,7 +118,7 @@ class InspectionRunner(
             }
         }
 
-        if (xmlEnabled) {
+        if (xmlGenerator.enabled) {
             xmlGenerator.generate()
         }
         return success

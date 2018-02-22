@@ -6,7 +6,7 @@ import org.jdom2.Element
 import org.jdom2.output.XMLOutputter
 import org.jetbrains.intellij.ProblemLevel
 
-class XMLGenerator(private val report: SingleFileReport) {
+class XMLGenerator(override val report: SingleFileReport) : ReportGenerator {
 
     private val errorsRoot = Element("errors")
     private val errorElements = mutableListOf<Element>()
@@ -15,7 +15,7 @@ class XMLGenerator(private val report: SingleFileReport) {
     private val infosRoot = Element("infos")
     private val infoElements = mutableListOf<Element>()
 
-    fun report(problem: PinnedProblemDescriptor, level: ProblemLevel, inspectionClass: String) {
+    override fun report(problem: PinnedProblemDescriptor, level: ProblemLevel, inspectionClass: String) {
         val element = Element("problem")
         element.addContent(Element("file").addContent(problem.fileName))
         element.addContent(Element("line").addContent((problem.line + 1).toString()))
@@ -32,7 +32,7 @@ class XMLGenerator(private val report: SingleFileReport) {
         }
     }
 
-    fun generate() {
+    override fun generate() {
         val xmlReportFile = report.destination
         errorsRoot.setContent(errorElements)
         warningsRoot.setContent(warningElements)
