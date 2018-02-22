@@ -12,7 +12,6 @@ import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.application.ex.ApplicationManagerEx
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project as IdeaProject
-import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
@@ -24,8 +23,6 @@ import org.gradle.api.Project as GradleProject
 import org.gradle.api.file.FileTree
 import org.gradle.api.logging.Logger
 import org.jdom2.Document as JdomDocument
-import org.jdom2.Element
-import org.jdom2.output.XMLOutputter
 import org.jetbrains.intellij.*
 import java.io.File
 import java.io.IOException
@@ -92,13 +89,7 @@ class InspectionRunner(
 
         val xmlReport = reports.xml
         val xmlEnabled = xmlReport.isEnabled
-        val xmlRoot = Element("report")
-        val errorsRoot = Element("errors")
-        val errorElements = mutableListOf<Element>()
-        val warningsRoot = Element("warnings")
-        val warningElements = mutableListOf<Element>()
-        val infosRoot = Element("infos")
-        val infoElements = mutableListOf<Element>()
+        val xmlGenerator = XMLGenerator(xmlReport)
 
         var success = true
         logger.info("Total of ${results.values.flatten().size} problems found")
@@ -114,20 +105,7 @@ class InspectionRunner(
                     logger.log(level.logLevel, problem.renderWithLocation())
                 }
                 if (xmlEnabled) {
-                    val element = Element("problem")
-                    element.addContent(Element("file").addContent(problem.fileName))
-                    element.addContent(Element("line").addContent((problem.line + 1).toString()))
-                    element.addContent(Element("row").addContent((problem.row + 1).toString()))
-                    element.addContent(Element("java_class").addContent(inspectionClass))
-                    element.addContent(Element("problem_class")
-                            .setAttribute("severity", level.name)
-                            .addContent(problem.displayName ?: "<ANONYMOUS>"))
-                    element.addContent(Element("description").addContent(problem.render()))
-                    when (level) {
-                        ProblemLevel.ERROR -> errorElements += element
-                        ProblemLevel.WARNING, ProblemLevel.WEAK_WARNING -> warningElements += element
-                        ProblemLevel.INFORMATION -> infoElements += element
-                    }
+                    xmlGenerator.report(problem, level, inspectionClass)
                 }
                 if (errors > maxErrors) {
                     logger.error("Too many errors found: $errors. Analysis stopped")
@@ -142,18 +120,9 @@ class InspectionRunner(
             }
         }
 
-        val xmlReportFile = if (!xmlEnabled) null else xmlReport.destination
-        if (xmlReportFile != null) {
-            errorsRoot.setContent(errorElements)
-            warningsRoot.setContent(warningElements)
-            infosRoot.setContent(infoElements)
-            xmlRoot.addContent(errorsRoot)
-            xmlRoot.addContent(warningsRoot)
-            xmlRoot.addContent(infosRoot)
-            val document = JdomDocument(xmlRoot)
-            XMLOutputter().output(document, xmlReportFile.outputStream())
+        if (xmlEnabled) {
+            xmlGenerator.generate()
         }
-
         return success
     }
 
@@ -326,46 +295,6 @@ class InspectionRunner(
         for (child in this.children) {
             child.acceptRecursively(visitor)
         }
-    }
-
-    private class PinnedProblemDescriptor(
-            val descriptor: ProblemDescriptor,
-            val fileName: String,
-            val line: Int,
-            val row: Int,
-            val displayName: String?,
-            val ideaLevel: ProblemLevel?
-    ) : ProblemDescriptor by descriptor {
-        private val highlightedText = psiElement?.let {
-            ProblemDescriptorUtil.extractHighlightedText(this, it)
-        } ?: ""
-
-        fun renderLocation(): String = StringBuilder().apply {
-            append(fileName)
-            append(":")
-            append(line + 1)
-            append(":")
-            append(row + 1)
-        }.toString()
-
-        fun renderWithLocation(): String = renderLocation() + ": " + render()
-
-        fun render(): String = StringUtil.replace(
-                StringUtil.replace(
-                        descriptionTemplate,
-                        "#ref",
-                        highlightedText
-                ),
-                " #loc",
-                ""
-        )
-
-        constructor(descriptor: ProblemDescriptor, document: IdeaDocument, displayName: String?,
-                    problemLevel: ProblemLevel?,
-                    lineNumber: Int = document.getLineNumber(descriptor.psiElement.textRange.startOffset)):
-                this(descriptor, descriptor.psiElement.containingFile.name, lineNumber,
-                     descriptor.psiElement.textRange.startOffset - document.getLineStartOffset(lineNumber),
-                     displayName, problemLevel)
     }
 
     private fun LocalInspectionTool.analyze(
