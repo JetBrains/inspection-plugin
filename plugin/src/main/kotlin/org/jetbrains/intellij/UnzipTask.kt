@@ -13,7 +13,7 @@ open class UnzipTask : ConventionTask() {
             File(tempDir, "inspection-plugin/idea")
         }
 
-        fun buildNumber(): String? = File(cacheDirectory, "build.txt").let {
+        fun buildNumber(): String = File(cacheDirectory, "build.txt").let {
             if (it.exists()) {
                 it.readText().dropWhile { !it.isDigit() }.let {
                     if (it.isNotEmpty()) it else null

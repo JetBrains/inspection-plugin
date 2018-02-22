@@ -157,14 +157,15 @@ class InspectionRunner(
         return success
     }
 
-    private fun generateSystemPath(): Pair<String, FileChannel> {
+    private fun generateSystemPath(buildNumber: String): Pair<String, FileChannel> {
         val homeDir = System.getProperty(USER_HOME).replace("\\", "/")
+        val buildPrefix = buildNumber.replace(".", "_")
         var path: String
         var code = 0
         var channel: FileChannel
         do {
             code++
-            path = "$homeDir/.IntellijIDEInspections/code$code/system"
+            path = "$homeDir/.IntellijIDEAInspections/${buildPrefix}_code$code/system"
             val file = File(path)
             if (!file.exists()) {
                 file.mkdirs()
@@ -190,8 +191,9 @@ class InspectionRunner(
     private fun analyzeTreeInIdea(tree: FileTree): Map<String, List<PinnedProblemDescriptor>> {
         System.setProperty(IDEA_HOME_PATH, UnzipTask.cacheDirectory.path)
         System.setProperty(AWT_HEADLESS, "true")
-        System.setProperty(BUILD_NUMBER, UnzipTask.buildNumber())
-        val (systemPath, systemPathMarkerChannel) = generateSystemPath()
+        val buildNumber = UnzipTask.buildNumber()
+        System.setProperty(BUILD_NUMBER, buildNumber)
+        val (systemPath, systemPathMarkerChannel) = generateSystemPath(buildNumber)
         System.setProperty(SYSTEM_PATH, systemPath)
 
         System.setProperty(PlatformUtils.PLATFORM_PREFIX_KEY, PlatformUtils.getPlatformPrefix(PlatformUtils.IDEA_CE_PREFIX))
