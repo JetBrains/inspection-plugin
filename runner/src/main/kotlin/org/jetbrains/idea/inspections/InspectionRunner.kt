@@ -58,26 +58,6 @@ class InspectionRunner(
 
     private val projectPath: String = project.rootProject.projectDir.absolutePath
 
-    private fun PinnedProblemDescriptor.actualLevel(default: ProblemLevel?): ProblemLevel? = when (highlightType) {
-        // Default (use level either from IDEA configuration or plugin configuration)
-        ProblemHighlightType.GENERIC_ERROR_OR_WARNING,
-        ProblemHighlightType.LIKE_UNKNOWN_SYMBOL,
-        ProblemHighlightType.LIKE_DEPRECATED,
-        ProblemHighlightType.LIKE_UNUSED_SYMBOL ->
-            default ?: this.ideaLevel
-        // If inspection forces error, report it
-        ProblemHighlightType.ERROR, ProblemHighlightType.GENERIC_ERROR ->
-            ProblemLevel.ERROR
-        // If inspection forces weak warning, never report error
-        ProblemHighlightType.WEAK_WARNING ->
-            if (default == ProblemLevel.ERROR || default == null) ProblemLevel.WEAK_WARNING else default
-        // If inspection forces "do not show", it's really not a problem at all
-        ProblemHighlightType.INFORMATION ->
-            null
-        else /* INFO only */ ->
-            ProblemLevel.INFORMATION
-    }
-
     // Returns true if analysis executed successfully
     override fun analyzeTreeAndLogResults(tree: FileTree): Boolean {
         logger.info("Class loader: " + this.javaClass.classLoader)
