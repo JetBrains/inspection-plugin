@@ -4,9 +4,8 @@ import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.openapi.application.Application
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiRecursiveElementVisitor
+import com.intellij.psi.*
+import com.intellij.psi.impl.source.tree.LeafPsiElement
 import org.gradle.api.reporting.SingleFileReport
 import org.jetbrains.intellij.ProblemLevel
 
@@ -30,6 +29,9 @@ info {
 }
 unused {
     background-color: lightgray;
+}
+keyword {
+    font-weight: bold;
 }
 </style></head>
 <body>
@@ -66,7 +68,18 @@ unused {
                 }
                 super.visitElement(element)
                 if (element.firstChild == null) {
+                    val keyword = when (element) {
+                        is PsiKeyword -> true
+                        is LeafPsiElement -> element.text.isKotlinKeyword()
+                        else -> false
+                    }
+                    if (keyword) {
+                        sb.append("<keyword>")
+                    }
                     sb.append(element.text)
+                    if (keyword) {
+                        sb.append("</keyword>")
+                    }
                 }
                 if (element === problemChild) {
                     sb.append("</$problemTag>")

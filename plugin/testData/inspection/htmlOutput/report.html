@@ -13,6 +13,9 @@ info {
 unused {
     background-color: lightgray;
 }
+keyword {
+    font-weight: bold;
+}
 </style></head>
 <body>
 
@@ -20,7 +23,7 @@ unused {
 In file <b>My.kt:4:15</b>:
 </p>
 <pre>
-data class My <warning>private</warning> constructor(val x: Double, val y: Int, val z: String)
+<keyword>data</keyword> <keyword>class</keyword> My <warning><keyword>private</keyword></warning> <keyword>constructor</keyword>(<keyword>val</keyword> x: Double, <keyword>val</keyword> y: Int, <keyword>val</keyword> z: String)
 </pre>
 <p>
 <i>Private data class constructor is exposed via the generated 'copy' method.</i>
