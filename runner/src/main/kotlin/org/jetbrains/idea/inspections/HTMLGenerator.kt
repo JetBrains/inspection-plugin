@@ -5,6 +5,7 @@ import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiRecursiveElementVisitor
 import org.gradle.api.reporting.SingleFileReport
 import org.jetbrains.intellij.ProblemLevel
 
@@ -40,7 +41,21 @@ class HTMLGenerator(override val report: SingleFileReport, private val applicati
 
     private fun PsiElement.printSmartly(problemChild: PsiElement) {
         sb.appendln("<pre>")
-        sb.appendln(text)
+        this.accept(object : PsiRecursiveElementVisitor() {
+            override fun visitElement(element: PsiElement) {
+                if (element === problemChild) {
+                    sb.append("<b>")
+                }
+                super.visitElement(element)
+                if (element.firstChild == null) {
+                    sb.append(element.text)
+                }
+                if (element === problemChild) {
+                    sb.append("</b>")
+                }
+            }
+        })
+        sb.appendln()
         sb.appendln("</pre>")
     }
 
