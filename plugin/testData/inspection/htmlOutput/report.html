@@ -1,9 +1,26 @@
-<html><body>
+
+<html><head><style>
+error {
+    background-color: red;
+}
+warning {
+    background-color: yellow;
+}
+info {
+    text-decoration-style: wavy;
+    text-decoration: underline;
+}
+unused {
+    background-color: lightgray;
+}
+</style></head>
+<body>
+
 <p>
 In file <b>My.kt:4:15</b>:
 </p>
 <pre>
-data class My <b>private</b> constructor(val x: Double, val y: Int, val z: String)
+data class My <warning>private</warning> constructor(val x: Double, val y: Int, val z: String)
 </pre>
 <p>
 <i>Private data class constructor is exposed via the generated 'copy' method.</i>

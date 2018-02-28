@@ -1,5 +1,6 @@
 package org.jetbrains.idea.inspections
 
+import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.openapi.application.Application
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
@@ -15,7 +16,24 @@ class HTMLGenerator(override val report: SingleFileReport, private val applicati
     private val documentManager = FileDocumentManager.getInstance()
 
     init {
-        sb.appendln("<html><body>")
+        sb.appendln("""
+<html><head><style>
+error {
+    background-color: red;
+}
+warning {
+    background-color: yellow;
+}
+info {
+    text-decoration-style: wavy;
+    text-decoration: underline;
+}
+unused {
+    background-color: lightgray;
+}
+</style></head>
+<body>
+""")
     }
 
     private fun PsiElement.coversElement(problemElement: PsiElement, document: Document?): Boolean {
@@ -39,19 +57,19 @@ class HTMLGenerator(override val report: SingleFileReport, private val applicati
         return elementToPrint
     }
 
-    private fun PsiElement.printSmartly(problemChild: PsiElement) {
+    private fun PsiElement.printSmartly(problemChild: PsiElement, problemTag: String) {
         sb.appendln("<pre>")
         this.accept(object : PsiRecursiveElementVisitor() {
             override fun visitElement(element: PsiElement) {
                 if (element === problemChild) {
-                    sb.append("<b>")
+                    sb.append("<$problemTag>")
                 }
                 super.visitElement(element)
                 if (element.firstChild == null) {
                     sb.append(element.text)
                 }
                 if (element === problemChild) {
-                    sb.append("</b>")
+                    sb.append("</$problemTag>")
                 }
             }
         })
@@ -66,7 +84,15 @@ class HTMLGenerator(override val report: SingleFileReport, private val applicati
 
         val psiElement = problem.psiElement
         application.runReadAction {
-            psiElement?.findElementToPrint()?.printSmartly(psiElement)
+            val problemTag = when (problem.highlightType) {
+                ProblemHighlightType.LIKE_UNUSED_SYMBOL -> "unused"
+                else -> when (level) {
+                    ProblemLevel.ERROR -> "error"
+                    ProblemLevel.WARNING -> "warning"
+                    ProblemLevel.WEAK_WARNING, ProblemLevel.INFORMATION -> "info"
+                }
+            }
+            psiElement?.findElementToPrint()?.printSmartly(psiElement, problemTag)
         }
         sb.appendln("<p>")
         sb.appendln("<i>${problem.render()}</i>")

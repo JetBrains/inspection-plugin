@@ -349,7 +349,8 @@ class InspectionTest {
         if (htmlReport) {
             val actualFile = File(testProjectDir.root, "build/report.html")
             val expectedFile = File(testFilePath.dropLast(testFileName.length) + "report.html")
-            assertEquals(expectedFile.readText(), actualFile.readText())
+            assertEquals(expectedFile.readText().trim().replace("\r\n", "\n"),
+                    actualFile.readText().trim().replace("\r\n", "\n"))
         }
     }
 
