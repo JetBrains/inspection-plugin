@@ -27,7 +27,7 @@ inspections {
 ``` 
 
 In this example inspections will be taken from IDEA CE version 2017.2.6. 
-Plugin should work with version 2017.2 or later ones.
+Plugin works with IDEA version 2017.2 or 2017.2.x (x in 1..6), does not work yet with version 2017.3 or later.
 
 And the last necessary thing is configuration file, 
 which is located (by default) in file `config/inspections/inspections.xml`.
