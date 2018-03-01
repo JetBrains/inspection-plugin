@@ -44,9 +44,8 @@ keyword {
 <keyword>fun</keyword> <unused>canBeVal</unused>(): Int {
     <keyword>var</keyword> x = 1
     <keyword>var</keyword> y = x * 2
-    <keyword>var</keyword> z = "98" + y
-    <keyword>return</keyword> z.toInt()
-}
+
+...
 </pre>
 <p>
     <i>Function ''canBeVal'' is never used</i>
@@ -59,8 +58,8 @@ keyword {
     <error><keyword>var</keyword></error> x = 1
     <keyword>var</keyword> y = x * 2
     <keyword>var</keyword> z = "98" + y
-    <keyword>return</keyword> z.toInt()
-}
+
+...
 </pre>
 <p>
     <i>Variable is never modified and can be declared immutable using 'val'</i>
@@ -74,7 +73,8 @@ keyword {
     <error><keyword>var</keyword></error> y = x * 2
     <keyword>var</keyword> z = "98" + y
     <keyword>return</keyword> z.toInt()
-}
+
+...
 </pre>
 <p>
     <i>Variable is never modified and can be declared immutable using 'val'</i>
@@ -83,8 +83,8 @@ keyword {
     In file <b>My.kt:13:5</b>:
 </p>
 <pre>
-{
-    <keyword>var</keyword> x = 1
+...
+<keyword>var</keyword> x = 1
     <keyword>var</keyword> y = x * 2
     <error><keyword>var</keyword></error> z = "98" + y
     <keyword>return</keyword> z.toInt()
@@ -100,8 +100,8 @@ keyword {
 <keyword>fun</keyword> <unused>foldToElvis</unused>(arg: Int?): Int {
     <keyword>val</keyword> n = arg
     <keyword>if</keyword> (n == <keyword>null</keyword>) <keyword>return</keyword> -1
-    <keyword>return</keyword> n
-}
+
+...
 </pre>
 <p>
     <i>Function ''foldToElvis'' is never used</i>
@@ -126,7 +126,8 @@ keyword {
 <keyword>class</keyword> <unused>Unused</unused> {
     <keyword>val</keyword> s: String <keyword>get</keyword>() = ""
     <keyword>fun</keyword> bar(s: String) = s
-}
+
+...
 </pre>
 <p>
     <i>Class ''Unused'' is never used</i>

@@ -11,8 +11,8 @@ fun PsiElement.acceptRecursively(visitor: PsiElementVisitor) {
     }
 }
 
-fun PsiElement.getLine(document: Document): Int {
-    return document.getLineNumber(textRange.startOffset)
+fun PsiElement.getLine(document: Document?): Int {
+    return document?.getLineNumber(textRange.startOffset) ?: -1
 }
 
 fun PsiElement.getRow(document: Document, line: Int = getLine(document)): Int {

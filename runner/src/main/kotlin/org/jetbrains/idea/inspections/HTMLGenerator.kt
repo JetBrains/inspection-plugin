@@ -47,8 +47,7 @@ keyword {
         return line < problemLine
     }
 
-    private fun PsiElement.findElementToPrint(): PsiElement {
-        val document = containingFile?.virtualFile?.let { documentManager.getDocument(it) }
+    private fun PsiElement.findElementToPrint(document: Document?): PsiElement {
         var elementToPrint = this
         while (elementToPrint.parent != null &&
                elementToPrint.parent !is PsiFile &&
@@ -59,34 +58,56 @@ keyword {
         return elementToPrint
     }
 
-    private fun PsiElement.printSmartly(problemChild: PsiElement, problemTag: String) {
-        sb.appendln("<pre>")
+    private fun PsiElement.printSmartly(problemChild: PsiElement, problemTag: String, document: Document?) {
+        val printer = StringBuilder()
+        val problemLine = problemChild.getLine(document)
+        var ellipsisBefore = false
+        var ellipsisAfter = false
         this.accept(object : PsiRecursiveElementVisitor() {
+            var insideProblemChild = false
+
             override fun visitElement(element: PsiElement) {
                 if (element === problemChild) {
-                    sb.append("<$problemTag>")
+                    printer.append("<$problemTag>")
+                    insideProblemChild = true
                 }
                 super.visitElement(element)
                 if (element.firstChild == null) {
-                    val keyword = when (element) {
-                        is PsiKeyword -> true
-                        is LeafPsiElement -> element.text.isKotlinKeyword()
-                        else -> false
-                    }
-                    if (keyword) {
-                        sb.append("<keyword>")
-                    }
-                    sb.append(element.text)
-                    if (keyword) {
-                        sb.append("</keyword>")
+                    val elementLine = element.getLine(document)
+                    if (insideProblemChild || elementLine in problemLine - 2..problemLine + 2) {
+                        val keyword = when (element) {
+                            is PsiKeyword -> true
+                            is LeafPsiElement -> element.text.isKotlinKeyword()
+                            else -> false
+                        }
+                        if (keyword) {
+                            printer.append("<keyword>")
+                        }
+                        printer.append(element.text)
+                        if (keyword) {
+                            printer.append("</keyword>")
+                        }
+                    } else if (elementLine < problemLine - 2) {
+                        ellipsisBefore = true
+                    } else {
+                        ellipsisAfter = true
                     }
                 }
                 if (element === problemChild) {
-                    sb.append("</$problemTag>")
+                    insideProblemChild = false
+                    printer.append("</$problemTag>")
                 }
             }
         })
-        sb.appendln()
+        printer.appendln()
+        sb.appendln("<pre>")
+        if (ellipsisBefore) {
+            sb.appendln("...")
+        }
+        sb.append(printer)
+        if (ellipsisAfter) {
+            sb.appendln("...")
+        }
         sb.appendln("</pre>")
     }
 
@@ -105,7 +126,8 @@ keyword {
                     ProblemLevel.WEAK_WARNING, ProblemLevel.INFORMATION -> "info"
                 }
             }
-            psiElement?.findElementToPrint()?.printSmartly(psiElement, problemTag)
+            val document = psiElement?.containingFile?.virtualFile?.let { documentManager.getDocument(it) }
+            psiElement?.findElementToPrint(document)?.printSmartly(psiElement, problemTag, document)
         }
         sb.appendln("<p>")
         sb.appendln("    <i>${problem.render()}</i>")
