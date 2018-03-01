@@ -269,25 +269,6 @@ class InspectionTest {
         }
     }
 
-    @Test
-    fun testHelloWorldTask() {
-        val buildFileContent = "task helloWorld {" +
-                               "    doLast {" +
-                               "        println 'Hello world!'" +
-                               "    }" +
-                               "}"
-        val buildFile = testProjectDir.newFile("build.gradle")
-        writeFile(buildFile, buildFileContent)
-
-        val result = GradleRunner.create()
-                .withProjectDir(testProjectDir.root)
-                .withArguments("helloWorld")
-                .build()
-
-        assertTrue(result.output.contains("Hello world!"))
-        assertEquals(result.task(":helloWorld").outcome, SUCCESS)
-    }
-
     private fun doTest(testFilePath: String) {
         val testFile = File(testFilePath)
         val lines = testFile.readLines()
