@@ -92,7 +92,7 @@ keyword {
 
     override fun report(problem: PinnedProblemDescriptor, level: ProblemLevel, inspectionClass: String) {
         sb.appendln("<p>")
-        sb.appendln("In file <b>${problem.renderLocation()}</b>:")
+        sb.appendln("    In file <b>${problem.renderLocation()}</b>:")
         sb.appendln("</p>")
 
         val psiElement = problem.psiElement
@@ -108,7 +108,7 @@ keyword {
             psiElement?.findElementToPrint()?.printSmartly(psiElement, problemTag)
         }
         sb.appendln("<p>")
-        sb.appendln("<i>${problem.render()}</i>")
+        sb.appendln("    <i>${problem.render()}</i>")
         sb.appendln("</p>")
     }
 

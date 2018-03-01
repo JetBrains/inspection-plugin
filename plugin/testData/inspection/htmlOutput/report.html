@@ -20,12 +20,54 @@ keyword {
 <body>
 
 <p>
-In file <b>My.kt:4:15</b>:
+    In file <b>My.kt:9:5</b>:
+</p>
+<pre>
+{
+    <error><keyword>var</keyword></error> x = 1
+    <keyword>var</keyword> y = x * 2
+    <keyword>var</keyword> z = "98" + y
+    <keyword>return</keyword> z.toInt()
+}
+</pre>
+<p>
+    <i>Variable is never modified and can be declared immutable using 'val'</i>
+</p>
+<p>
+    In file <b>My.kt:10:5</b>:
+</p>
+<pre>
+{
+    <keyword>var</keyword> x = 1
+    <error><keyword>var</keyword></error> y = x * 2
+    <keyword>var</keyword> z = "98" + y
+    <keyword>return</keyword> z.toInt()
+}
+</pre>
+<p>
+    <i>Variable is never modified and can be declared immutable using 'val'</i>
+</p>
+<p>
+    In file <b>My.kt:11:5</b>:
+</p>
+<pre>
+{
+    <keyword>var</keyword> x = 1
+    <keyword>var</keyword> y = x * 2
+    <error><keyword>var</keyword></error> z = "98" + y
+    <keyword>return</keyword> z.toInt()
+}
+</pre>
+<p>
+    <i>Variable is never modified and can be declared immutable using 'val'</i>
+</p>
+<p>
+    In file <b>My.kt:6:15</b>:
 </p>
 <pre>
 <keyword>data</keyword> <keyword>class</keyword> My <warning><keyword>private</keyword></warning> <keyword>constructor</keyword>(<keyword>val</keyword> x: Double, <keyword>val</keyword> y: Int, <keyword>val</keyword> z: String)
 </pre>
 <p>
-<i>Private data class constructor is exposed via the generated 'copy' method.</i>
+    <i>Private data class constructor is exposed via the generated 'copy' method.</i>
 </p>
 </body></html>
