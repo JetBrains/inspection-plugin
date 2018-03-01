@@ -90,8 +90,12 @@ class InspectionTest {
             GradleRunner.create()
                     .withProjectDir(testProjectDir.root)
                     .withArguments("--info", "--stacktrace", "inspectionsMain")
+                    // This applies classpath from pluginUnderTestMetadata
                     .withPluginClasspath()
-                    .build()
+                    .apply {
+                        // NB: this is necessary to apply actual plugin
+                        withPluginClasspath(pluginClasspath)
+                    }.build()
         } catch (failure: UnexpectedBuildFailure) {
             println("Exception caught in test: $failure")
             failure.buildResult
