@@ -83,6 +83,10 @@ inspectionsMain {
         xml {
             destination "reportFileName"
         }
+        html {
+            // Available from version 0.1.2
+            destination "reportFileName"
+        }
     }
 }
 ```
