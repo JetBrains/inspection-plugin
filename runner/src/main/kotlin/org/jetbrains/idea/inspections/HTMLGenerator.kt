@@ -104,7 +104,7 @@ keyword {
         if (ellipsisBefore) {
             sb.appendln("...")
         }
-        sb.append(printer)
+        sb.appendln(printer.trim())
         if (ellipsisAfter) {
             sb.appendln("...")
         }
