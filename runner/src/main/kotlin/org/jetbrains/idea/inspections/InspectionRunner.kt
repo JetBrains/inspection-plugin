@@ -75,12 +75,16 @@ class InspectionRunner(
             ).filter { it.enabled }
 
             var success = true
-            logger.info("Total of ${results.values.flatten().size} problems found")
             val sortedResults = results.entries.map { entry -> entry.value.map { entry.key to it }}.flatten().sortedBy {
                 val line = it.second.line
                 val row = it.second.row
                 (line shl 16) + row
             }.groupBy { it.second.fileName }
+            logger.info("Total of ${sortedResults.values.flatten().count {
+                val inspectionClass = it.first
+                val problem = it.second
+                problem.actualLevel(inspectionClasses.getLevel(inspectionClass)) != null
+            }} problem(s) found")
 
             analysisLoop@ for (fileInspectionAndProblems in sortedResults.values) {
                 for ((inspectionClass, problem) in fileInspectionAndProblems) {
