@@ -1,5 +1,6 @@
 rootProject.name = 'inspections'
 include 'runner'
 include 'plugin'
-include 'sample'
+// Sample is not included to break loop-back plugin dependency
+//include 'sample'
 
