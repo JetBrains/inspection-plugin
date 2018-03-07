@@ -21,7 +21,6 @@ import org.gradle.api.GradleException
 import org.gradle.api.Project as GradleProject
 import org.gradle.api.file.FileTree
 import org.gradle.api.logging.Logger
-import org.jdom2.Document as JdomDocument
 import org.jetbrains.intellij.*
 import java.io.File
 import java.io.IOException
@@ -62,7 +61,13 @@ class InspectionRunner(
     override fun analyzeTreeAndLogResults(tree: FileTree): Boolean {
         logger.info("Class loader: " + this.javaClass.classLoader)
         logger.info("Input classes: $inspectionClasses")
-        val (application, systemPathMarkerChannel) = loadApplication()
+        val (application, systemPathMarkerChannel) = try {
+            loadApplication()
+        } catch (e: Throwable) {
+            logger.error(e.message)
+            if (e is GradleException) throw e
+            throw GradleException("EXCEPTION caught in inspection plugin (IDEA loading): $e", e)
+        }
         try {
             application.doNotSave()
             val results = application.analyzeTree(tree)
@@ -115,6 +120,7 @@ class InspectionRunner(
             generators.forEach { it.generate() }
             return success
         } catch (e: Throwable) {
+            logger.error(e.message)
             if (e is GradleException) throw e
             throw GradleException("EXCEPTION caught in inspection plugin (IDEA runReadAction): $e", e)
         } finally {
