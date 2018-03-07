@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 0.1.3
+
+Bug fixes:
+
+ * IDEA 2017.3 support
+
 ## 0.1.2
 
 Additional features:
