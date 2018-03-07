@@ -78,10 +78,10 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<Inspection>() {
 
     companion object {
 
-        val DEFAULT_IDEA_VERSION = "ideaIC:2017.2"
+        const val DEFAULT_IDEA_VERSION = "ideaIC:2017.3"
 
         private val LOG: Logger = Logging.getLogger(InspectionPlugin::class.java)
 
-        internal val SHORT_NAME = "inspections"
+        internal const val SHORT_NAME = "inspections"
     }
 }
