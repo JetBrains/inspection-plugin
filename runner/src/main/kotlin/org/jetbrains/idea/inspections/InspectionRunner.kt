@@ -12,6 +12,8 @@ import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.application.ex.ApplicationEx
 import com.intellij.openapi.application.ex.ApplicationManagerEx
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.progress.EmptyProgressIndicator
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project as IdeaProject
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiFile
@@ -265,16 +267,19 @@ class InspectionRunner(
             val displayName = inspectionExtension?.displayName ?: "<Unknown diagnostic>"
             val inspectionResults = mutableListOf<PinnedProblemDescriptor>()
             runReadAction {
-                for (sourceFile in tree) {
-                    val filePath = sourceFile.absolutePath
-                    val virtualFile = virtualFileSystem.findFileByPath(filePath)
-                                      ?: throw GradleException("Cannot find virtual file for $filePath")
-                    val psiFile = psiManager.findFile(virtualFile)
-                                  ?: throw GradleException("Cannot find PSI file for $filePath")
-                    val document = documentManager.getDocument(virtualFile)
-                                   ?: throw GradleException("Cannot get document for $filePath")
-                    inspectionResults += inspectionTool.analyze(psiFile, document, displayName, inspectionWrapper.level)
+                val task = Runnable {
+                    for (sourceFile in tree) {
+                        val filePath = sourceFile.absolutePath
+                        val virtualFile = virtualFileSystem.findFileByPath(filePath)
+                                ?: throw GradleException("Cannot find virtual file for $filePath")
+                        val psiFile = psiManager.findFile(virtualFile)
+                                ?: throw GradleException("Cannot find PSI file for $filePath")
+                        val document = documentManager.getDocument(virtualFile)
+                                ?: throw GradleException("Cannot get document for $filePath")
+                        inspectionResults += inspectionTool.analyze(psiFile, document, displayName, inspectionWrapper.level)
+                    }
                 }
+                ProgressManager.getInstance().runProcess(task, EmptyProgressIndicator())
             }
             results[inspectionClassName] = inspectionResults
         }
