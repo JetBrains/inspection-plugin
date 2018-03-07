@@ -186,7 +186,7 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
             val ideaClasspath = listOf(
                 File(ideaDirectory, "lib")
             ).map {
-                it.listFiles { dir, name -> name.endsWith("jar") }.toList()
+                it.listFiles { dir, name -> name.endsWith("jar") && "xmlrpc" !in name }.toList()
             }.flatten()
             val fullClasspath = (listOf(tryResolveRunnerJar(project)) + ideaClasspath).map { it.toURI().toURL() }
             logger.info("Inspection runner classpath: $fullClasspath")
