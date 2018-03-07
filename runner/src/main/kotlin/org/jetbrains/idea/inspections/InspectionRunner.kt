@@ -61,7 +61,7 @@ class InspectionRunner(
     // Returns true if analysis executed successfully
     override fun analyzeTreeAndLogResults(tree: FileTree): Boolean {
         logger.info("Class loader: " + this.javaClass.classLoader)
-        logger.info("Input classes: " + inspectionClasses)
+        logger.info("Input classes: $inspectionClasses")
         val (application, systemPathMarkerChannel) = loadApplication()
         try {
             application.doNotSave()
@@ -116,7 +116,7 @@ class InspectionRunner(
             return success
         } catch (e: Throwable) {
             if (e is GradleException) throw e
-            throw GradleException("EXCEPTION caught in inspection plugin (IDEA runReadAction): " + e, e)
+            throw GradleException("EXCEPTION caught in inspection plugin (IDEA runReadAction): $e", e)
         } finally {
             systemPathMarkerChannel.close()
             // NB: exit is actually performed on EDT thread!
@@ -144,7 +144,7 @@ class InspectionRunner(
                 channel.tryLock()
             } catch (e: IOException) {
                 logger.warn("IO exception while locking: ${e.message}")
-                throw GradleException("EXCEPTION caught in inspection plugin (IDEA system dir lock): " + e, e)
+                throw GradleException("EXCEPTION caught in inspection plugin (IDEA system dir lock): $e", e)
             }
             if (lock == null) {
                 if (code == 256) {
