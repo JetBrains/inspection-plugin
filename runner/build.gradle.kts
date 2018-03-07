@@ -6,7 +6,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.idea.inspections.*
 
 buildscript {
-    extra["kotlinVersion"] = "1.1.4"
+    extra["kotlinVersion"] = "1.2.0"
     val kotlinVersion: String by extra
 
 	repositories {
@@ -95,7 +95,7 @@ configurations {
     create("idea")
 
     dependencies {
-        add("idea", create("com.jetbrains.intellij.idea:ideaIC:2017.2@zip"))
+        add("idea", create("com.jetbrains.intellij.idea:ideaIC:2017.3@zip"))
     }
 }
 
