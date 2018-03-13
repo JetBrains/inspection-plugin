@@ -17,12 +17,13 @@ import org.gradle.api.Project as GradleProject
 import java.lang.Exception
 import kotlin.concurrent.thread
 
+@Suppress("MemberVisibilityCanBePrivate")
 @CacheableTask
 open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleReports> {
 
     companion object {
         // TODO: take the same version as plugin
-        val runnerVersion = "0.1.3-SNAPSHOT"
+        const val runnerVersion = "0.1.3-SNAPSHOT"
     }
 
     object ClassloaderContainer {
@@ -179,10 +180,11 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
         project.parent?.let { tryResolveRunnerJar(it) } ?: throw e
     }
 
+    @Suppress("unused")
     @TaskAction
     fun run() {
         try {
-            val ideaDirectory = UnzipTask.cacheDirectory
+            val ideaDirectory = with (UnzipTask) { this@Inspection.project.cacheDirectory }
             val ideaClasspath = listOf(
                 File(ideaDirectory, "lib")
             ).map {

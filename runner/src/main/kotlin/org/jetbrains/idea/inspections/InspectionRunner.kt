@@ -164,7 +164,7 @@ class InspectionRunner(
     }
 
     private fun loadApplication(): Pair<ApplicationEx, FileChannel> {
-        System.setProperty(IDEA_HOME_PATH, UnzipTask.cacheDirectory.path)
+        System.setProperty(IDEA_HOME_PATH, with(UnzipTask) { this@InspectionRunner.project.cacheDirectory.path } )
         System.setProperty(AWT_HEADLESS, "true")
         val buildNumber = UnzipTask.buildNumber()
         System.setProperty(BUILD_NUMBER, buildNumber)

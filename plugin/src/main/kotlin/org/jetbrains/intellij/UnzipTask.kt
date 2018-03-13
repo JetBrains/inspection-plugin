@@ -1,19 +1,28 @@
 package org.jetbrains.intellij
 
+import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.internal.ConventionTask
 import org.gradle.api.tasks.*
 import java.io.File
 
+@Suppress("MemberVisibilityCanBePrivate")
 open class UnzipTask : ConventionTask() {
 
     companion object {
-        val cacheDirectory = run {
+        private val baseCacheDirectory = run {
             val tempDir = File(System.getProperty("java.io.tmpdir"))
             File(tempDir, "inspection-plugin/idea")
         }
 
-        fun buildNumber(): String = File(cacheDirectory, "build.txt").let {
+        private val Project.ideaVersion: String
+            get() = (project.extensions.getByName(InspectionPlugin.SHORT_NAME) as InspectionPluginExtension).toolVersion
+
+        val Project.cacheDirectory: File
+            get() = File(baseCacheDirectory,
+                    ideaVersion.replace(':', '_').replace('.', '_'))
+
+        fun buildNumber(): String = File(baseCacheDirectory, "build.txt").let {
             if (it.exists()) {
                 it.readText().dropWhile { !it.isDigit() }.let {
                     if (it.isNotEmpty()) it else null
@@ -34,11 +43,11 @@ open class UnzipTask : ConventionTask() {
 
     @get:Input
     val ideaVersion: String
-        get() = (project.extensions.getByName(InspectionPlugin.SHORT_NAME) as InspectionPluginExtension).toolVersion
+        get() = project.ideaVersion
 
     @get:OutputDirectory
     val destinationDir: File
-        get() = cacheDirectory
+        get() = project.cacheDirectory
 
     @get:OutputFile
     val markerFile: File
