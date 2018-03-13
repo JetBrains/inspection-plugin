@@ -23,7 +23,7 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
 
     companion object {
         // TODO: take the same version as plugin
-        const val runnerVersion = "0.1.3"
+        const val runnerVersion = "0.1.4-SNAPSHOT"
     }
 
     object ClassloaderContainer {
