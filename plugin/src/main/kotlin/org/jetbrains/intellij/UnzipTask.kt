@@ -22,16 +22,16 @@ open class UnzipTask : ConventionTask() {
             get() = File(baseCacheDirectory,
                     ideaVersion.replace(':', '_').replace('.', '_'))
 
-        fun buildNumber(): String = File(baseCacheDirectory, "build.txt").let {
-            if (it.exists()) {
-                it.readText().dropWhile { !it.isDigit() }.let {
-                    if (it.isNotEmpty()) it else null
+        val Project.buildNumber: String
+            get() = File(cacheDirectory, "build.txt").let {
+                if (it.exists()) {
+                    it.readText().dropWhile { !it.isDigit() }.let {
+                        if (it.isNotEmpty()) it else null
+                    }
+                } else {
+                    null
                 }
-            }
-            else {
-                null
-            }
-        } ?: "172.1" // default build number
+            } ?: "172.1" // default build number
     }
 
     private val inspections: Configuration
