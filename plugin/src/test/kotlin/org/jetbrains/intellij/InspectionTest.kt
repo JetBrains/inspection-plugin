@@ -29,7 +29,8 @@ class InspectionTest {
             xmlReport: Boolean = false,
             htmlReport: Boolean = false,
             kotlinVersion: String = "1.1.3-2",
-            configFileName: String = ""
+            configFileName: String = "",
+            toolVersion: String = ""
     ): String {
         val templateLines = File("testData/inspection/build.gradle.template").readLines()
         return StringBuilder().apply {
@@ -60,6 +61,9 @@ class InspectionTest {
                     }
                     "config" -> if (configFileName.isNotEmpty()) {
                         appendln("    config = resources.text.fromFile(\"$configFileName\")")
+                    }
+                    "toolVersion" -> if (toolVersion.isNotEmpty()) {
+                        appendln("    toolVersion \"$toolVersion\"")
                     }
                     "xmlDestination" -> if (xmlReport) {
                         appendln("            destination \"build/report.xml\"")
@@ -196,6 +200,7 @@ class InspectionTest {
             val htmlReport: Boolean = false,
             val kotlinVersion: String = "1.1.3-2",
             val configFileName: String = "",
+            val toolVersion: String = "",
             val inheritFromIdea: Boolean = false,
             val errors: List<String> = emptyList(),
             val warnings: List<String> = emptyList(),
@@ -223,7 +228,8 @@ class InspectionTest {
                     xmlReport,
                     htmlReport,
                     kotlinVersion,
-                    configFileName
+                    configFileName,
+                    toolVersion
             )
             writeFile(buildFile, buildFileContent)
             val inspectionsFileContent = generateInspectionFile(inheritFromIdea, errors, warnings, infos)
@@ -296,6 +302,7 @@ class InspectionTest {
         val htmlReport = getParameterValue("htmlReport", "false").toBoolean()
         val kotlinVersion = getParameterValue("kotlinVersion", "1.1.3-2")
         val configFileName = getParameterValue("config", "")
+        val toolVersion = getParameterValue("toolVersion", "")
         val inheritFromIdea = getParameterValue("inheritFromIdea", "false").toBoolean()
 
         val expectedDiagnosticsStatus = if (lines.contains("// SHOULD_BE_ABSENT")) SHOULD_BE_ABSENT else SHOULD_PRESENT
@@ -311,6 +318,7 @@ class InspectionTest {
                 htmlReport,
                 kotlinVersion,
                 configFileName,
+                toolVersion,
                 inheritFromIdea,
                 errors,
                 warnings,
@@ -348,6 +356,11 @@ class InspectionTest {
     @Test
     fun testConfigurationKotlin() {
         doTest("testData/inspection/configurationKotlin/main.kt")
+    }
+
+    @Test
+    fun testConfigurationKotlin2017_2() {
+        doTest("testData/inspection/configurationKotlin2017_2/main.kt")
     }
 
     @Test

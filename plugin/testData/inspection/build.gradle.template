@@ -19,6 +19,7 @@ inspections {
     <ignoreFailures>
     <quiet>
     <config>
+    <toolVersion>
 }
 inspectionsMain {
     reports {
