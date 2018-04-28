@@ -110,3 +110,10 @@ gradlew --info --stacktrace inspectionsMain > inspections.log
 and attach `inspections.log` to the issue. 
 Also it's very helpful to specify Gradle version, OS and 
 IDEA version used in inspection plugin (which is set in `toolVersion` parameter).
+
+Known bugs / problems at this moment (version 0.1.3):
+
+* inspection task is not executed on rerun (so you need to change something in source code to have it executed)
+* plugin does not work yet with Ultimate IDEA versions, like ideaIU:2017.3
+* plugin does not work on Kotlin JS projects
+* plugin does not work on root module of multi-module project
