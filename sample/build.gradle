@@ -24,7 +24,7 @@ apply plugin: 'org.jetbrains.intellij.inspections'
 sourceCompatibility = 1.8
 
 inspections {
-    toolVersion "ideaIC:2017.2"
+    toolVersion "ideaIC:2017.3"
     reportsDir file("build")
 }
 

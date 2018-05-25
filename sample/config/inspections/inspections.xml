@@ -8,6 +8,7 @@
         <warning class = "org.jetbrains.kotlin.idea.inspections.DataClassPrivateConstructorInspection"/>
         <warning class = "org.jetbrains.kotlin.idea.inspections.UseExpressionBodyInspection"/>
         <warning class = "org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection"/>
+        <warning class = "org.jetbrains.kotlin.idea.inspections.AddVarianceModifierInspection"/>
         <warning class = "org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection"/>
     </warnings>
     <infos>

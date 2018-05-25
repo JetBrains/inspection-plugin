@@ -5,3 +5,7 @@ data class My private constructor(
 )
 
 public val thirteen = 99
+
+interface Comparable<T> {
+    fun compareTo(other: T): Int
+}
