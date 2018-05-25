@@ -32,6 +32,15 @@ open class UnzipTask : ConventionTask() {
                     null
                 }
             } ?: "172.1" // default build number
+
+        val Project.usesUltimate: Boolean
+            get() = File(cacheDirectory, "build.txt").let {
+                if (it.exists()) {
+                    it.readText().startsWith("IU")
+                } else {
+                    false
+                }
+            }
     }
 
     private val inspections: Configuration

@@ -132,9 +132,9 @@ class InspectionRunner(
         }
     }
 
-    private fun generateSystemPath(buildNumber: String): Pair<String, FileChannel> {
+    private fun generateSystemPath(buildNumber: String, usesUltimate: Boolean): Pair<String, FileChannel> {
         val homeDir = System.getProperty(USER_HOME).replace("\\", "/")
-        val buildPrefix = buildNumber.replace(".", "_")
+        val buildPrefix = (if (usesUltimate) "U_" else "") + buildNumber.replace(".", "_")
         var path: String
         var code = 0
         var channel: FileChannel
@@ -167,8 +167,9 @@ class InspectionRunner(
         System.setProperty(IDEA_HOME_PATH, with(UnzipTask) { this@InspectionRunner.project.cacheDirectory.path } )
         System.setProperty(AWT_HEADLESS, "true")
         val buildNumber = with(UnzipTask) { this@InspectionRunner.project.buildNumber }
+        val usesUltimate = with(UnzipTask) { this@InspectionRunner.project.usesUltimate }
         System.setProperty(BUILD_NUMBER, buildNumber)
-        val (systemPath, systemPathMarkerChannel) = generateSystemPath(buildNumber)
+        val (systemPath, systemPathMarkerChannel) = generateSystemPath(buildNumber, usesUltimate)
         System.setProperty(SYSTEM_PATH, systemPath)
 
         System.setProperty(PlatformUtils.PLATFORM_PREFIX_KEY, PlatformUtils.getPlatformPrefix(PlatformUtils.IDEA_CE_PREFIX))
