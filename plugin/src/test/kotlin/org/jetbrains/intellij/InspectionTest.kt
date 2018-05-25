@@ -364,6 +364,16 @@ class InspectionTest {
     }
 
     @Test
+    fun testConfigurationKotlin2018_1() {
+        doTest("testData/inspection/configurationKotlin2018_1/main.kt")
+    }
+
+    @Test
+    fun testConfigurationKotlin2018_2_eap() {
+        doTest("testData/inspection/configurationKotlin2018_2/main.kt")
+    }
+
+    @Test
     fun testConvertToStringTemplate() {
         doTest("testData/inspection/convertToStringTemplate/foo.kt")
     }
