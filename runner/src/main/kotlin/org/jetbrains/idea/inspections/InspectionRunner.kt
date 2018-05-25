@@ -278,15 +278,21 @@ class InspectionRunner(
             val inspectionResults = mutableListOf<PinnedProblemDescriptor>()
             runReadAction {
                 val task = Runnable {
-                    for (sourceFile in tree) {
-                        val filePath = sourceFile.absolutePath
-                        val virtualFile = virtualFileSystem.findFileByPath(filePath)
-                                ?: throw GradleException("Cannot find virtual file for $filePath")
-                        val psiFile = psiManager.findFile(virtualFile)
-                                ?: throw GradleException("Cannot find PSI file for $filePath")
-                        val document = documentManager.getDocument(virtualFile)
-                                ?: throw GradleException("Cannot get document for $filePath")
-                        inspectionResults += inspectionTool.analyze(psiFile, document, displayName, inspectionWrapper.level)
+                    try {
+                        for (sourceFile in tree) {
+                            val filePath = sourceFile.absolutePath
+                            val virtualFile = virtualFileSystem.findFileByPath(filePath)
+                                    ?: throw GradleException("Cannot find virtual file for $filePath")
+                            val psiFile = psiManager.findFile(virtualFile)
+                                    ?: throw GradleException("Cannot find PSI file for $filePath")
+                            val document = documentManager.getDocument(virtualFile)
+                                    ?: throw GradleException("Cannot get document for $filePath")
+                            inspectionResults += inspectionTool.analyze(psiFile, document, displayName, inspectionWrapper.level)
+                        }
+                    } catch (ie: InspectionException) {
+                        logger.error(ie.message)
+                        logger.error(ie.cause!!.message)
+                        logger.error(ie.cause.stackTrace.joinToString(separator = "\n"))
                     }
                 }
                 ProgressManager.getInstance().runProcess(task, EmptyProgressIndicator())
@@ -296,6 +302,12 @@ class InspectionRunner(
         return results
     }
 
+    private class InspectionException(
+            tool: LocalInspectionTool,
+            file: PsiFile,
+            cause: Throwable
+    ) : Exception("Exception during ${tool.shortName} analysis of ${file.name}", cause)
+
     private fun LocalInspectionTool.analyze(
             file: PsiFile,
             document: IdeaDocument,
@@ -304,8 +316,12 @@ class InspectionRunner(
     ): List<PinnedProblemDescriptor> {
         val holder = ProblemsHolder(InspectionManager.getInstance(file.project), file, false)
         val session = LocalInspectionToolSession(file, file.textRange.startOffset, file.textRange.endOffset)
-        val visitor = this.buildVisitor(holder, false, session)
-        file.acceptRecursively(visitor)
+        try {
+            val visitor = this.buildVisitor(holder, false, session)
+            file.acceptRecursively(visitor)
+        } catch (t: Throwable) {
+            throw InspectionException(this, file, t)
+        }
         return holder.results.map {
             PinnedProblemDescriptor(it, document, displayName, problemLevel)
         }
