@@ -172,7 +172,12 @@ class InspectionRunner(
         val (systemPath, systemPathMarkerChannel) = generateSystemPath(buildNumber, usesUltimate)
         System.setProperty(SYSTEM_PATH, systemPath)
 
-        System.setProperty(PlatformUtils.PLATFORM_PREFIX_KEY, PlatformUtils.getPlatformPrefix(PlatformUtils.IDEA_CE_PREFIX))
+        System.setProperty(
+                PlatformUtils.PLATFORM_PREFIX_KEY,
+                PlatformUtils.getPlatformPrefix(
+                        if (usesUltimate) PlatformUtils.IDEA_PREFIX else PlatformUtils.IDEA_CE_PREFIX
+                )
+        )
         logger.warn("IDEA home path: " + PathManager.getHomePath())
         logger.warn("IDEA system path: $systemPath")
         createCommandLineApplication(isInternal = false, isUnitTestMode = false, isHeadless = true)
