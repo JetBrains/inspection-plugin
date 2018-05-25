@@ -17,6 +17,7 @@ Current status: alpha version 0.1.3 available.
 This adds one inspection plugin task per source root, 
 normally its name is `inspectionsMain` for `main` root
 and `inspectionsTest` for `test` root respectively.
+Also, this adds `inspectionsClean` task which deletes inspection task reports.
 
 Also you should specify IDEA version to use, e.g.
 
@@ -111,9 +112,9 @@ and attach `inspections.log` to the issue.
 Also it's very helpful to specify Gradle version, OS and 
 IDEA version used in inspection plugin (which is set in `toolVersion` parameter).
 
-Known bugs / problems at this moment (version 0.1.3):
+Known bugs / problems at this moment (version 0.1.4):
 
-* inspection task is not executed on rerun (so you need to change something in source code to have it executed)
+* inspection task is not executed on rerun (use `inspectionsClean inspectionsMain` to make it rerun)
 * plugin does not work yet with Ultimate IDEA versions, like ideaIU:2017.3
 * plugin does not work on Kotlin JS projects
 * plugin does not work on root module of multi-module project

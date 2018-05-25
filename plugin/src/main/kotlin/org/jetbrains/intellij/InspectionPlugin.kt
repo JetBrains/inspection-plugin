@@ -37,6 +37,7 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<Inspection>() {
 
         project.repositories.maven { it.setUrl("https://www.jetbrains.com/intellij-repository/releases") }
         project.tasks.create("unzip", UnzipTask::class.java)
+        project.tasks.create(CLEAN_TASK_NAME, CleanTask::class.java)
         project.rootProject.plugins.apply("idea")
         project.plugins.apply("idea")
     }
@@ -66,7 +67,9 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<Inspection>() {
         task.reports.all { report ->
             val reportMapping = AbstractCodeQualityPlugin.conventionMappingOf(report)
             reportMapping.map("enabled") { true }
-            reportMapping.map("destination") { File(inspectionExtension.reportsDir, "$baseName.${report.name}") }
+            reportMapping.map("destination") {
+                File(inspectionExtension.reportsDir, "$baseName.${report.name}")
+            }
         }
     }
 
@@ -83,5 +86,7 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<Inspection>() {
         private val LOG: Logger = Logging.getLogger(InspectionPlugin::class.java)
 
         internal const val SHORT_NAME = "inspections"
+
+        private const val CLEAN_TASK_NAME = SHORT_NAME + "Clean"
     }
 }
