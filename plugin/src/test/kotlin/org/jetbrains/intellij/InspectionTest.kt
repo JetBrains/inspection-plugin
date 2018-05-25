@@ -287,7 +287,12 @@ class InspectionTest {
         val infos = getDiagnosticList("info")
 
         val testFileName = testFilePath.replace("\\", "/").substringAfterLast('/')
-        val expectedDiagnostics = lines.filter { it.startsWith("// :") }.map { testFileName + it.drop(3) }
+        val expectedDiagnostics = lines.filter {
+            it.startsWith("// :") || it.startsWith("///")
+        }.map {
+            if (it.startsWith("// :")) testFileName + it.drop(3)
+            else it.drop(3)
+        }
 
         fun getParameterValue(parameterName: String, defaultValue: String): String {
             val line = lines.singleOrNull { it.startsWith("// $parameterName =") } ?: return defaultValue

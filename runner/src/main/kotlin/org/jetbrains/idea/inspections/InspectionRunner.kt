@@ -180,6 +180,9 @@ class InspectionRunner(
             PluginManagerCore.disablePlugin(plugin)
         }
 
+        if (usesUltimate) {
+            throw GradleException("Using of IDEA Ultimate is not yet supported in inspection plugin")
+        }
         // Do not remove the call of PluginManagerCore.getPlugins(), it prevents NPE in IDEA
         logger.info("Plugins enabled: " + PluginManagerCore.getPlugins().toList())
         ApplicationManagerEx.getApplicationEx().load()
