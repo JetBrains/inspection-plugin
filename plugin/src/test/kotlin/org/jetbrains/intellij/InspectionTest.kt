@@ -374,6 +374,11 @@ class InspectionTest {
     }
 
     @Test
+    fun testConfigurationKotlinUltimate() {
+        doTest("testData/inspection/configurationKotlinUltimate/main.kt")
+    }
+
+    @Test
     fun testConvertToStringTemplate() {
         doTest("testData/inspection/convertToStringTemplate/foo.kt")
     }
