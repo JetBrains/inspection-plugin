@@ -11,6 +11,7 @@ import org.jdom2.output.XMLOutputter
 import org.jetbrains.intellij.InspectionTest.DiagnosticsStatus.SHOULD_BE_ABSENT
 import org.jetbrains.intellij.InspectionTest.DiagnosticsStatus.SHOULD_PRESENT
 import org.junit.Assert.*
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -383,6 +384,7 @@ class InspectionTest {
         doTest("testData/inspection/configurationKotlin2018_2/main.kt")
     }
 
+    @Ignore
     @Test
     fun testConfigurationKotlinUltimate() {
         doTest("testData/inspection/configurationKotlinUltimate/main.kt")
