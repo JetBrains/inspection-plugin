@@ -28,7 +28,7 @@ class InspectionTest {
             quiet: Boolean = false,
             xmlReport: Boolean = false,
             htmlReport: Boolean = false,
-            kotlinVersion: String = "1.1.3-2",
+            kotlinVersion: String = "1.2.41",
             configFileName: String = "",
             toolVersion: String = ""
     ): String {
