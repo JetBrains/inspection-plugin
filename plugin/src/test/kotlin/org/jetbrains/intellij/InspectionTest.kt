@@ -354,6 +354,11 @@ class InspectionTest {
     }
 
     @Test
+    fun testAddVariance() {
+        doTest("testData/inspection/addVariance/main.kt")
+    }
+
+    @Test
     fun testConfigurationJava() {
         doTest("testData/inspection/configurationJava/Main.java")
     }
