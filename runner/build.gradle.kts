@@ -95,7 +95,7 @@ configurations {
     create("idea")
 
     dependencies {
-        add("idea", create("com.jetbrains.intellij.idea:ideaIC:2017.3@zip"))
+        add("idea", create("com.jetbrains.intellij.idea:ideaIU:2017.3@zip"))
     }
 }
 
