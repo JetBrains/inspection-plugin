@@ -121,7 +121,6 @@ tasks {
 
 dependencies {
     compileOnly("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
-    compileOnly("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
     compileOnly(gradleApi())
     compileOnly("org.jdom:jdom2:2.0.6")
     compileOnly(fileTree(mapOf("dir" to "$buildDir/idea/lib", "include" to "*.jar")))
