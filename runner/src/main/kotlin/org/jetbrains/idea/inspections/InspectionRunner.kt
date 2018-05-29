@@ -19,7 +19,6 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.util.PlatformUtils
-import org.gradle.api.GradleException
 import org.gradle.api.Project as GradleProject
 import org.gradle.api.logging.Logger
 import org.jetbrains.intellij.*
@@ -66,8 +65,8 @@ class InspectionRunner(
             loadApplication()
         } catch (e: Throwable) {
             logger.error(e.message)
-            if (e is GradleException) throw e
-            throw GradleException("EXCEPTION caught in inspection plugin (IDEA loading): $e", e)
+            if (e is InspectionRunnerException) throw e
+            throw InspectionRunnerException("EXCEPTION caught in inspection plugin (IDEA loading): $e", e)
         }
         try {
             application.doNotSave()
@@ -122,8 +121,8 @@ class InspectionRunner(
             return success
         } catch (e: Throwable) {
             logger.error(e.message)
-            if (e is GradleException) throw e
-            throw GradleException("EXCEPTION caught in inspection plugin (IDEA runReadAction): $e", e)
+            if (e is InspectionRunnerException) throw e
+            throw InspectionRunnerException("EXCEPTION caught in inspection plugin (IDEA runReadAction): $e", e)
         } finally {
             systemPathMarkerChannel.close()
             // NB: exit is actually performed on EDT thread!
@@ -151,11 +150,11 @@ class InspectionRunner(
                 channel.tryLock()
             } catch (e: IOException) {
                 logger.warn("IO exception while locking: ${e.message}")
-                throw GradleException("EXCEPTION caught in inspection plugin (IDEA system dir lock): $e", e)
+                throw InspectionRunnerException("EXCEPTION caught in inspection plugin (IDEA system dir lock): $e", e)
             }
             if (lock == null) {
                 if (code == 256) {
-                    throw GradleException("Cannot create IDEA system directory (all locked)")
+                    throw InspectionRunnerException("Cannot create IDEA system directory (all locked)")
                 }
             }
         } while (lock == null)
@@ -185,14 +184,14 @@ class InspectionRunner(
         }
 
         if (usesUltimate) {
-            throw GradleException("Using of IDEA Ultimate is not yet supported in inspection plugin")
+            throw InspectionRunnerException("Using of IDEA Ultimate is not yet supported in inspection runner")
         }
         // Do not remove the call of PluginManagerCore.getPlugins(), it prevents NPE in IDEA
         // NB: IdeaApplication.getStarter() from IJ community contains the same call
         logger.info("Plugins enabled: " + PluginManagerCore.getPlugins().toList())
         ApplicationManagerEx.getApplicationEx().load()
         return (ApplicationManagerEx.getApplicationEx() ?: run {
-            throw GradleException("Cannot create IDEA application")
+            throw InspectionRunnerException("Cannot create IDEA application")
         }) to systemPathMarkerChannel
     }
 
@@ -246,7 +245,7 @@ class InspectionRunner(
                 ideaProject = ProjectUtil.openOrImport(projectFile.absolutePath, null, false)
             }
             ideaProject ?: run {
-                throw GradleException("Cannot open IDEA project: '${projectFile.absolutePath}'")
+                throw InspectionRunnerException("Cannot open IDEA project: '${projectFile.absolutePath}'")
             }
         }
         logger.info("Before psi manager creation")
@@ -281,11 +280,11 @@ class InspectionRunner(
                         for (sourceFile in files) {
                             val filePath = sourceFile.absolutePath
                             val virtualFile = virtualFileSystem.findFileByPath(filePath)
-                                    ?: throw GradleException("Cannot find virtual file for $filePath")
+                                    ?: throw InspectionRunnerException("Cannot find virtual file for $filePath")
                             val psiFile = psiManager.findFile(virtualFile)
-                                    ?: throw GradleException("Cannot find PSI file for $filePath")
+                                    ?: throw InspectionRunnerException("Cannot find PSI file for $filePath")
                             val document = documentManager.getDocument(virtualFile)
-                                    ?: throw GradleException("Cannot get document for $filePath")
+                                    ?: throw InspectionRunnerException("Cannot get document for $filePath")
                             inspectionResults += inspectionTool.analyze(psiFile, document, displayName, inspectionWrapper.level)
                         }
                     } catch (ie: InspectionException) {
