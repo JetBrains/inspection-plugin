@@ -1,12 +1,12 @@
 package org.jetbrains.idea.inspections
 
-import org.gradle.api.reporting.SingleFileReport
 import org.jdom2.Document
 import org.jdom2.Element
 import org.jdom2.output.XMLOutputter
 import org.jetbrains.intellij.ProblemLevel
+import java.io.File
 
-class XMLGenerator(override val report: SingleFileReport) : ReportGenerator {
+class XMLGenerator(override val reportFile: File) : ReportGenerator {
 
     private val errorsRoot = Element("errors")
     private val errorElements = mutableListOf<Element>()
@@ -33,7 +33,6 @@ class XMLGenerator(override val report: SingleFileReport) : ReportGenerator {
     }
 
     override fun generate() {
-        val xmlReportFile = report.destination
         errorsRoot.setContent(errorElements)
         warningsRoot.setContent(warningElements)
         infosRoot.setContent(infoElements)
@@ -42,6 +41,6 @@ class XMLGenerator(override val report: SingleFileReport) : ReportGenerator {
         root.addContent(warningsRoot)
         root.addContent(infosRoot)
         val document = Document(root)
-        XMLOutputter().output(document, xmlReportFile.outputStream())
+        XMLOutputter().output(document, reportFile.outputStream())
     }
 }

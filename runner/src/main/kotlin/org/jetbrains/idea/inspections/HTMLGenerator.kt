@@ -6,10 +6,13 @@ import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import org.gradle.api.reporting.SingleFileReport
 import org.jetbrains.intellij.ProblemLevel
+import java.io.File
 
-class HTMLGenerator(override val report: SingleFileReport, private val application: Application) : ReportGenerator {
+class HTMLGenerator(
+        override val reportFile: File,
+        private val application: Application
+) : ReportGenerator {
     private val sb = StringBuilder()
 
     private val documentManager = FileDocumentManager.getInstance()
@@ -141,7 +144,6 @@ keyword {
     override fun generate() {
         closeHtml()
 
-        val htmlReportFile = report.destination
-        htmlReportFile.writeText(sb.toString())
+        reportFile.writeText(sb.toString())
     }
 }

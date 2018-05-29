@@ -35,7 +35,6 @@ class InspectionRunner(
         private val maxWarnings: Int,
         private val quiet: Boolean,
         private val inspectionClasses: InspectionClassesSuite,
-        private val reports: IdeaCheckstyleReports,
         private val logger: Logger
 ) : Analyzer {
     companion object {
@@ -58,7 +57,9 @@ class InspectionRunner(
     override fun analyzeTreeAndLogResults(
             files: Collection<File>,
             ideaProjectFileName: String,
-            ideaHomeDirectory: File
+            ideaHomeDirectory: File,
+            xmlReport: File?,
+            htmlReport: File?
     ): Boolean {
         logger.info("Class loader: " + this.javaClass.classLoader)
         logger.info("Input classes: $inspectionClasses")
@@ -75,10 +76,10 @@ class InspectionRunner(
             var errors = 0
             var warnings = 0
 
-            val generators = listOf(
-                    XMLGenerator(reports.xml),
-                    HTMLGenerator(reports.html, application)
-            ).filter { it.enabled }
+            val generators = listOfNotNull(
+                    xmlReport?.let { XMLGenerator(it) },
+                    htmlReport?.let { HTMLGenerator(it, application) }
+            )
 
             var success = true
             val sortedResults = results.entries.map { entry -> entry.value.map { entry.key to it }}.flatten().sortedBy {

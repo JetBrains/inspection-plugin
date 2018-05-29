@@ -216,12 +216,14 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
                 val analyzer = analyzerClass.constructors.first().newInstance(
                         project.rootProject.projectDir.absolutePath,
                         maxErrors, maxWarnings, quiet,
-                        inspectionClasses, reports, logger
+                        inspectionClasses, logger
                 ).let { analyzerClass.cast(it) }
                 success = analyzer.analyzeTreeAndLogResults(
                         files = getSource().files,
                         ideaProjectFileName = project.rootProject.name,
-                        ideaHomeDirectory = ideaDirectory
+                        ideaHomeDirectory = ideaDirectory,
+                        xmlReport = if (reports.xml.isEnabled) reports.xml.destination else null,
+                        htmlReport = if (reports.html.isEnabled) reports.html.destination else null
                 )
             }
             inspectionsThread.contextClassLoader = loader

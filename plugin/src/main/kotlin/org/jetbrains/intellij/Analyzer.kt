@@ -7,6 +7,8 @@ interface Analyzer {
     fun analyzeTreeAndLogResults(
             files: Collection<File>,
             ideaProjectFileName: String,
-            ideaHomeDirectory: File
+            ideaHomeDirectory: File,
+            xmlReport: File?,
+            htmlReport: File?
     ): Boolean
 }
