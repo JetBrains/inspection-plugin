@@ -19,7 +19,6 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.util.PlatformUtils
-import org.gradle.api.Project as GradleProject
 import org.gradle.api.logging.Logger
 import org.jetbrains.intellij.*
 import java.io.File
@@ -31,7 +30,7 @@ import com.intellij.openapi.editor.Document as IdeaDocument
 
 @Suppress("unused")
 class InspectionRunner(
-        private val project: GradleProject,
+        private val projectPath: String,
         private val maxErrors: Int,
         private val maxWarnings: Int,
         private val quiet: Boolean,
@@ -55,10 +54,12 @@ class InspectionRunner(
         )
     }
 
-    private val projectPath: String = project.rootProject.projectDir.absolutePath
-
     // Returns true if analysis executed successfully
-    override fun analyzeTreeAndLogResults(files: Collection<File>, ideaHomeDirectory: File): Boolean {
+    override fun analyzeTreeAndLogResults(
+            files: Collection<File>,
+            ideaProjectFileName: String,
+            ideaHomeDirectory: File
+    ): Boolean {
         logger.info("Class loader: " + this.javaClass.classLoader)
         logger.info("Input classes: $inspectionClasses")
         val (application, systemPathMarkerChannel) = try {
@@ -70,7 +71,7 @@ class InspectionRunner(
         }
         try {
             application.doNotSave()
-            val results = application.analyzeTree(files)
+            val results = application.analyzeTree(files, ideaProjectFileName)
             var errors = 0
             var warnings = 0
 
@@ -261,12 +262,11 @@ class InspectionRunner(
         }
     }
 
-    private fun Application.analyzeTree(files: Collection<File>): Map<String, List<PinnedProblemDescriptor>> {
+    private fun Application.analyzeTree(files: Collection<File>, ideaProjectFileName: String): Map<String, List<PinnedProblemDescriptor>> {
         logger.info("Before project creation at '$projectPath'")
         val ideaProject: IdeaProject = run {
             var ideaProject: IdeaProject? = null
-            val projectFileName = project.rootProject.name + ProjectFileType.DOT_DEFAULT_EXTENSION
-            val projectFile = File(projectPath, projectFileName)
+            val projectFile = File(projectPath, ideaProjectFileName + ProjectFileType.DOT_DEFAULT_EXTENSION)
             invokeAndWait {
                 ideaProject = ProjectUtil.openOrImport(projectFile.absolutePath, null, false)
             }

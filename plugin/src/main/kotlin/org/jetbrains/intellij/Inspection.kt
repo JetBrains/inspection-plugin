@@ -214,11 +214,15 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
                         "org.jetbrains.idea.inspections.InspectionRunner"
                 ) as Class<Analyzer>
                 val analyzer = analyzerClass.constructors.first().newInstance(
-                        project, maxErrors, maxWarnings,
-                        quiet, inspectionClasses, reports,
-                        logger
+                        project.rootProject.projectDir.absolutePath,
+                        maxErrors, maxWarnings, quiet,
+                        inspectionClasses, reports, logger
                 ).let { analyzerClass.cast(it) }
-                success = analyzer.analyzeTreeAndLogResults(getSource().files, ideaDirectory)
+                success = analyzer.analyzeTreeAndLogResults(
+                        files = getSource().files,
+                        ideaProjectFileName = project.rootProject.name,
+                        ideaHomeDirectory = ideaDirectory
+                )
             }
             inspectionsThread.contextClassLoader = loader
             inspectionsThread.setUncaughtExceptionHandler { t, e -> throw e }
