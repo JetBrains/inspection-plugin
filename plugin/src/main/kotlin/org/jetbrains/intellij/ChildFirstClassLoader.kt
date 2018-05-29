@@ -56,33 +56,38 @@ class ChildFirstClassLoader(classpath: Array<URL>, parent: ClassLoader) : URLCla
 
     @Throws(IOException::class)
     override fun getResources(name: String): Enumeration<URL> {
-        /**
-         * Similar to super, but local resources are enumerated before parent
-         * resources
-         */
-        val systemUrls: Enumeration<URL>? = system?.getResources(name)
-        val localUrls = findResources(name)
-        val parentUrls: Enumeration<URL>? = parent?.getResources(name)
-
         val urls = mutableListOf<URL>()
-        if (localUrls != null) {
-            while (localUrls.hasMoreElements()) {
-                val local = localUrls.nextElement()
-                urls += local
+        // Forbid loading org.jetbrains.kotlin.*.ModuleVisibilityHelper
+        // Otherwise we take this helper from plugin and its implementation from compiler-embeddable,
+        // and get class loader level conflict
+        if ("ModuleVisibilityHelper" !in name || "org.jetbrains.kotlin" !in name) {
+            /**
+             * Similar to super, but local resources are enumerated before parent
+             * resources
+             */
+            val systemUrls: Enumeration<URL>? = system?.getResources(name)
+            val localUrls = findResources(name)
+            val parentUrls: Enumeration<URL>? = parent?.getResources(name)
+
+            if (localUrls != null) {
+                while (localUrls.hasMoreElements()) {
+                    val local = localUrls.nextElement()
+                    urls += local
+                }
             }
-        }
-        if (systemUrls != null) {
-            while (systemUrls.hasMoreElements()) {
-                urls += systemUrls.nextElement()
+            if (systemUrls != null) {
+                while (systemUrls.hasMoreElements()) {
+                    urls += systemUrls.nextElement()
+                }
             }
-        }
-        if (parentUrls != null) {
-            while (parentUrls.hasMoreElements()) {
-                urls += parentUrls.nextElement()
+            if (parentUrls != null) {
+                while (parentUrls.hasMoreElements()) {
+                    urls += parentUrls.nextElement()
+                }
             }
         }
         return object : Enumeration<URL> {
-            internal var iterator = urls.iterator()
+            var iterator = urls.iterator()
 
             override fun hasMoreElements(): Boolean = iterator.hasNext()
 
