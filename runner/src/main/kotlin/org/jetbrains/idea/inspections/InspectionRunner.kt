@@ -58,11 +58,11 @@ class InspectionRunner(
     private val projectPath: String = project.rootProject.projectDir.absolutePath
 
     // Returns true if analysis executed successfully
-    override fun analyzeTreeAndLogResults(files: Collection<File>): Boolean {
+    override fun analyzeTreeAndLogResults(files: Collection<File>, ideaHomeDirectory: File): Boolean {
         logger.info("Class loader: " + this.javaClass.classLoader)
         logger.info("Input classes: $inspectionClasses")
         val (application, systemPathMarkerChannel) = try {
-            loadApplication()
+            loadApplication(ideaHomeDirectory)
         } catch (e: Throwable) {
             logger.error(e.message)
             if (e is InspectionRunnerException) throw e
@@ -161,11 +161,37 @@ class InspectionRunner(
         return path to channel
     }
 
-    private fun loadApplication(): Pair<ApplicationEx, FileChannel> {
-        System.setProperty(IDEA_HOME_PATH, with(UnzipTask) { this@InspectionRunner.project.cacheDirectory.path } )
+    private data class BuildConfiguration(val buildNumber: String, val usesUltimate: Boolean)
+
+    private val defaultBuildNumber = "172.1"
+
+    private val File.buildConfiguration: BuildConfiguration
+        get() = let {
+            if (it.exists()) {
+                val text = it.readText()
+                val usesUltimate = text.startsWith("IU")
+                text.dropWhile { !it.isDigit() }.let {
+                    BuildConfiguration(if (it.isNotEmpty()) it else defaultBuildNumber, usesUltimate)
+                }
+            } else {
+                BuildConfiguration(defaultBuildNumber, false)
+            }
+        }
+
+    private val File.usesUltimate: Boolean
+        get() = let {
+            if (it.exists()) {
+                it.readText().startsWith("IU")
+            } else {
+                false
+            }
+        }
+
+    private fun loadApplication(ideaHomeDirectory: File): Pair<ApplicationEx, FileChannel> {
+        System.setProperty(IDEA_HOME_PATH, ideaHomeDirectory.path)
         System.setProperty(AWT_HEADLESS, "true")
-        val buildNumber = with(UnzipTask) { this@InspectionRunner.project.buildNumber }
-        val usesUltimate = with(UnzipTask) { this@InspectionRunner.project.usesUltimate }
+        val ideaBuildNumberFile = File(ideaHomeDirectory, "build.txt")
+        val (buildNumber, usesUltimate) = ideaBuildNumberFile.buildConfiguration
         System.setProperty(BUILD_NUMBER, buildNumber)
         val (systemPath, systemPathMarkerChannel) = generateSystemPath(buildNumber, usesUltimate)
         System.setProperty(SYSTEM_PATH, systemPath)

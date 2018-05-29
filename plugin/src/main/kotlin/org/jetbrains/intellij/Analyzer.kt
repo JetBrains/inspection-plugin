@@ -4,5 +4,5 @@ import java.io.File
 
 interface Analyzer {
     // Returns true if analysis executed successfully
-    fun analyzeTreeAndLogResults(files: Collection<File>): Boolean
+    fun analyzeTreeAndLogResults(files: Collection<File>, ideaHomeDirectory: File): Boolean
 }

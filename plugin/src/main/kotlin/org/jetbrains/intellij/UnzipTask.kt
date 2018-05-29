@@ -21,26 +21,6 @@ open class UnzipTask : ConventionTask() {
         val Project.cacheDirectory: File
             get() = File(baseCacheDirectory,
                     ideaVersion.replace(':', '_').replace('.', '_'))
-
-        val Project.buildNumber: String
-            get() = File(cacheDirectory, "build.txt").let {
-                if (it.exists()) {
-                    it.readText().dropWhile { !it.isDigit() }.let {
-                        if (it.isNotEmpty()) it else null
-                    }
-                } else {
-                    null
-                }
-            } ?: "172.1" // default build number
-
-        val Project.usesUltimate: Boolean
-            get() = File(cacheDirectory, "build.txt").let {
-                if (it.exists()) {
-                    it.readText().startsWith("IU")
-                } else {
-                    false
-                }
-            }
     }
 
     private val inspections: Configuration

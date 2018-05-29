@@ -218,7 +218,7 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
                         quiet, inspectionClasses, reports,
                         logger
                 ).let { analyzerClass.cast(it) }
-                success = analyzer.analyzeTreeAndLogResults(getSource().files)
+                success = analyzer.analyzeTreeAndLogResults(getSource().files, ideaDirectory)
             }
             inspectionsThread.contextClassLoader = loader
             inspectionsThread.setUncaughtExceptionHandler { t, e -> throw e }
