@@ -61,12 +61,12 @@ class InspectionRunner(
             xmlReport: File?,
             htmlReport: File?
     ): Boolean {
-        logger.info("Class loader: " + this.javaClass.classLoader)
-        logger.info("Input classes: $inspectionClasses")
+        info("Class loader: " + this.javaClass.classLoader)
+        info("Input classes: $inspectionClasses")
         val (application, systemPathMarkerChannel) = try {
             loadApplication(ideaHomeDirectory)
         } catch (e: Throwable) {
-            logger.error(e.message)
+            error("Exception during IDEA loading: " + e.message)
             if (e is InspectionRunnerException) throw e
             throw InspectionRunnerException("EXCEPTION caught in inspection plugin (IDEA loading): $e", e)
         }
@@ -87,7 +87,7 @@ class InspectionRunner(
                 val row = it.second.row
                 (line shl 16) + row
             }.groupBy { it.second.fileName }
-            logger.info("Total of ${sortedResults.values.flatten().count {
+            info("Total of ${sortedResults.values.flatten().count {
                 val inspectionClass = it.first
                 val problem = it.second
                 problem.actualLevel(inspectionClasses.getLevel(inspectionClass)) != null
@@ -103,16 +103,16 @@ class InspectionRunner(
                         }
                     }
                     if (!quiet) {
-                        logger.log(level.logLevel, problem.renderWithLocation())
+                        log(level, problem.renderWithLocation())
                     }
                     generators.forEach { it.report(problem, level, inspectionClass) }
                     if (errors > maxErrors) {
-                        logger.error("Too many errors found: $errors. Analysis stopped")
+                        error("Too many errors found: $errors. Analysis stopped")
                         success = false
                         break@analysisLoop
                     }
                     if (warnings > maxWarnings) {
-                        logger.error("Too many warnings found: $warnings. Analysis stopped")
+                        error("Too many warnings found: $warnings. Analysis stopped")
                         success = false
                         break@analysisLoop
                     }
@@ -122,7 +122,7 @@ class InspectionRunner(
             generators.forEach { it.generate() }
             return success
         } catch (e: Throwable) {
-            logger.error(e.message)
+            error("Exception during IDEA runReadAction " + e.message)
             if (e is InspectionRunnerException) throw e
             throw InspectionRunnerException("EXCEPTION caught in inspection plugin (IDEA runReadAction): $e", e)
         } finally {
@@ -151,7 +151,7 @@ class InspectionRunner(
                 channel = FileChannel.open(Paths.get(path, SYSTEM_MARKER_FILE), StandardOpenOption.WRITE)
                 channel.tryLock()
             } catch (e: IOException) {
-                logger.warn("IO exception while locking: ${e.message}")
+                warn("IO exception while locking: ${e.message}")
                 throw InspectionRunnerException("EXCEPTION caught in inspection plugin (IDEA system dir lock): $e", e)
             }
             if (lock == null) {
@@ -204,8 +204,8 @@ class InspectionRunner(
                         if (usesUltimate) PlatformUtils.IDEA_PREFIX else PlatformUtils.IDEA_CE_PREFIX
                 )
         )
-        logger.warn("IDEA home path: " + PathManager.getHomePath())
-        logger.warn("IDEA system path: $systemPath")
+        warn("IDEA home path: " + PathManager.getHomePath())
+        warn("IDEA system path: $systemPath")
         createCommandLineApplication(isInternal = false, isUnitTestMode = false, isHeadless = true)
         for (plugin in USELESS_PLUGINS) {
             PluginManagerCore.disablePlugin(plugin)
@@ -216,7 +216,7 @@ class InspectionRunner(
         }
         // Do not remove the call of PluginManagerCore.getPlugins(), it prevents NPE in IDEA
         // NB: IdeaApplication.getStarter() from IJ community contains the same call
-        logger.info("Plugins enabled: " + PluginManagerCore.getPlugins().toList())
+        info("Plugins enabled: " + PluginManagerCore.getPlugins().toList())
         ApplicationManagerEx.getApplicationEx().load()
         return (ApplicationManagerEx.getApplicationEx() ?: run {
             throw InspectionRunnerException("Cannot create IDEA application")
@@ -252,7 +252,7 @@ class InspectionRunner(
             val tools = InspectionToolRegistrar.getInstance().createTools()
             val inspectionToolWrapper = tools.find { it.tool.javaClass.name == inspectionClassName }
             if (inspectionToolWrapper == null) {
-                logger.error("Inspection $inspectionClassName is not found in registrar")
+                error("Inspection $inspectionClassName is not found in registrar")
                 null
             }
             else {
@@ -264,7 +264,7 @@ class InspectionRunner(
     }
 
     private fun Application.analyzeTree(files: Collection<File>, ideaProjectFileName: String): Map<String, List<PinnedProblemDescriptor>> {
-        logger.info("Before project creation at '$projectPath'")
+        info("Before project creation at '$projectPath'")
         val ideaProject: IdeaProject = run {
             var ideaProject: IdeaProject? = null
             val projectFile = File(projectPath, ideaProjectFileName + ProjectFileType.DOT_DEFAULT_EXTENSION)
@@ -275,26 +275,26 @@ class InspectionRunner(
                 throw InspectionRunnerException("Cannot open IDEA project: '${projectFile.absolutePath}'")
             }
         }
-        logger.info("Before psi manager creation")
+        info("Before psi manager creation")
         val psiManager = PsiManager.getInstance(ideaProject)
-        logger.info("Before virtual file manager creation")
+        info("Before virtual file manager creation")
         val virtualFileManager = VirtualFileManager.getInstance()
         val virtualFileSystem = virtualFileManager.getFileSystem("file")
         val documentManager = FileDocumentManager.getInstance()
 
         val results: MutableMap<String, MutableList<PinnedProblemDescriptor>> = mutableMapOf()
-        logger.info("Before inspections launched: total of ${files.size} files to analyze")
+        info("Before inspections launched: total of ${files.size} files to analyze")
         inspectionLoop@ for (inspectionWrapper in inspectionClasses.getInspectionWrappers(ideaProject)) {
             val inspectionClassName = inspectionWrapper.classFqName
             val inspectionTool = inspectionWrapper.tool
             when (inspectionTool) {
                 is LocalInspectionTool -> {}
                 is GlobalInspectionTool -> {
-                    logger.warn("Global inspection tools like $inspectionClassName are not yet supported")
+                    warn("Global inspection tools like $inspectionClassName are not yet supported")
                     continue@inspectionLoop
                 }
                 else -> {
-                    logger.error("Unexpected $inspectionClassName which is neither local nor global")
+                    error("Unexpected $inspectionClassName which is neither local nor global")
                     continue@inspectionLoop
                 }
             }
@@ -315,9 +315,9 @@ class InspectionRunner(
                             inspectionResults += inspectionTool.analyze(psiFile, document, displayName, inspectionWrapper.level)
                         }
                     } catch (ie: InspectionException) {
-                        logger.error(ie.message)
-                        logger.error(ie.cause!!.message)
-                        logger.error(ie.cause.stackTrace.joinToString(separator = "\n"))
+                        error("Exception during inspection running: " + ie.message)
+                        error("Caused by: " + ie.cause.message)
+                        error(ie.cause.stackTrace.joinToString(separator = "\n"))
                     }
                 }
                 ProgressManager.getInstance().runProcess(task, EmptyProgressIndicator())
@@ -330,7 +330,7 @@ class InspectionRunner(
     private class InspectionException(
             tool: LocalInspectionTool,
             file: PsiFile,
-            cause: Throwable
+            override val cause: Throwable
     ) : Exception("Exception during ${tool.shortName} analysis of ${file.name}", cause)
 
     private fun LocalInspectionTool.analyze(
@@ -349,6 +349,26 @@ class InspectionRunner(
         }
         return holder.results.map {
             PinnedProblemDescriptor(it, document, displayName, problemLevel)
+        }
+    }
+
+    private fun info(s: String) {
+        logger.info(s)
+    }
+
+    private fun warn(s: String) {
+        logger.warn(s)
+    }
+
+    private fun error(s: String) {
+        logger.error(s)
+    }
+
+    private fun log(level: ProblemLevel, s: String) {
+        when (level) {
+            ProblemLevel.INFORMATION -> info(s)
+            ProblemLevel.WARNING, ProblemLevel.WEAK_WARNING -> warn(s)
+            ProblemLevel.ERROR -> error(s)
         }
     }
 }
