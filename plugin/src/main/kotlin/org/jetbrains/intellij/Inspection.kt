@@ -15,6 +15,8 @@ import org.jdom2.input.SAXBuilder
 import java.io.File
 import org.gradle.api.Project as GradleProject
 import java.lang.Exception
+import java.net.URLClassLoader
+import java.util.*
 import kotlin.concurrent.thread
 
 @Suppress("MemberVisibilityCanBePrivate")
@@ -192,10 +194,15 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
             }.flatten()
             val fullClasspath = (listOf(tryResolveRunnerJar(project)) + ideaClasspath).map { it.toURI().toURL() }
             logger.info("Inspection runner classpath: $fullClasspath")
+            val parentClassLoader = this.javaClass.classLoader
+            logger.info("Inspection runner parent class loader: $parentClassLoader")
+            if (parentClassLoader is URLClassLoader) {
+                logger.info("Parent classpath: ${Arrays.toString(parentClassLoader.urLs)}")
+            }
             val loader = ClassloaderContainer.getOrInit {
                 ChildFirstClassLoader(
                         classpath = fullClasspath.toTypedArray(),
-                        parent = this.javaClass.classLoader
+                        parent = parentClassLoader
                 )
             }
 
