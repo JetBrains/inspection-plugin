@@ -21,7 +21,6 @@ import com.intellij.psi.PsiManager
 import com.intellij.util.PlatformUtils
 import org.gradle.api.GradleException
 import org.gradle.api.Project as GradleProject
-import org.gradle.api.file.FileTree
 import org.gradle.api.logging.Logger
 import org.jetbrains.intellij.*
 import java.io.File
@@ -60,7 +59,7 @@ class InspectionRunner(
     private val projectPath: String = project.rootProject.projectDir.absolutePath
 
     // Returns true if analysis executed successfully
-    override fun analyzeTreeAndLogResults(tree: FileTree): Boolean {
+    override fun analyzeTreeAndLogResults(files: Collection<File>): Boolean {
         logger.info("Class loader: " + this.javaClass.classLoader)
         logger.info("Input classes: $inspectionClasses")
         val (application, systemPathMarkerChannel) = try {
@@ -72,7 +71,7 @@ class InspectionRunner(
         }
         try {
             application.doNotSave()
-            val results = application.analyzeTree(tree)
+            val results = application.analyzeTree(files)
             var errors = 0
             var warnings = 0
 
@@ -237,7 +236,7 @@ class InspectionRunner(
         }
     }
 
-    private fun Application.analyzeTree(tree: FileTree): Map<String, List<PinnedProblemDescriptor>> {
+    private fun Application.analyzeTree(files: Collection<File>): Map<String, List<PinnedProblemDescriptor>> {
         logger.info("Before project creation at '$projectPath'")
         val ideaProject: IdeaProject = run {
             var ideaProject: IdeaProject? = null
@@ -258,7 +257,7 @@ class InspectionRunner(
         val documentManager = FileDocumentManager.getInstance()
 
         val results: MutableMap<String, MutableList<PinnedProblemDescriptor>> = mutableMapOf()
-        logger.info("Before inspections launched: total of ${tree.files.size} files to analyze")
+        logger.info("Before inspections launched: total of ${files.size} files to analyze")
         inspectionLoop@ for (inspectionWrapper in inspectionClasses.getInspectionWrappers(ideaProject)) {
             val inspectionClassName = inspectionWrapper.classFqName
             val inspectionTool = inspectionWrapper.tool
@@ -279,7 +278,7 @@ class InspectionRunner(
             runReadAction {
                 val task = Runnable {
                     try {
-                        for (sourceFile in tree) {
+                        for (sourceFile in files) {
                             val filePath = sourceFile.absolutePath
                             val virtualFile = virtualFileSystem.findFileByPath(filePath)
                                     ?: throw GradleException("Cannot find virtual file for $filePath")

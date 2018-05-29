@@ -1,8 +1,8 @@
 package org.jetbrains.intellij
 
-import org.gradle.api.file.FileTree
+import java.io.File
 
 interface Analyzer {
     // Returns true if analysis executed successfully
-    fun analyzeTreeAndLogResults(tree: FileTree): Boolean
+    fun analyzeTreeAndLogResults(files: Collection<File>): Boolean
 }
