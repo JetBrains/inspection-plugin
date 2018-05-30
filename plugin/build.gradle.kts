@@ -92,8 +92,8 @@ tasks {
 dependencies {
     compile("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
     compileOnly(gradleApi())
-    compile("org.jdom:jdom2:2.0.6")
 
+    testCompile("org.jdom:jdom2:2.0.6")
     testCompile("junit:junit:4.12")
     testCompile(gradleTestKit())
 }

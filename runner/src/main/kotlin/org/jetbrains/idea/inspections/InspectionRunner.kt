@@ -19,7 +19,7 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.util.PlatformUtils
-import org.jdom2.input.SAXBuilder
+import org.jdom.input.SAXBuilder
 import org.jetbrains.intellij.Analyzer
 import java.io.File
 import java.io.IOException
