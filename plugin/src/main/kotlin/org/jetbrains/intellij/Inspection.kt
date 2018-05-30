@@ -2,11 +2,14 @@ package org.jetbrains.intellij
 
 import groovy.lang.Closure
 import groovy.lang.DelegatesTo
+import org.gradle.BuildListener
+import org.gradle.BuildResult
 import org.gradle.api.Action
-import org.gradle.api.GradleException
 import org.gradle.api.file.FileCollection
 import org.gradle.api.file.FileTree
+import org.gradle.api.initialization.Settings
 import org.gradle.api.internal.ClosureBackedAction
+import org.gradle.api.invocation.Gradle
 import org.gradle.api.plugins.quality.CheckstyleReports
 import org.gradle.api.reporting.Reporting
 import org.gradle.api.resources.TextResource
@@ -183,6 +186,8 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
         project.parent?.let { tryResolveRunnerJar(it) } ?: throw e
     }
 
+    private var analyzer: Analyzer? = null
+
     @Suppress("unused")
     @TaskAction
     fun run() {
@@ -226,6 +231,12 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
                         else -> {}
                     }
                 })
+                this.analyzer = analyzer
+                var gradle: Gradle = project.gradle
+                while (true) {
+                    gradle = gradle.parent ?: break
+                }
+                gradle.addBuildListener(IdeaFinishingListener())
                 success = analyzer.analyzeTreeAndLogResults(
                         files = getSource().files,
                         ideaProjectFileName = project.rootProject.name,
@@ -288,5 +299,20 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
 
     fun setSourceSet(source: FileTree) {
         setSource(source as Any)
+    }
+
+    inner class IdeaFinishingListener : BuildListener {
+        override fun buildFinished(result: BuildResult?) {
+            analyzer?.shutdownIdea()
+            analyzer = null
+        }
+
+        override fun projectsLoaded(gradle: Gradle?) {}
+
+        override fun buildStarted(gradle: Gradle?) {}
+
+        override fun projectsEvaluated(gradle: Gradle?) {}
+
+        override fun settingsEvaluated(settings: Settings?) {}
     }
 }

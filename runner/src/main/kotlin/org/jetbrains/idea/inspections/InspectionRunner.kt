@@ -7,10 +7,12 @@ import com.intellij.ide.highlighter.ProjectFileType
 import com.intellij.ide.impl.ProjectUtil
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.idea.createCommandLineApplication
+import com.intellij.idea.getCommandLineApplication
 import com.intellij.openapi.application.Application
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.application.ex.ApplicationEx
 import com.intellij.openapi.application.ex.ApplicationManagerEx
+import com.intellij.openapi.application.impl.ApplicationImpl
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
@@ -55,8 +57,21 @@ class InspectionRunner(
 
     private var logger: BiFunction<Int, String, Unit> = BiFunction { t, u -> }
 
+    private var application: ApplicationEx? = null
+
     override fun setLogger(logger: BiFunction<Int, String, Unit>) {
         this.logger = logger
+    }
+
+    override fun shutdownIdea() {
+        // NB: exit is actually performed on EDT thread!
+        info("Shutting IDEA down!!!")
+        val application = this.application
+        if (application is ApplicationImpl) {
+            application.exit(true, true, false)
+        } else {
+            application?.exit(true, true)
+        }
     }
 
     // Returns true if analysis executed successfully
@@ -76,6 +91,7 @@ class InspectionRunner(
             if (e is InspectionRunnerException) throw e
             throw InspectionRunnerException("EXCEPTION caught in inspection plugin (IDEA loading): $e", e)
         }
+        this.application = application
         try {
             application.doNotSave()
             val results = application.analyzeTree(files, ideaProjectFileName)
@@ -133,8 +149,6 @@ class InspectionRunner(
             throw InspectionRunnerException("EXCEPTION caught in inspection plugin (IDEA runReadAction): $e", e)
         } finally {
             systemPathMarkerChannel.close()
-            // NB: exit is actually performed on EDT thread!
-            application.exit(true, true)
         }
     }
 
@@ -219,18 +233,22 @@ class InspectionRunner(
         )
         warn("IDEA home path: " + PathManager.getHomePath())
         warn("IDEA system path: $systemPath")
-        createCommandLineApplication(isInternal = false, isUnitTestMode = false, isHeadless = true)
-        for (plugin in USELESS_PLUGINS) {
-            PluginManagerCore.disablePlugin(plugin)
-        }
+        if (getCommandLineApplication() == null) {
+            createCommandLineApplication(isInternal = false, isUnitTestMode = false, isHeadless = true)
+            for (plugin in USELESS_PLUGINS) {
+                PluginManagerCore.disablePlugin(plugin)
+            }
 
-        if (usesUltimate) {
-            throw InspectionRunnerException("Using of IDEA Ultimate is not yet supported in inspection runner")
+            if (usesUltimate) {
+                throw InspectionRunnerException("Using of IDEA Ultimate is not yet supported in inspection runner")
+            }
+            // Do not remove the call of PluginManagerCore.getPlugins(), it prevents NPE in IDEA
+            // NB: IdeaApplication.getStarter() from IJ community contains the same call
+            info("Plugins enabled: " + PluginManagerCore.getPlugins().toList())
+            ApplicationManagerEx.getApplicationEx().load()
+        } else {
+            info("IDEA application already exists, don't bother to run it again")
         }
-        // Do not remove the call of PluginManagerCore.getPlugins(), it prevents NPE in IDEA
-        // NB: IdeaApplication.getStarter() from IJ community contains the same call
-        info("Plugins enabled: " + PluginManagerCore.getPlugins().toList())
-        ApplicationManagerEx.getApplicationEx().load()
         return (ApplicationManagerEx.getApplicationEx() ?: run {
             throw InspectionRunnerException("Cannot create IDEA application")
         }) to systemPathMarkerChannel

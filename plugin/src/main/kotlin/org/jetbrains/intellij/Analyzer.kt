@@ -14,4 +14,6 @@ interface Analyzer {
     ): Boolean
 
     fun setLogger(logger: BiFunction<Int, String, Unit>)
+
+    fun shutdownIdea()
 }
