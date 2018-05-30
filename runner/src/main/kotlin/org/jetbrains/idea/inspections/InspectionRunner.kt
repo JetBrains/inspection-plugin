@@ -168,6 +168,13 @@ class InspectionRunner(
         return path to channel
     }
 
+    private fun InspectionClassesSuite.getLevel(clazz: String) = when (clazz) {
+        in errors -> ProblemLevel.ERROR
+        in warnings -> ProblemLevel.WARNING
+        in infos -> ProblemLevel.INFORMATION
+        else -> null
+    }
+
     private data class BuildConfiguration(val buildNumber: String, val usesUltimate: Boolean)
 
     private val defaultBuildNumber = "172.1"

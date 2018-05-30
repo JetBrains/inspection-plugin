@@ -5,7 +5,6 @@ import com.intellij.codeInspection.ProblemDescriptorUtil
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.util.text.StringUtil
-import org.jetbrains.intellij.ProblemLevel
 
 class PinnedProblemDescriptor(
         val descriptor: ProblemDescriptor,

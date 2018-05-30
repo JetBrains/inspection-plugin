@@ -1,12 +1,10 @@
-package org.jetbrains.intellij
+package org.jetbrains.idea.inspections
 
-import org.gradle.api.logging.LogLevel
-
-enum class ProblemLevel(val logLevel: LogLevel) {
-    ERROR(LogLevel.ERROR),
-    WARNING(LogLevel.WARN),
-    WEAK_WARNING(LogLevel.WARN),
-    INFORMATION(LogLevel.INFO);
+enum class ProblemLevel {
+    ERROR,
+    WARNING,
+    WEAK_WARNING,
+    INFORMATION;
 
     companion object {
         fun fromInspectionEPLevel(level: String): ProblemLevel? = when (level) {
