@@ -90,7 +90,8 @@ class InspectionTest {
             vararg expectedDiagnostics: String
     ) {
         // Delay to solve DaemonDisappearedException problem
-        // TODO: remove it and solve the problem via extending daemon timeout
+        // Reason: IDEA performs System.exit on shutdown()
+        // TODO: remove it and solve the problem (run in separate process?)
         Thread.sleep(5000)
         val result = try {
             GradleRunner.create()
