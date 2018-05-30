@@ -359,8 +359,10 @@ class InspectionTest {
         doTest("testData/inspection/addVariance/main.kt")
     }
 
+    @Ignore
     @Test
     fun testConfigurationJava() {
+        // TODO: test is temporarily ignored (often fails on TeamCity)
         doTest("testData/inspection/configurationJava/Main.java")
     }
 
@@ -387,6 +389,7 @@ class InspectionTest {
     @Ignore
     @Test
     fun testConfigurationKotlinUltimate() {
+        // TODO: test is temporarily ignored (somehow influences other tests execution)
         doTest("testData/inspection/configurationKotlinUltimate/main.kt")
     }
 
