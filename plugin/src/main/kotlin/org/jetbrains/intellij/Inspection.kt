@@ -237,7 +237,7 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
             inspectionsThread.contextClassLoader = loader
             inspectionsThread.setUncaughtExceptionHandler { t, e ->
                 logger.error(e.message)
-                throw e
+                throw TaskExecutionException(this, e)
             }
             inspectionsThread.start()
             inspectionsThread.join()
@@ -248,8 +248,7 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
         }
         catch (e: Throwable) {
             logger.error("EXCEPTION caught in inspections plugin: " + e.message)
-            if (e is GradleException) throw e
-            throw GradleException("Exception occurred in analyze task: ${e.message}", e)
+            throw TaskExecutionException(this, e)
         }
     }
 
