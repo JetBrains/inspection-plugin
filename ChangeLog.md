@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 0.1.4 
+
+Additional features:
+
+ * inspectionsClean task
+
+Bug fixes:
+
+ * IDEA 2017.3 & 2018.1 support (most Kotlin inspections did not work in 0.1.3 for these IDEA versions)
+ * Message "Ultimate is not supported yet" instead of exception when using IU instead of IC
+ * Exception inside running inspection stops only this inspection, not the whole inspectionsMain task
+
 ## 0.1.3
 
 Bug fixes:
