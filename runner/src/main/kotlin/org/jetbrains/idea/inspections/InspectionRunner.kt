@@ -19,7 +19,8 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.util.PlatformUtils
-import org.jetbrains.intellij.*
+import org.jetbrains.intellij.Analyzer
+import org.jetbrains.intellij.InspectionClassesSuite
 import java.io.File
 import java.io.IOException
 import java.nio.channels.FileChannel
