@@ -1,4 +1,4 @@
-package org.jetbrains.intellij
+package org.jetbrains.idea.inspections
 
 class InspectionClassesSuite private constructor(
         val errors: Set<String>,

@@ -19,8 +19,8 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.util.PlatformUtils
+import org.jdom2.input.SAXBuilder
 import org.jetbrains.intellij.Analyzer
-import org.jetbrains.intellij.InspectionClassesSuite
 import java.io.File
 import java.io.IOException
 import java.nio.channels.FileChannel
@@ -35,7 +35,7 @@ class InspectionRunner(
         private val maxErrors: Int,
         private val maxWarnings: Int,
         private val quiet: Boolean,
-        private val inspectionClasses: InspectionClassesSuite
+        inspectionConfigFile: File
 ) : Analyzer {
     companion object {
         private const val AWT_HEADLESS = "java.awt.headless"
@@ -52,6 +52,8 @@ class InspectionRunner(
                 "Git4Idea"
         )
     }
+
+    private val inspectionClasses = readInspectionClassesFromConfigFile(inspectionConfigFile)
 
     private var logger: BiFunction<Int, String, Unit> = BiFunction { t, u -> }
 
@@ -136,6 +138,22 @@ class InspectionRunner(
             // NB: exit is actually performed on EDT thread!
             application.exit(true, true)
         }
+    }
+
+    private fun readInspectionClassesFromConfigFile(configFile: File): InspectionClassesSuite {
+        val builder = SAXBuilder()
+        val document = builder.build(configFile)
+        val root = document.rootElement
+
+        val inheritFromIdea = root.getChild("inheritFromIdea")
+        if (inheritFromIdea != null) {
+            return InspectionClassesSuite(inheritFromIdea.getAttributeValue("profileName"))
+        }
+        val errorClasses = root.getChild("errors").children.map { it.getAttributeValue("class") }
+        val warningClasses = root.getChild("warnings").children.map { it.getAttributeValue("class") }
+        val infoClasses = root.getChild("infos").children.map { it.getAttributeValue("class") }
+
+        return InspectionClassesSuite(errorClasses, warningClasses, infoClasses)
     }
 
     private fun generateSystemPath(buildNumber: String, usesUltimate: Boolean): Pair<String, FileChannel> {

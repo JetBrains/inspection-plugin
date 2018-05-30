@@ -11,7 +11,6 @@ import org.gradle.api.plugins.quality.CheckstyleReports
 import org.gradle.api.reporting.Reporting
 import org.gradle.api.resources.TextResource
 import org.gradle.api.tasks.*
-import org.jdom2.input.SAXBuilder
 import java.io.File
 import org.gradle.api.Project as GradleProject
 import java.lang.Exception
@@ -156,22 +155,6 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
         return reports
     }
 
-    private fun readInspectionClassesFromConfigFile(): InspectionClassesSuite {
-        val builder = SAXBuilder()
-        val document = builder.build(configFile)
-        val root = document.rootElement
-
-        val inheritFromIdea = root.getChild("inheritFromIdea")
-        if (inheritFromIdea != null) {
-            return InspectionClassesSuite(inheritFromIdea.getAttributeValue("profileName"))
-        }
-        val errorClasses = root.getChild("errors").children.map { it.getAttributeValue("class") }
-        val warningClasses = root.getChild("warnings").children.map { it.getAttributeValue("class") }
-        val infoClasses = root.getChild("infos").children.map { it.getAttributeValue("class") }
-
-        return InspectionClassesSuite(errorClasses, warningClasses, infoClasses)
-    }
-
     private fun tryResolveRunnerJar(project: org.gradle.api.Project): File = try {
         val dependency = project.buildscript.dependencies.create(
                 "org.jetbrains.intellij.plugins:inspection-runner:$runnerVersion"
@@ -207,7 +190,6 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
                 )
             }
 
-            val inspectionClasses = readInspectionClassesFromConfigFile()
             var success = true
             val inspectionsThread = thread(start = false) {
                 @Suppress("UNCHECKED_CAST")
@@ -216,7 +198,7 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
                 ) as Class<Analyzer>
                 val analyzer = analyzerClass.constructors.first().newInstance(
                         project.rootProject.projectDir.absolutePath,
-                        maxErrors, maxWarnings, quiet, inspectionClasses
+                        maxErrors, maxWarnings, quiet, configFile
                 ).let { analyzerClass.cast(it) }
                 analyzer.setLogger(BiFunction { level, message ->
                     when (level) {
