@@ -13,7 +13,7 @@ buildscript {
     }
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath group: 'org.jetbrains.intellij.plugins', name: 'inspection-plugin', version: '0.1.4-SNAPSHOT'
+        classpath group: 'org.jetbrains.intellij.plugins', name: 'inspection-plugin', version: '0.1.3'
     }
 }
 
