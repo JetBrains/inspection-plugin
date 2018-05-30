@@ -12,7 +12,6 @@ import org.gradle.api.internal.ClosureBackedAction
 import org.gradle.api.invocation.Gradle
 import org.gradle.api.plugins.quality.CheckstyleReports
 import org.gradle.api.reporting.Reporting
-import org.gradle.api.resources.TextResource
 import org.gradle.api.tasks.*
 import org.jdom2.input.SAXBuilder
 import java.io.File
@@ -50,9 +49,9 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
     lateinit var classpath: FileCollection
 
     /**
-     * The configuration to use. Replaces the `configFile` property.
+     * The configuration file name to use. Replaces the `configFile` property.
      */
-    var config: TextResource
+    var config: String
         get() = extension.config
         set(value) {
             extension.config = value
@@ -103,11 +102,13 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
     /**
      * The configuration file to use.
      */
-    var configFile: File?
+    var configFile: File
         @InputFile
-        get() = config.asFile()
-        set(configFile) {
-            config = project.resources.text.fromFile(configFile)
+        get() {
+            return File(project.projectDir, config)
+        }
+        set(value) {
+            config = value.relativeTo(project.projectDir).path
         }
 
     /**
@@ -161,6 +162,7 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
 
     private fun readInspectionClassesFromConfigFile(): InspectionClassesSuite {
         val builder = SAXBuilder()
+        logger.info("Configuration file: ${configFile.path}")
         val document = builder.build(configFile)
         val root = document.rootElement
 

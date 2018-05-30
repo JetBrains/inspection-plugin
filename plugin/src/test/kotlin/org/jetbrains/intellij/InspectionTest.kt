@@ -61,7 +61,7 @@ class InspectionTest {
                         appendln("    quiet = true")
                     }
                     "config" -> if (configFileName.isNotEmpty()) {
-                        appendln("    config = resources.text.fromFile(\"$configFileName\")")
+                        appendln("    config = \"$configFileName\"")
                     }
                     "toolVersion" -> if (toolVersion.isNotEmpty()) {
                         appendln("    toolVersion \"$toolVersion\"")

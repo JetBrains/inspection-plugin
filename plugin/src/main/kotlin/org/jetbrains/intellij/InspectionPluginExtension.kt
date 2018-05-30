@@ -3,17 +3,16 @@ package org.jetbrains.intellij
 import org.gradle.api.Incubating
 import org.gradle.api.Project
 import org.gradle.api.plugins.quality.CodeQualityExtension
-import org.gradle.api.resources.TextResource
 import java.io.File
 
 open class InspectionPluginExtension(private val project: Project) : CodeQualityExtension() {
 
     /**
-     * The configuration to use. Replaces the `configFile` property.
+     * The configuration file name to use. Replaces the `configFile` property.
      */
     @get:Incubating
     @set:Incubating
-    lateinit var config: TextResource
+    lateinit var config: String
 
     /**
      * The maximum number of errors that are tolerated before breaking the build

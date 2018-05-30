@@ -7,7 +7,6 @@ import org.gradle.api.plugins.quality.CodeQualityExtension
 import org.gradle.api.plugins.quality.internal.AbstractCodeQualityPlugin
 import org.gradle.api.tasks.SourceSet
 import java.io.File
-import java.util.concurrent.Callable
 
 open class InspectionPlugin : AbstractCodeQualityPlugin<Inspection>() {
 
@@ -27,8 +26,8 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<Inspection>() {
         val extension = project.extensions.create(SHORT_NAME, InspectionPluginExtension::class.java, project)
         extension.toolVersion = DEFAULT_IDEA_VERSION
 
-        extension.configDir = project.file("config/$SHORT_NAME")
-        extension.config = project.resources.text.fromFile(Callable<File> { File(extension.configDir, "$SHORT_NAME.xml") })
+        extension.configDir = File("config/$SHORT_NAME")
+        extension.config = File(extension.configDir, "$SHORT_NAME.xml").path
         return extension
     }
 
