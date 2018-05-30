@@ -10,9 +10,13 @@ open class CleanTask : ConventionTask() {
         for (task in project.tasks) {
             if (task !is Inspection) continue
             task.reports.map { it.destination }.forEach {
-                logger.info("Deleting report file: ${it.path}")
                 if (it.exists()) {
+                    logger.info("Deleting report file: ${it.path}")
                     it.delete()
+                } else {
+                    logger.info("Touching report file: ${it.path}")
+                    it.parentFile?.mkdirs()
+                    it.createNewFile()
                 }
             }
         }
