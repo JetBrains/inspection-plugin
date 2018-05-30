@@ -17,6 +17,7 @@ import org.gradle.api.Project as GradleProject
 import java.lang.Exception
 import java.net.URLClassLoader
 import java.util.*
+import java.util.function.BiFunction
 import kotlin.concurrent.thread
 
 @Suppress("MemberVisibilityCanBePrivate")
@@ -215,9 +216,16 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
                 ) as Class<Analyzer>
                 val analyzer = analyzerClass.constructors.first().newInstance(
                         project.rootProject.projectDir.absolutePath,
-                        maxErrors, maxWarnings, quiet,
-                        inspectionClasses, logger
+                        maxErrors, maxWarnings, quiet, inspectionClasses
                 ).let { analyzerClass.cast(it) }
+                analyzer.setLogger(BiFunction { level, message ->
+                    when (level) {
+                        0 -> logger.error(message)
+                        1 -> logger.warn(message)
+                        2 -> logger.info(message)
+                        else -> {}
+                    }
+                })
                 success = analyzer.analyzeTreeAndLogResults(
                         files = getSource().files,
                         ideaProjectFileName = project.rootProject.name,
@@ -227,7 +235,10 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
                 )
             }
             inspectionsThread.contextClassLoader = loader
-            inspectionsThread.setUncaughtExceptionHandler { t, e -> throw e }
+            inspectionsThread.setUncaughtExceptionHandler { t, e ->
+                logger.error(e.message)
+                throw e
+            }
             inspectionsThread.start()
             inspectionsThread.join()
 

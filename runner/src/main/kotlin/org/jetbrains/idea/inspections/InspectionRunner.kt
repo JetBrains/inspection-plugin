@@ -19,13 +19,13 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.util.PlatformUtils
-import org.gradle.api.logging.Logger
 import org.jetbrains.intellij.*
 import java.io.File
 import java.io.IOException
 import java.nio.channels.FileChannel
 import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
+import java.util.function.BiFunction
 import com.intellij.openapi.editor.Document as IdeaDocument
 
 @Suppress("unused")
@@ -34,8 +34,7 @@ class InspectionRunner(
         private val maxErrors: Int,
         private val maxWarnings: Int,
         private val quiet: Boolean,
-        private val inspectionClasses: InspectionClassesSuite,
-        private val logger: Logger
+        private val inspectionClasses: InspectionClassesSuite
 ) : Analyzer {
     companion object {
         private const val AWT_HEADLESS = "java.awt.headless"
@@ -51,6 +50,12 @@ class InspectionRunner(
                 "org.jetbrains.plugins.github",
                 "Git4Idea"
         )
+    }
+
+    private var logger: BiFunction<Int, String, Unit> = BiFunction { t, u -> }
+
+    override fun setLogger(logger: BiFunction<Int, String, Unit>) {
+        this.logger = logger
     }
 
     // Returns true if analysis executed successfully
@@ -352,16 +357,22 @@ class InspectionRunner(
         }
     }
 
+    private enum class LoggingLevel(val level: Int) {
+        ERROR(0),
+        WARNING(1),
+        INFO(2)
+    }
+
     private fun info(s: String) {
-        logger.info(s)
+        logger.apply(LoggingLevel.INFO.level, s)
     }
 
     private fun warn(s: String) {
-        logger.warn(s)
+        logger.apply(LoggingLevel.WARNING.level, s)
     }
 
     private fun error(s: String) {
-        logger.error(s)
+        logger.apply(LoggingLevel.ERROR.level, s)
     }
 
     private fun log(level: ProblemLevel, s: String) {

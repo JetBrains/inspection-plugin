@@ -1,6 +1,7 @@
 package org.jetbrains.intellij
 
 import java.io.File
+import java.util.function.BiFunction
 
 interface Analyzer {
     // Returns true if analysis executed successfully
@@ -11,4 +12,6 @@ interface Analyzer {
             xmlReport: File?,
             htmlReport: File?
     ): Boolean
+
+    fun setLogger(logger: BiFunction<Int, String, Unit>)
 }
