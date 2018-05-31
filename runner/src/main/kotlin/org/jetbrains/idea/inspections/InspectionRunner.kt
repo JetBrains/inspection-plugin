@@ -8,6 +8,7 @@ import com.intellij.ide.impl.ProjectUtil
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.idea.createCommandLineApplication
 import com.intellij.idea.getCommandLineApplication
+import com.intellij.lang.java.JavaLanguage
 import com.intellij.openapi.application.Application
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.application.ex.ApplicationEx
@@ -57,6 +58,9 @@ class InspectionRunner(
                 "org.jetbrains.plugins.github",
                 "Git4Idea"
         )
+
+        private val KOTLIN_FILE_APPLICABLE_LANGUAGES = setOf(null, "kotlin", "UAST")
+        private val JAVA_FILE_APPLICABLE_LANGUAGES = setOf(null, "java", "UAST", JavaLanguage.INSTANCE.id)
     }
 
     private var logger: BiFunction<Int, String, Unit> = BiFunction { t, u -> }
@@ -274,6 +278,7 @@ class InspectionRunner(
             val tool: InspectionProfileEntry,
             val extension: InspectionEP?,
             val classFqName: String,
+            val language: String?,
             level: String? = null
     ) {
         val level: ProblemLevel? = level?.let { ProblemLevel.fromInspectionEPLevel(it) }
@@ -292,7 +297,7 @@ class InspectionRunner(
             return profileTools.asSequence().map {
                 val wrapper = it.tool
                 PluginInspectionWrapper(wrapper.tool, wrapper.extension, wrapper.tool.javaClass.name,
-                        it.defaultState.level.name)
+                        wrapper.language, it.defaultState.level.name)
             }
         }
         return classes.asSequence().mapNotNull { inspectionClassName ->
@@ -304,7 +309,7 @@ class InspectionRunner(
             }
             else {
                 inspectionToolWrapper.let {
-                    PluginInspectionWrapper(it.tool, it.extension, inspectionClassName)
+                    PluginInspectionWrapper(it.tool, it.extension, inspectionClassName, it.language)
                 }
             }
         }
@@ -361,6 +366,7 @@ class InspectionRunner(
                                     ?: throw InspectionRunnerException("Cannot find virtual file for $filePath")
                             val psiFile = psiManager.findFile(virtualFile)
                                     ?: throw InspectionRunnerException("Cannot find PSI file for $filePath")
+                            if (!inspectionEnabledForFile(inspectionWrapper, psiFile)) continue
                             val document = documentManager.getDocument(virtualFile)
                                     ?: throw InspectionRunnerException("Cannot get document for $filePath")
                             inspectionResults += inspectionTool.analyze(psiFile, document, displayName, inspectionWrapper.level)
@@ -376,6 +382,17 @@ class InspectionRunner(
             results[inspectionClassName] = inspectionResults
         }
         return results
+    }
+
+    private fun inspectionEnabledForFile(
+            wrapper: PluginInspectionWrapper,
+            psiFile: PsiFile
+    ): Boolean {
+        return when (psiFile.language.displayName) {
+            "Kotlin" -> wrapper.language in KOTLIN_FILE_APPLICABLE_LANGUAGES
+            "Java" -> wrapper.language in JAVA_FILE_APPLICABLE_LANGUAGES
+            else -> true
+        }
     }
 
     private class InspectionException(
