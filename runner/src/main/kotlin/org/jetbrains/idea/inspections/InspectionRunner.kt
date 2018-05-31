@@ -23,6 +23,7 @@ import com.intellij.openapi.project.impl.ProjectManagerImpl
 import com.intellij.openapi.projectRoots.JavaSdk
 import com.intellij.openapi.projectRoots.ProjectJdkTable
 import com.intellij.openapi.projectRoots.impl.ProjectJdkImpl
+import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.project.Project as IdeaProject
@@ -373,6 +374,7 @@ class InspectionRunner(
         val virtualFileManager = VirtualFileManager.getInstance()
         val virtualFileSystem = virtualFileManager.getFileSystem("file")
         val documentManager = FileDocumentManager.getInstance()
+        val fileIndex = ProjectFileIndex.getInstance(ideaProject)
 
         val results: MutableMap<String, MutableList<PinnedProblemDescriptor>> = mutableMapOf()
         info("Before inspections launched: total of ${files.size} files to analyze")
@@ -400,6 +402,10 @@ class InspectionRunner(
                             val filePath = sourceFile.absolutePath
                             val virtualFile = virtualFileSystem.findFileByPath(filePath)
                                     ?: throw InspectionRunnerException("Cannot find virtual file for $filePath")
+                            if (!fileIndex.isInSource(virtualFile)) {
+                                warn("File $filePath is not in sources")
+                                continue
+                            }
                             val psiFile = psiManager.findFile(virtualFile)
                                     ?: throw InspectionRunnerException("Cannot find PSI file for $filePath")
                             if (!inspectionEnabledForFile(inspectionWrapper, psiFile)) continue
