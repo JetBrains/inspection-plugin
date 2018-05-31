@@ -30,6 +30,8 @@ inspections {
 In this example inspections will be taken from IDEA CE version 2017.2.6. 
 Plugin works at least with IDEA CE versions 2017.2, 2017.2.x, 2017.3, 2017.3.x, 2018.1. 
 (last three supported by inspection plugin 0.1.4 or later).
+2018.2 eap also should work. 
+If you have multi-platform or Kotlin JS project, please use IDEA CE 2017.3 or later. 
 
 And the last necessary thing is configuration file, 
 which is located (by default) in file `config/inspections/inspections.xml`.
@@ -114,6 +116,5 @@ IDEA version used in inspection plugin (which is set in `toolVersion` parameter)
 
 Known bugs / problems at this moment (version 0.1.4):
 
-* inspection task is not executed on rerun (use `inspectionsClean inspectionsMain` to make it rerun)
+* inspection task is not executed on rerun if source code is not changed (use `inspectionsClean inspectionsMain` to make it rerun)
 * plugin does not work yet with Ultimate IDEA versions, like ideaIU:2017.3
-* plugin does not work on Kotlin JS projects
