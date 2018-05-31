@@ -426,6 +426,11 @@ class InspectionTest {
     }
 
     @Test
+    fun testStdlib() {
+        doTest("testData/inspection/stdlib/sample.kt")
+    }
+
+    @Test
     fun testUnusedSymbolByIdeaProfile() {
         doTest("testData/inspection/unusedSymbolByIdeaProfile/test.kt")
     }
