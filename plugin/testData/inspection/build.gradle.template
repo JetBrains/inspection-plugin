@@ -46,5 +46,6 @@ dependencies {
     <kotlin-stdlib>
     <kotlin-runtime>
 }
+<compile-kotlin>
 
 

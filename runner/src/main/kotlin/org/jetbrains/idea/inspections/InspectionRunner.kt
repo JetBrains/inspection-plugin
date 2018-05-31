@@ -20,6 +20,11 @@ import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.ex.ProjectManagerEx
 import com.intellij.openapi.project.impl.ProjectManagerImpl
+import com.intellij.openapi.projectRoots.JavaSdk
+import com.intellij.openapi.projectRoots.ProjectJdkTable
+import com.intellij.openapi.projectRoots.impl.ProjectJdkImpl
+import com.intellij.openapi.roots.ProjectRootManager
+import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.project.Project as IdeaProject
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiFile
@@ -52,6 +57,12 @@ class InspectionRunner(
         private const val USER_HOME = "user.home"
         private const val INSPECTION_PROFILES_PATH = ".idea/inspectionProfiles"
         private const val SYSTEM_MARKER_FILE = "marker.ipl"
+        private const val JAVA_HOME = "JAVA_HOME"
+        private val jdkEnvironmentVariables = mapOf(
+                "1.6" to "JDK_16",
+                "1.7" to "JDK_17",
+                "1.8" to "JDK_18"
+        )
 
         private val USELESS_PLUGINS = listOf(
                 "mobi.hsz.idea.gitignore",
@@ -315,7 +326,28 @@ class InspectionRunner(
         }
     }
 
-    private fun Application.analyzeTree(files: Collection<File>, ideaProjectFileName: String): Map<String, List<PinnedProblemDescriptor>> {
+    private fun Application.analyzeTree(
+            files: Collection<File>,
+            ideaProjectFileName: String
+    ): Map<String, List<PinnedProblemDescriptor>> {
+        info("Before SDK configuration")
+        invokeAndWait {
+            runWriteAction {
+                val javaHomePath = System.getenv(JAVA_HOME) ?: ""
+                val jdkTable = ProjectJdkTable.getInstance()
+                for ((jdkVersion, jdkEnvironmentVariable) in jdkEnvironmentVariables) {
+                    if (jdkTable.findJdk(jdkVersion) != null) continue
+                    val homePath = System.getenv(jdkEnvironmentVariable)
+                            ?: if (javaHomePath.contains(jdkVersion)) javaHomePath else continue
+                    info("Configuring JDK $jdkVersion")
+                    val sdk = jdkTable.createSdk(jdkVersion, JavaSdk.getInstance()) as ProjectJdkImpl
+                    sdk.homePath = FileUtil.toSystemIndependentName(homePath)
+                    sdk.versionString = sdk.sdkType.getVersionString(sdk)
+                    info("Home path is ${sdk.homePath}, version string is ${sdk.versionString}")
+                    jdkTable.addJdk(sdk)
+                }
+            }
+        }
         info("Before project creation at '$projectPath'")
         val ideaProject: IdeaProject = run {
             var ideaProject: IdeaProject? = null
@@ -327,7 +359,11 @@ class InspectionRunner(
                         /* forceOpenInNewFrame = */ true
                 )
             }
-            ideaProject ?: run {
+            ideaProject?.apply {
+                val rootManager = ProjectRootManager.getInstance(this)
+                info("Project SDK name: " + rootManager.projectSdkName)
+                info("Project SDK: " + rootManager.projectSdk)
+            } ?: run {
                 throw InspectionRunnerException("Cannot open IDEA project: '${projectFile.absolutePath}'")
             }
         }

@@ -78,6 +78,16 @@ class InspectionTest {
                     "kotlin-runtime" -> if (kotlinNeeded) {
                         appendln("    compile \"org.jetbrains.kotlin:kotlin-runtime\"")
                     }
+                    "compile-kotlin" -> if (kotlinNeeded) {
+                        appendln("""
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+                        """.trimIndent())
+                    }
                 }
             }
             println(this)
@@ -196,7 +206,7 @@ class InspectionTest {
             val quiet: Boolean = false,
             val xmlReport: Boolean = false,
             val htmlReport: Boolean = false,
-            val kotlinVersion: String = "1.1.3-2",
+            val kotlinVersion: String = "1.2.0",
             val configFileName: String = "",
             val toolVersion: String = "",
             val inheritFromIdea: Boolean = false,
@@ -303,7 +313,7 @@ class InspectionTest {
         val quiet = getParameterValue("quiet", "false").toBoolean()
         val xmlReport = getParameterValue("xmlReport", "false").toBoolean()
         val htmlReport = getParameterValue("htmlReport", "false").toBoolean()
-        val kotlinVersion = getParameterValue("kotlinVersion", "1.1.3-2")
+        val kotlinVersion = getParameterValue("kotlinVersion", "1.2.0")
         val configFileName = getParameterValue("config", "")
         val toolVersion = getParameterValue("toolVersion", "")
         val inheritFromIdea = getParameterValue("inheritFromIdea", "false").toBoolean()
