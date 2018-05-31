@@ -63,6 +63,16 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
         get() = project.extensions.findByType(InspectionPluginExtension::class.java)!!
 
     /**
+     * Tool (IDEA) version to use
+     */
+    @Suppress("unused")
+    var toolVersion: String
+        @Input get() = extension.toolVersion
+        set(value) {
+            extension.toolVersion = value
+        }
+
+    /**
      * The maximum number of errors that are tolerated before stopping the build
      * and setting the failure property (the last if ignoreFailures = false only)
      *
