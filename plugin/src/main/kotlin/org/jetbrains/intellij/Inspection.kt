@@ -223,7 +223,8 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
                 ) as Class<Analyzer>
                 val analyzer = analyzerClass.constructors.first().newInstance(
                         project.rootProject.projectDir.absolutePath,
-                        maxErrors, maxWarnings, quiet, inspectionClasses
+                        maxErrors, maxWarnings, quiet, inspectionClasses,
+                        extension.testMode
                 ).let { analyzerClass.cast(it) }
                 analyzer.setLogger(BiFunction { level, message ->
                     when (level) {

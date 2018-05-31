@@ -13,9 +13,12 @@ import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.application.ex.ApplicationEx
 import com.intellij.openapi.application.ex.ApplicationManagerEx
 import com.intellij.openapi.application.impl.ApplicationImpl
+import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.project.ex.ProjectManagerEx
+import com.intellij.openapi.project.impl.ProjectManagerImpl
 import com.intellij.openapi.project.Project as IdeaProject
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiFile
@@ -37,7 +40,8 @@ class InspectionRunner(
         private val maxErrors: Int,
         private val maxWarnings: Int,
         private val quiet: Boolean,
-        private val inspectionClasses: InspectionClassesSuite
+        private val inspectionClasses: InspectionClassesSuite,
+        private val testMode: Boolean
 ) : Analyzer {
     companion object {
         private const val AWT_HEADLESS = "java.awt.headless"
@@ -59,21 +63,29 @@ class InspectionRunner(
 
     private var application: ApplicationEx? = null
 
-    private var existingIdeaUsed = false
+    private var shutdownNecessary = true
 
     override fun setLogger(logger: BiFunction<Int, String, Unit>) {
         this.logger = logger
     }
 
     override fun shutdownIdea() {
-        if (existingIdeaUsed) return
-        // NB: exit is actually performed on EDT thread!
-        info("Shutting IDEA down!!!")
         val application = this.application
-        if (application is ApplicationImpl) {
-            application.exit(true, true, false)
-        } else {
-            application?.exit(true, true)
+        if (testMode) {
+            application?.invokeLater {
+                val manager = ProjectManagerEx.getInstanceEx() as? ProjectManagerImpl
+                CommandProcessor.getInstance().executeCommand(null, {
+                    manager?.closeAndDisposeAllProjects(/* checkCanCloseProject = */ false)
+                }, "", null)
+            }
+        } else if (shutdownNecessary) {
+            // NB: exit is actually performed on EDT thread!
+            info("Shutting IDEA down!!!")
+            if (application is ApplicationImpl) {
+                application.exit(true, true, false)
+            } else {
+                application?.exit(true, true)
+            }
         }
     }
 
@@ -251,7 +263,7 @@ class InspectionRunner(
             ApplicationManagerEx.getApplicationEx().load()
         } else {
             info("IDEA application already exists, don't bother to run it again")
-            existingIdeaUsed = true
+            shutdownNecessary = false
         }
         return (ApplicationManagerEx.getApplicationEx() ?: run {
             throw InspectionRunnerException("Cannot create IDEA application")
@@ -304,7 +316,11 @@ class InspectionRunner(
             var ideaProject: IdeaProject? = null
             val projectFile = File(projectPath, ideaProjectFileName + ProjectFileType.DOT_DEFAULT_EXTENSION)
             invokeAndWait {
-                ideaProject = ProjectUtil.openOrImport(projectFile.absolutePath, null, false)
+                ideaProject = ProjectUtil.openOrImport(
+                        projectFile.absolutePath,
+                        /* projectToClose = */ null,
+                        /* forceOpenInNewFrame = */ true
+                )
             }
             ideaProject ?: run {
                 throw InspectionRunnerException("Cannot open IDEA project: '${projectFile.absolutePath}'")

@@ -44,6 +44,11 @@ open class InspectionPluginExtension(private val project: Project) : CodeQuality
     var isQuiet = false
 
     /**
+     * Normally false. Value of true is used in tests to prevent IDEA shutdown.
+     */
+    var testMode = false
+
+    /**
      * Path to other configuration files. By default, this path is `$projectDir/config/inspections`
      *
      */
