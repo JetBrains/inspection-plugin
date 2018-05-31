@@ -79,7 +79,7 @@ The meaning of the parameters is the following:
 * `quiet`: do not report inspection messages to console, only to XML file (false by default)
 * `config`: configuration file location
 
-If you with to change location of report file, you should specify it in closure for particular task, e.g.
+If you wish to change location of report file, you should specify it in closure for particular task, e.g.
 
 ```groovy
 inspectionsMain {
@@ -117,4 +117,3 @@ Known bugs / problems at this moment (version 0.1.4):
 * inspection task is not executed on rerun (use `inspectionsClean inspectionsMain` to make it rerun)
 * plugin does not work yet with Ultimate IDEA versions, like ideaIU:2017.3
 * plugin does not work on Kotlin JS projects
-* plugin does not work on root module of multi-module project
