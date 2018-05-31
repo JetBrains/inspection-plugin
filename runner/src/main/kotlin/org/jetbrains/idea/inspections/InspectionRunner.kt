@@ -59,11 +59,14 @@ class InspectionRunner(
 
     private var application: ApplicationEx? = null
 
+    private var existingIdeaUsed = false
+
     override fun setLogger(logger: BiFunction<Int, String, Unit>) {
         this.logger = logger
     }
 
     override fun shutdownIdea() {
+        if (existingIdeaUsed) return
         // NB: exit is actually performed on EDT thread!
         info("Shutting IDEA down!!!")
         val application = this.application
@@ -248,6 +251,7 @@ class InspectionRunner(
             ApplicationManagerEx.getApplicationEx().load()
         } else {
             info("IDEA application already exists, don't bother to run it again")
+            existingIdeaUsed = true
         }
         return (ApplicationManagerEx.getApplicationEx() ?: run {
             throw InspectionRunnerException("Cannot create IDEA application")
