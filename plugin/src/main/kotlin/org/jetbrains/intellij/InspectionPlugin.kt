@@ -38,7 +38,9 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<Inspection>() {
         project.tasks.create("unzip", UnzipTask::class.java)
         project.tasks.create(CLEAN_TASK_NAME, CleanTask::class.java)
         project.rootProject.plugins.apply("idea")
-        project.plugins.apply("idea")
+        for (subProject in project.rootProject.subprojects) {
+            subProject.plugins.apply("idea")
+        }
     }
 
     override fun configureTaskDefaults(task: Inspection, baseName: String) {
@@ -48,8 +50,10 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<Inspection>() {
         task.dependsOn += unzipTask
         val rootIdeaTask = project.rootProject.tasks.getAt("idea")
         task.dependsOn += rootIdeaTask
-        val ideaTask = project.tasks.getAt("idea")
-        task.dependsOn += ideaTask
+        for (subProject in project.rootProject.subprojects) {
+            val subIdeaTask = subProject.tasks.getAt("idea")
+            task.dependsOn += subIdeaTask
+        }
 
         configureDefaultDependencies(configuration)
         configureReportsConventionMapping(task, baseName)
