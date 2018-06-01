@@ -10,6 +10,7 @@ Bug fixes:
 
  * IDEA 2017.3 & 2018.1 support (most Kotlin inspections did not work in 0.1.3 for these IDEA versions)
  * Various problems with using the plugin on multi-module projects
+ * JDK is configured correctly
  * Message "Ultimate is not supported yet" instead of exception when using IU instead of IC
  * Exception inside running inspection stops only this inspection, not the whole inspectionsMain task
  * Inspection tasks now depend on tool version (considered out-of-date when tool version is changed)

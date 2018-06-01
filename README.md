@@ -59,6 +59,19 @@ You will see inspection messages in console as well as in report XML located in 
 
 You can find example usage in `sample` project subdirectory.
 
+## JDK configuration
+
+To run inspections correctly, inspection plugin configures JDK in IDEA used. 
+To do it, values of different environment variables are read:
+
+* `JAVA_HOME`: can be used to configure any version of JDK
+* `JDK_16`: can be used to configure JDK 1.6
+* `JDK_17`: can be used to configure JDK 1.7
+* `JDK_18`: can be used to configure JDK 1.8
+* `JDK_9`: can be used to configure JDK 9
+
+Path to JDK which is used on your project must be available among these variables.
+
 ## Additional options
 
 You can specify additional options in `inspections` closure, e.g.:
