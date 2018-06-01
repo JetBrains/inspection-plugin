@@ -22,7 +22,7 @@ import com.intellij.openapi.project.ex.ProjectManagerEx
 import com.intellij.openapi.project.impl.ProjectManagerImpl
 import com.intellij.openapi.projectRoots.JavaSdk
 import com.intellij.openapi.projectRoots.ProjectJdkTable
-import com.intellij.openapi.projectRoots.impl.ProjectJdkImpl
+import com.intellij.openapi.projectRoots.impl.SdkConfigurationUtil
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.io.FileUtil
@@ -339,11 +339,11 @@ class InspectionRunner(
                     val homePath = System.getenv(jdkEnvironmentVariable)
                             ?: if (javaHomePath.contains(jdkVersion)) javaHomePath else continue
                     info("Configuring JDK $jdkVersion")
-                    val sdk = jdkTable.createSdk(jdkVersion, JavaSdk.getInstance()) as ProjectJdkImpl
-                    sdk.homePath = FileUtil.toSystemIndependentName(homePath)
-                    sdk.versionString = sdk.sdkType.getVersionString(sdk)
+                    val sdk = SdkConfigurationUtil.createAndAddSDK(
+                            FileUtil.toSystemIndependentName(homePath),
+                            JavaSdk.getInstance()
+                    ) ?: continue
                     info("Home path is ${sdk.homePath}, version string is ${sdk.versionString}")
-                    jdkTable.addJdk(sdk)
                 }
             }
         }
