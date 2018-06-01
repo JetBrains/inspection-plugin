@@ -5,6 +5,10 @@
 Additional features:
 
  * inspectionsClean task
+ 
+Configuration:
+
+ * main configuration file is now taken from root project directory, not from current module directory
 
 Bug fixes:
 

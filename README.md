@@ -34,7 +34,7 @@ Plugin works at least with IDEA CE versions 2017.2, 2017.2.x, 2017.3, 2017.3.x, 
 If you have multi-platform or Kotlin JS project, please use IDEA CE 2017.3 or later. 
 
 And the last necessary thing is configuration file, 
-which is located (by default) in file `config/inspections/inspections.xml`.
+which is located (by default) in file `config/inspections/inspections.xml` inside root project directory.
 The simplest possible format is the following:
 
 ```xml

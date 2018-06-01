@@ -115,10 +115,10 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
     var configFile: File
         @InputFile
         get() {
-            return File(project.projectDir, config)
+            return File(project.rootProject.projectDir, config)
         }
         set(value) {
-            config = value.relativeTo(project.projectDir).path
+            config = value.relativeTo(project.rootProject.projectDir).path
         }
 
     /**
