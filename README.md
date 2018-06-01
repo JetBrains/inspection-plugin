@@ -130,3 +130,4 @@ Known bugs / problems at this moment (version 0.1.4):
 
 * inspection task is not executed on rerun if source code is not changed (use `inspectionsClean inspectionsMain` to make it rerun)
 * plugin does not work yet with Ultimate IDEA versions, like ideaIU:2017.3
+* part of inspection tools (so-called global inspections) are not supported yet. Most Kotlin inspections are supported.
