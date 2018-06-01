@@ -62,7 +62,8 @@ class InspectionRunner(
         private val jdkEnvironmentVariables = mapOf(
                 "1.6" to "JDK_16",
                 "1.7" to "JDK_17",
-                "1.8" to "JDK_18"
+                "1.8" to "JDK_18",
+                "9" to "JDK_9"
         )
 
         private val USELESS_PLUGINS = listOf(
@@ -125,7 +126,7 @@ class InspectionRunner(
         this.application = application
         try {
             application.doNotSave()
-            val ideaProject = application.openProject(ideaProjectFileName)
+            val ideaProject = application.configureJdkAndOpenProject(ideaProjectFileName)
             val results = application.analyzeTree(files, ideaProject)
             var errors = 0
             var warnings = 0
@@ -328,7 +329,7 @@ class InspectionRunner(
         }
     }
 
-    private fun Application.openProject(ideaProjectFileName: String): IdeaProject {
+    private fun Application.configureJdkAndOpenProject(ideaProjectFileName: String): IdeaProject {
         info("Before SDK configuration")
         invokeAndWait {
             runWriteAction {
@@ -337,7 +338,7 @@ class InspectionRunner(
                 for ((jdkVersion, jdkEnvironmentVariable) in jdkEnvironmentVariables) {
                     if (jdkTable.findJdk(jdkVersion) != null) continue
                     val homePath = System.getenv(jdkEnvironmentVariable)
-                            ?: if (javaHomePath.contains(jdkVersion)) javaHomePath else continue
+                            ?: if (jdkVersion in javaHomePath && "jdk" in javaHomePath) javaHomePath else continue
                     info("Configuring JDK $jdkVersion")
                     val sdk = SdkConfigurationUtil.createAndAddSDK(
                             FileUtil.toSystemIndependentName(homePath),
