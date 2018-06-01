@@ -68,7 +68,6 @@ To do it, values of different environment variables are read:
 * `JDK_16`: can be used to configure JDK 1.6
 * `JDK_17`: can be used to configure JDK 1.7
 * `JDK_18`: can be used to configure JDK 1.8
-* `JDK_9`: can be used to configure JDK 9
 
 Path to JDK which is used on your project must be available among these variables.
 

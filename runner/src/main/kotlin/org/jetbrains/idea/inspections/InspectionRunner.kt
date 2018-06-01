@@ -62,8 +62,9 @@ class InspectionRunner(
         private val jdkEnvironmentVariables = mapOf(
                 "1.6" to "JDK_16",
                 "1.7" to "JDK_17",
-                "1.8" to "JDK_18",
-                "9" to "JDK_9"
+                "1.8" to "JDK_18"
+                // TODO: un-comment me
+                //"9" to "JDK_9"
         )
 
         private val USELESS_PLUGINS = listOf(
