@@ -125,7 +125,8 @@ class InspectionRunner(
         this.application = application
         try {
             application.doNotSave()
-            val results = application.analyzeTree(files, ideaProjectFileName)
+            val ideaProject = application.openProject(ideaProjectFileName)
+            val results = application.analyzeTree(files, ideaProject)
             var errors = 0
             var warnings = 0
 
@@ -327,10 +328,7 @@ class InspectionRunner(
         }
     }
 
-    private fun Application.analyzeTree(
-            files: Collection<File>,
-            ideaProjectFileName: String
-    ): Map<String, List<PinnedProblemDescriptor>> {
+    private fun Application.openProject(ideaProjectFileName: String): IdeaProject {
         info("Before SDK configuration")
         invokeAndWait {
             runWriteAction {
@@ -350,7 +348,7 @@ class InspectionRunner(
             }
         }
         info("Before project creation at '$projectPath'")
-        val ideaProject: IdeaProject = run {
+        return run {
             var ideaProject: IdeaProject? = null
             val projectFile = File(projectPath, ideaProjectFileName + ProjectFileType.DOT_DEFAULT_EXTENSION)
             invokeAndWait {
@@ -368,6 +366,12 @@ class InspectionRunner(
                 throw InspectionRunnerException("Cannot open IDEA project: '${projectFile.absolutePath}'")
             }
         }
+    }
+
+    private fun Application.analyzeTree(
+            files: Collection<File>,
+            ideaProject: IdeaProject
+    ): Map<String, List<PinnedProblemDescriptor>> {
         info("Before psi manager creation")
         val psiManager = PsiManager.getInstance(ideaProject)
         info("Before virtual file manager creation")
