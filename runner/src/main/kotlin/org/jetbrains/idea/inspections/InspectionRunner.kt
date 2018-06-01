@@ -390,7 +390,7 @@ class InspectionRunner(
             when (inspectionTool) {
                 is LocalInspectionTool -> {}
                 is GlobalInspectionTool -> {
-                    warn("Global inspection tools like $inspectionClassName are not yet supported")
+                    info("Global inspection tools like $inspectionClassName are not yet supported")
                     continue@inspectionLoop
                 }
                 else -> {
