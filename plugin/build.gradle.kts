@@ -90,11 +90,13 @@ tasks {
 }
 
 dependencies {
-    compile("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
+    compileOnly("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
     compileOnly(gradleApi())
+    // TODO: remove this dependency or make it compile-only
     compile("org.jdom:jdom2:2.0.6")
 
     testCompile("junit:junit:4.12")
     testCompile(gradleTestKit())
+    testCompile("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
 }
 
