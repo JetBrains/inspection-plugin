@@ -9,6 +9,9 @@ interface Analyzer {
             files: Collection<File>,
             ideaProjectFileName: String,
             ideaHomeDirectory: File,
+            maxErrors: Int,
+            maxWarnings: Int,
+            quiet: Boolean,
             xmlReport: File?,
             htmlReport: File?
     ): Boolean

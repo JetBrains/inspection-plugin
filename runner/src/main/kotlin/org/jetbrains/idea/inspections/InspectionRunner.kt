@@ -44,9 +44,6 @@ import com.intellij.openapi.editor.Document as IdeaDocument
 @Suppress("unused")
 class InspectionRunner(
         private val projectPath: String,
-        private val maxErrors: Int,
-        private val maxWarnings: Int,
-        private val quiet: Boolean,
         private val inspectionClasses: InspectionClassesSuite,
         private val testMode: Boolean
 ) : Analyzer {
@@ -112,6 +109,9 @@ class InspectionRunner(
             files: Collection<File>,
             ideaProjectFileName: String,
             ideaHomeDirectory: File,
+            maxErrors: Int,
+            maxWarnings: Int,
+            quiet: Boolean,
             xmlReport: File?,
             htmlReport: File?
     ): Boolean {

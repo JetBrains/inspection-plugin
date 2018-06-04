@@ -233,7 +233,7 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
                 ) as Class<Analyzer>
                 val analyzer = analyzerClass.constructors.first().newInstance(
                         project.rootProject.projectDir.absolutePath,
-                        maxErrors, maxWarnings, quiet, inspectionClasses,
+                        inspectionClasses,
                         extension.testMode
                 ).let { analyzerClass.cast(it) }
                 analyzer.setLogger(BiFunction { level, message ->
@@ -254,6 +254,9 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
                         files = getSource().files,
                         ideaProjectFileName = project.rootProject.name,
                         ideaHomeDirectory = ideaDirectory,
+                        maxErrors = maxErrors,
+                        maxWarnings = maxWarnings,
+                        quiet = quiet,
                         xmlReport = if (reports.xml.isEnabled) reports.xml.destination else null,
                         htmlReport = if (reports.html.isEnabled) reports.html.destination else null
                 )
