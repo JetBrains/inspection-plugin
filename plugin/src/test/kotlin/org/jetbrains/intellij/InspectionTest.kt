@@ -366,10 +366,8 @@ compileTestKotlin {
         doTest("testData/inspection/addVariance/main.kt")
     }
 
-    @Ignore
     @Test
     fun testConfigurationJava() {
-        // TODO: test is temporarily ignored (often fails on TeamCity)
         doTest("testData/inspection/configurationJava/Main.java")
     }
 
