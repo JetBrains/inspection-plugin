@@ -8,6 +8,7 @@ interface Analyzer {
     fun analyzeTreeAndLogResults(
             files: Collection<File>,
             ideaProjectFileName: String,
+            ideaModuleName: String,
             ideaHomeDirectory: File,
             maxErrors: Int,
             maxWarnings: Int,

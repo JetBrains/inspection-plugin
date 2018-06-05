@@ -16,6 +16,7 @@ import com.intellij.openapi.application.ex.ApplicationManagerEx
 import com.intellij.openapi.application.impl.ApplicationImpl
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.ex.ProjectManagerEx
@@ -23,8 +24,8 @@ import com.intellij.openapi.project.impl.ProjectManagerImpl
 import com.intellij.openapi.projectRoots.JavaSdk
 import com.intellij.openapi.projectRoots.ProjectJdkTable
 import com.intellij.openapi.projectRoots.impl.SdkConfigurationUtil
-import com.intellij.openapi.roots.ProjectFileIndex
-import com.intellij.openapi.roots.ProjectRootManager
+import com.intellij.openapi.roots.*
+import com.intellij.openapi.roots.OrderRootType.*
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.project.Project as IdeaProject
 import com.intellij.openapi.vfs.VirtualFileManager
@@ -56,6 +57,7 @@ class InspectionRunner(
         private const val INSPECTION_PROFILES_PATH = ".idea/inspectionProfiles"
         private const val SYSTEM_MARKER_FILE = "marker.ipl"
         private const val JAVA_HOME = "JAVA_HOME"
+        private const val KT_LIB = "kotlin-stdlib"
         private val jdkEnvironmentVariables = mapOf(
                 "1.6" to "JDK_16",
                 "1.7" to "JDK_17",
@@ -64,6 +66,7 @@ class InspectionRunner(
                 //"9" to "JDK_9"
         )
 
+        // TODO: change to USEFUL_PLUGINS
         private val USELESS_PLUGINS = listOf(
                 "mobi.hsz.idea.gitignore",
                 "org.jetbrains.plugins.github",
@@ -108,6 +111,7 @@ class InspectionRunner(
     override fun analyzeTreeAndLogResults(
             files: Collection<File>,
             ideaProjectFileName: String,
+            ideaModuleName: String,
             ideaHomeDirectory: File,
             maxErrors: Int,
             maxWarnings: Int,
@@ -127,7 +131,7 @@ class InspectionRunner(
         this.application = application
         try {
             application.doNotSave()
-            val ideaProject = application.configureJdkAndOpenProject(ideaProjectFileName)
+            val ideaProject = application.configureJdkAndOpenProject(ideaProjectFileName, ideaModuleName)
             val results = application.analyzeTree(files, ideaProject)
             var errors = 0
             var warnings = 0
@@ -330,7 +334,10 @@ class InspectionRunner(
         }
     }
 
-    private fun Application.configureJdkAndOpenProject(ideaProjectFileName: String): IdeaProject {
+    private fun Application.configureJdkAndOpenProject(
+            ideaProjectFileName: String,
+            ideaModuleName: String
+    ): IdeaProject {
         info("Before SDK configuration")
         invokeAndWait {
             runWriteAction {
@@ -364,6 +371,44 @@ class InspectionRunner(
                 val rootManager = ProjectRootManager.getInstance(this)
                 info("Project SDK name: " + rootManager.projectSdkName)
                 info("Project SDK: " + rootManager.projectSdk)
+
+                val modules = ModuleManager.getInstance(this).modules.toList()
+                for (module in modules) {
+                    if (module.name != ideaModuleName) continue
+                    val moduleRootManager = ModuleRootManager.getInstance(module)
+                    val dependencyEnumerator =
+                            moduleRootManager.orderEntries().compileOnly().recursively().exportedOnly()
+                    var dependsOnKotlinCommon = false
+                    var dependsOnKotlinJS = false
+                    var dependsOnKotlinJVM = false
+                    dependencyEnumerator.forEach { orderEntry ->
+                        if (orderEntry is LibraryOrderEntry) {
+                            val library = orderEntry.library
+                            if (library != null) {
+                                if (library.getUrls(CLASSES).any { "$KT_LIB-common" in it }) {
+                                    dependsOnKotlinCommon = true
+                                }
+                                if (library.getUrls(CLASSES).any { "$KT_LIB-js" in it }) {
+                                    dependsOnKotlinJS = true
+                                }
+                                if (library.getUrls(CLASSES).any { "$KT_LIB-jdk" in it || "$KT_LIB-1" in it}) {
+                                    dependsOnKotlinJVM = true
+                                }
+                            }
+                        }
+                        true
+                    }
+                    when {
+                        dependsOnKotlinJVM ->
+                            info("Under analysis: Kotlin JVM module $module with SDK: " + moduleRootManager.sdk)
+                        dependsOnKotlinJS ->
+                            warn("Under analysis: Kotlin JS module $module (JS SDK is not supported yet)")
+                        dependsOnKotlinCommon ->
+                            warn("Under analysis: Kotlin common module $module (common SDK is not supported yet)")
+                        else ->
+                            info("Under analysis: pure Java module $module with SDK: " + moduleRootManager.sdk)
+                    }
+                }
             } ?: run {
                 throw InspectionRunnerException("Cannot open IDEA project: '${projectFile.absolutePath}'")
             }

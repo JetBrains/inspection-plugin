@@ -253,6 +253,7 @@ open class Inspection : SourceTask(), VerificationTask, Reporting<CheckstyleRepo
                 success = analyzer.analyzeTreeAndLogResults(
                         files = getSource().files,
                         ideaProjectFileName = project.rootProject.name,
+                        ideaModuleName = project.name,
                         ideaHomeDirectory = ideaDirectory,
                         maxErrors = maxErrors,
                         maxWarnings = maxWarnings,
