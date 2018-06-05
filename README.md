@@ -6,12 +6,12 @@
 
 This plugin is intended to run IDEA inspections during Gradle build.
 
-Current status: alpha version 0.1.3 available (0.1.4 under construction).
+Current status: beta-candidate version 0.1.4 is available.
 
 ## Usage
 
 * Add `maven { url 'https://dl.bintray.com/kotlin/kotlin-dev' }` to your buildscript repositories (temporary location)
-* Add `classpath 'org.jetbrains.intellij.plugins:inspection-plugin:0.1.3'` to your buildscript dependencies
+* Add `classpath 'org.jetbrains.intellij.plugins:inspection-plugin:0.1.4'` to your buildscript dependencies
 * Apply plugin `'org.jetbrains.intellij.inspections'` to your gradle module
 
 This adds one inspection plugin task per source root, 
@@ -28,10 +28,9 @@ inspections {
 ``` 
 
 In this example inspections will be taken from IDEA CE version 2017.2.6. 
-Plugin works at least with IDEA CE versions 2017.2, 2017.2.x, 2017.3, 2017.3.x, 2018.1. 
-(last three supported by inspection plugin 0.1.4 or later).
-2018.2 eap also should work. 
-If you have multi-platform or Kotlin JS project, please use IDEA CE 2017.3 or later. 
+Plugin works at least with IDEA CE versions 2017.2, 2017.2.x, 2017.3, 2017.3.x, 2018.1, or 2018.2 eap like 182.2574.2
+(last four supported by inspection plugin 0.1.4 or later).
+If you have multi-platform project, it's recommended to use IDEA CE 182.2574.2 or later. 
 
 And the last necessary thing is configuration file, 
 which is located (by default) in file `config/inspections/inspections.xml` inside root project directory.
@@ -130,4 +129,6 @@ Known bugs / problems at this moment (version 0.1.4):
 
 * inspection task is not executed on rerun if source code is not changed (use `inspectionsClean inspectionsMain` to make it rerun)
 * plugin does not work yet with Ultimate IDEA versions, like ideaIU:2017.3
+* analysis of Kotlin JS and common modules is only partially supported
+* Kotlin JVM module with common library in dependencies (like kotlin-stdlib-common or kotlin-test) is configured correctly only in IDEA 2018.2, e.g. IC:182.2574.2 
 * part of inspection tools (so-called global inspections) are not supported yet. Most Kotlin inspections are supported.
