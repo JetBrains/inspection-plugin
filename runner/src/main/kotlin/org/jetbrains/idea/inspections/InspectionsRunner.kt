@@ -4,16 +4,4 @@ import com.intellij.openapi.project.Project as IdeaProject
 import com.intellij.openapi.editor.Document as IdeaDocument
 
 @Suppress("unused")
-class InspectionsRunner(
-        projectPath: String,
-        inheritFromIdea: Boolean,
-        inspections: Set<String>?,
-        ideaProfile: String?,
-        testMode: Boolean
-) : AbstractInspectionsRunner(
-        projectPath,
-        testMode,
-        inheritFromIdea,
-        inspections,
-        ideaProfile
-)
+class InspectionsRunner(testMode: Boolean, inspections: Set<String>) : AbstractInspectionsRunner(testMode, inspections)

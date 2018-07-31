@@ -58,6 +58,67 @@ You will see inspection messages in console as well as in report XML located in 
 
 You can find example usage in `sample` project subdirectory.
 
+## What news in 0.1.5-SNAPSHOT?
+
+* Removed configuration file
+
+* New gradle configuration
+
+##### Full plugin parameters representation
+```
+inspections {
+    inheritFormIdea = false
+    profileName = null
+    errors {
+        inspections = ['error.inspection.1', 'error.inspection.2', 'error.inspection.n']
+        max = null
+    }
+    warnings {
+        inspections = [
+                'org.jetbrains.kotlin.idea.inspections.DataClassPrivateConstructorInspection',
+                'org.jetbrains.kotlin.idea.inspections.UseExpressionBodyInspection',
+                'org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection',
+                'org.jetbrains.kotlin.idea.inspections.AddVarianceModifierInspection',
+                'org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection'
+        ]
+        max = 10
+    }
+    infos {
+        inspections = []
+        max = null
+    }
+    toolVersion = 'ideaIC:2017.3'
+    reportsDir = file('build')
+    ignoreFailures = false
+    ideaVersion = 'ideaIC:2017.3'
+    kotlinPluginVersion = '1.2.51-release-Studio3.2-1'
+    quiet = false
+    quickFix = false
+    reformat {
+        quiet = false
+        quickFix = true
+    }
+}
+```
+
+##### Short analog of plugin parameters
+```
+inspections {
+    toolVersion = 'ideaIC:2017.3'
+    reportsDir = file('build')
+    warnings {
+        inspections = [
+                'org.jetbrains.kotlin.idea.inspections.DataClassPrivateConstructorInspection',
+                'org.jetbrains.kotlin.idea.inspections.UseExpressionBodyInspection',
+                'org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection',
+                'org.jetbrains.kotlin.idea.inspections.AddVarianceModifierInspection',
+                'org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection'
+        ]
+        max = 10
+    }
+}
+```
+
 ## JDK configuration
 
 To run inspections correctly, inspection plugin configures JDK in IDEA used. 

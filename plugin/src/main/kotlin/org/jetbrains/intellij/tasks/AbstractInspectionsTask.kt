@@ -7,35 +7,19 @@ import org.gradle.api.invocation.Gradle
 import org.gradle.api.tasks.*
 import org.jetbrains.intellij.*
 import org.jetbrains.intellij.Analyzer
+import org.jetbrains.intellij.parameters.InspectionsParameters
 import java.io.File
 import java.net.URLClassLoader
 import java.util.function.BiFunction
 import kotlin.concurrent.thread
 
-abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
+abstract class AbstractInspectionsTask : SourceTask(), VerificationTask, SourceBaseDependentTask {
 
-    /**
-     * Whether or not this task will ignore failures and continue running the build.
-     *
-     * @return true if failures should be ignored
-     */
-    override fun getIgnoreFailures(): Boolean = extension.isIgnoreFailures
+    private var analyzer: Analyzer<InspectionsParameters>? = null
 
-    /**
-     * Whether this task will ignore failures and continue running the build.
-     */
-    override fun setIgnoreFailures(ignoreFailures: Boolean) {
-        extension.isIgnoreFailures = ignoreFailures
-    }
+    abstract fun getInspectionsParameters(): InspectionsParameters
 
-    private var analyzer: Analyzer? = null
-
-    abstract fun getAnalyzerParameters(): AnalyzerParameters
-
-    abstract fun createAnalyzer(loader: ClassLoader): Analyzer
-
-    protected val extension: InspectionPluginExtension
-        get() = project.extensions.findByType(InspectionPluginExtension::class.java)!!
+    abstract fun createAnalyzer(loader: ClassLoader): Analyzer<InspectionsParameters>
 
     private fun tryResolveRunnerJar(project: org.gradle.api.Project): File = try {
         val runner = "org.jetbrains.intellij.plugins:inspection-runner:$runnerVersion"
@@ -55,11 +39,12 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
     @TaskAction
     fun run() {
         try {
-            val ideaDirectory = InspectionPlugin.ideaDirectory(extension.toolVersion)
+            val parameters = getInspectionsParameters()
+            val ideaDirectory = InspectionPlugin.ideaDirectory(parameters.ideaVersion)
             logger.info("Idea directory: $ideaDirectory")
             val ideaLibraries = File(ideaDirectory, "lib")
             val ideaClasspath = ideaLibraries.classpath
-            val kotlinPluginDirectory = InspectionPlugin.kotlinPluginDirectory(extension.kotlinPluginVersion)
+            val kotlinPluginDirectory = InspectionPlugin.kotlinPluginDirectory(parameters.kotlinPluginVersion)
             val kotlinPluginLibraries = File(File(kotlinPluginDirectory, "Kotlin"), "lib")
             val kotlinPluginClasspath = kotlinPluginLibraries.classpath
             val analyzerClasspath = listOf(tryResolveRunnerJar(project))
@@ -93,7 +78,6 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
                     gradle = gradle.parent ?: break
                 }
                 gradle.addBuildListener(IdeaFinishingListener())
-                val parameters = getAnalyzerParameters()
                 success = analyzer.analyze(
                         files = getSource().files,
                         projectName = project.rootProject.name,
@@ -110,7 +94,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
             inspectionsThread.start()
             inspectionsThread.join()
 
-            if (!success && !ignoreFailures) {
+            if (!success && !parameters.ignoreFailures) {
                 logger.error("Task execution failure")
                 throw TaskExecutionException(this, null)
             }

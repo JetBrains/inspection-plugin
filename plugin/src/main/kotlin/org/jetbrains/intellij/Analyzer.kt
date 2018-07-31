@@ -3,7 +3,9 @@ package org.jetbrains.intellij
 import java.io.File
 import java.util.function.BiFunction
 
-interface Analyzer {
+interface Analyzer<T : Analyzer.Parameters> {
+
+    interface Parameters
 
     // Returns true if analysis executed successfully
     fun analyze(
@@ -11,7 +13,7 @@ interface Analyzer {
             projectName: String,
             moduleName: String,
             ideaHomeDirectory: File,
-            parameters: AnalyzerParameters
+            parameters: T
     ): Boolean
 
     fun setLogger(logger: BiFunction<Int, String, Unit>)

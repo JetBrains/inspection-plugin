@@ -5,9 +5,7 @@ import com.intellij.openapi.editor.Document as IdeaDocument
 import org.jetbrains.kotlin.idea.inspections.ReformatInspection
 
 @Suppress("unused")
-class ReformatInspectionRunner(projectPath: String, testMode: Boolean) :
-        AbstractInspectionsRunner(projectPath, testMode, false, setOf(REFORMAT_INSPECTION_TOOL), null) {
-
+class ReformatInspectionRunner(testMode: Boolean) : AbstractInspectionsRunner(testMode, setOf(REFORMAT_INSPECTION_TOOL)) {
     companion object {
         private val REFORMAT_INSPECTION_TOOL = ReformatInspection::class.java.canonicalName
     }

@@ -36,7 +36,7 @@ abstract class AbstractUnzipTask : ConventionTask() {
         }
         destinationDir.let {
             logger.warn("Unzipping from ${archive.path} to ${it.path}")
-            if (!it.exists())
+            if (it.exists())
                 it.deleteRecursively()
             it.mkdirs()
             project.copy {

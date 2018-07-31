@@ -3,27 +3,43 @@ package org.jetbrains.intellij.tasks
 import org.gradle.api.tasks.*
 import org.jetbrains.intellij.InspectionPlugin
 import org.jetbrains.intellij.InspectionPlugin.Companion.BASE_CACHE_DIRECTORY
-import org.jetbrains.intellij.InspectionPluginExtension
+import org.jetbrains.intellij.extensions.InspectionsExtension
+import org.jetbrains.intellij.versions.KotlinPluginVersion
+import org.jetbrains.intellij.versions.ToolVersion
 import java.io.File
 
 @Suppress("MemberVisibilityCanBePrivate")
 open class UnzipKotlinPluginTask : AbstractUnzipTask() {
-    private val extension: InspectionPluginExtension
-        get() = project.extensions.getByName(InspectionPlugin.SHORT_NAME) as InspectionPluginExtension
+
+    /**
+     * Tool (IDEA) version to use
+     */
+    @get:Input
+    val toolVersion: ToolVersion
+        get() = InspectionPlugin.toolVersion(extension.toolVersion)
+
+    /**
+     * Version of IDEA Kotlin Plugin.
+     */
+    @get:Input
+    val kotlinPluginVersion: KotlinPluginVersion
+        get() = InspectionPlugin.kotlinPluginVersion(toolVersion, extension.kotlinPluginVersion)
 
     @get:InputFile
     override val sourceFile: File
-        get() = InspectionPlugin.kotlinPluginSource(extension.kotlinPluginVersion)
+        get() = InspectionPlugin.kotlinPluginSource(kotlinPluginVersion)
 
     @get:OutputDirectory
     override val destinationDir: File
-        get() = InspectionPlugin.kotlinPluginDirectory(extension.kotlinPluginVersion)
+        get() = InspectionPlugin.kotlinPluginDirectory(kotlinPluginVersion)
 
     @get:OutputFile
     override val markerFile: File
         get() = File(BASE_CACHE_DIRECTORY, "markerFile")
 
-    @Suppress("unused")
+    private val extension: InspectionsExtension
+        get() = project.extensions.findByType(InspectionsExtension::class.java)!!
+
     @TaskAction
     fun apply() = unzip()
 }

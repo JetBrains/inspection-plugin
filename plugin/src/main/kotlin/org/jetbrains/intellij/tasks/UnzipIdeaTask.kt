@@ -1,33 +1,43 @@
 package org.jetbrains.intellij.tasks
 
-import org.gradle.api.artifacts.Configuration
-import org.gradle.api.tasks.InputFile
-import org.gradle.api.tasks.OutputDirectory
-import org.gradle.api.tasks.OutputFile
-import org.gradle.api.tasks.TaskAction
+import org.gradle.api.tasks.*
 import org.jetbrains.intellij.InspectionPlugin
-import org.jetbrains.intellij.InspectionPluginExtension
+import org.jetbrains.intellij.extensions.InspectionsExtension
+import org.jetbrains.intellij.versions.IdeaVersion
+import org.jetbrains.intellij.versions.ToolVersion
 import java.io.File
 
 @Suppress("MemberVisibilityCanBePrivate")
 open class UnzipIdeaTask : AbstractUnzipTask() {
-    private val configuration: Configuration
-        get() = project.configurations.getByName(InspectionPlugin.SHORT_NAME)
 
-    private val extension: InspectionPluginExtension
-        get() = project.extensions.getByName(InspectionPlugin.SHORT_NAME) as InspectionPluginExtension
+    /**
+     * Tool (IDEA) version to use
+     */
+    @get:Input
+    val toolVersion: ToolVersion
+        get() = InspectionPlugin.toolVersion(extension.toolVersion)
+
+    /**
+     * Version of IDEA.
+     */
+    @get:Input
+    val ideaVersion: IdeaVersion
+        get() = InspectionPlugin.ideaVersion(toolVersion, extension.ideaVersion)
 
     @get:InputFile
     override val sourceFile: File
-        get() = configuration.singleFile
+        get() = project.configurations.getByName(InspectionPlugin.SHORT_NAME).singleFile
 
     @get:OutputDirectory
     override val destinationDir: File
-        get() = InspectionPlugin.ideaDirectory(extension.toolVersion)
+        get() = InspectionPlugin.ideaDirectory(ideaVersion)
 
     @get:OutputFile
     override val markerFile: File
         get() = File(InspectionPlugin.DEPENDENCY_SOURCE_DIRECTORY, "markerFile")
+
+    private val extension: InspectionsExtension
+        get() = project.extensions.findByType(InspectionsExtension::class.java)!!
 
     @Suppress("unused")
     @TaskAction

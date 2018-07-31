@@ -31,7 +31,6 @@ apply {
     plugin("maven-publish")
     plugin("com.github.johnrengelman.shadow")
     plugin("com.jfrog.bintray")
-//    plugin("de.undercouch.download")
 }
 
 val projectName = "inspection-runner"

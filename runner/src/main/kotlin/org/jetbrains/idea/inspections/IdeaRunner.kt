@@ -3,7 +3,6 @@ package org.jetbrains.idea.inspections
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.idea.createCommandLineApplication
 import com.intellij.idea.getCommandLineApplication
-import com.intellij.lang.java.JavaLanguage
 import com.intellij.openapi.application.Application
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.application.ex.ApplicationEx
@@ -17,14 +16,14 @@ import com.intellij.openapi.projectRoots.ProjectJdkTable
 import com.intellij.openapi.projectRoots.impl.SdkConfigurationUtil
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.util.PlatformUtils
-import org.jetbrains.intellij.AnalyzerParameters
+import org.jetbrains.intellij.Analyzer
 import java.io.File
 import java.io.IOException
 import java.nio.channels.FileChannel
 import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 
-abstract class IdeaRunner(val testMode: Boolean) : AbstractAnalyzer() {
+abstract class IdeaRunner<T: Analyzer.Parameters>(private val testMode: Boolean) : AbstractAnalyzer<T>() {
 
     companion object {
         private const val AWT_HEADLESS = "java.awt.headless"
@@ -76,7 +75,7 @@ abstract class IdeaRunner(val testMode: Boolean) : AbstractAnalyzer() {
             files: Collection<File>,
             projectName: String,
             moduleName: String,
-            parameters: AnalyzerParameters
+            parameters: T
     ): Boolean
 
     override fun analyze(
@@ -84,7 +83,7 @@ abstract class IdeaRunner(val testMode: Boolean) : AbstractAnalyzer() {
             projectName: String,
             moduleName: String,
             ideaHomeDirectory: File,
-            parameters: AnalyzerParameters
+            parameters: T
     ): Boolean {
         logger.info("Class loader: " + this.javaClass.classLoader)
         val (idea, systemPathMarkerChannel) = try {
@@ -144,8 +143,8 @@ abstract class IdeaRunner(val testMode: Boolean) : AbstractAnalyzer() {
                         if (usesUltimate) PlatformUtils.IDEA_PREFIX else PlatformUtils.IDEA_CE_PREFIX
                 )
         )
-        logger.warn("IDEA home path: " + PathManager.getHomePath())
-        logger.warn("IDEA system path: $systemPath")
+        logger.info("IDEA home path: " + PathManager.getHomePath())
+        logger.info("IDEA system path: $systemPath")
         if (getCommandLineApplication() == null) {
             createCommandLineApplication(isInternal = false, isUnitTestMode = false, isHeadless = true)
             for (plugin in USELESS_PLUGINS) {

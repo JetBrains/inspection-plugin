@@ -14,23 +14,19 @@ import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project as IdeaProject
-import com.intellij.openapi.project.ex.ProjectManagerEx
-import com.intellij.openapi.project.impl.ProjectManagerImpl
 import com.intellij.openapi.roots.*
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
-import org.jetbrains.intellij.*
+import org.jetbrains.intellij.parameters.InspectionTypeParameters
+import org.jetbrains.intellij.parameters.InspectionsParameters
 import java.io.File
 
 
 abstract class AbstractInspectionsRunner(
-        private val projectPath: String,
         testMode: Boolean,
-        private val inheritFromIdea: Boolean,
-        private val inspections: Set<String>?,
-        private val ideaProfile: String?
-) : IdeaRunner(testMode) {
+        private val inspections: Set<String>
+) : IdeaRunner<InspectionsParameters>(testMode) {
 
     companion object {
         private const val KT_LIB = "kotlin-stdlib"
@@ -64,15 +60,21 @@ abstract class AbstractInspectionsRunner(
         }
     }
 
-    private fun getInspectionWrappers(ideaProject: IdeaProject): Sequence<PluginInspectionWrapper> {
-        if (inheritFromIdea) return getInspectionWrappersInheritFromIdea(ideaProject)
+    private fun getInspectionWrappers(parameters: InspectionsParameters, ideaProject: IdeaProject): Sequence<PluginInspectionWrapper> {
+        if (parameters.inheritFormIdea) return getInspectionWrappersInheritFromIdea(parameters, ideaProject)
         return getRegisteredInspectionWrappers()
     }
 
-    private fun getInspectionWrappersInheritFromIdea(ideaProject: IdeaProject): Sequence<PluginInspectionWrapper> {
+    operator fun File.div(name: String) = File(this, name)
+
+    private fun getInspectionWrappersInheritFromIdea(parameters: InspectionsParameters, ideaProject: IdeaProject): Sequence<PluginInspectionWrapper> {
         val inspectionProfileManager = ApplicationInspectionProfileManager.getInstanceImpl()
-        val profilePath = "$projectPath/$INSPECTION_PROFILES_PATH/$ideaProfile"
-        val inspectionProfile = inspectionProfileManager.loadProfile(profilePath)
+        val profileName = parameters.profileName ?: run {
+            logger.error("Undefined profile name")
+            return emptySequence()
+        }
+        val profileDir = parameters.projectDir / INSPECTION_PROFILES_PATH / profileName
+        val inspectionProfile = inspectionProfileManager.loadProfile(profileDir.absolutePath)
                 ?: inspectionProfileManager.currentProfile
         val profileTools = inspectionProfile.getAllEnabledInspectionTools(ideaProject)
         return profileTools.asSequence().map {
@@ -88,9 +90,8 @@ abstract class AbstractInspectionsRunner(
     }
 
     private fun getRegisteredInspectionWrappers(): Sequence<PluginInspectionWrapper> {
-        require(inspections != null) { "Runner inspections hasn't initialized" }
         val tools = InspectionToolRegistrar.getInstance().createTools()
-        return inspections!!.asSequence().mapNotNull { inspectionClassName ->
+        return inspections.asSequence().mapNotNull { inspectionClassName ->
             val inspectionToolWrapper = tools.find { it.tool.javaClass.name == inspectionClassName }
             if (inspectionToolWrapper == null) {
                 logger.error("InspectionsTask $inspectionClassName is not found in registrar")
@@ -107,20 +108,23 @@ abstract class AbstractInspectionsRunner(
             files: Collection<File>,
             projectName: String,
             moduleName: String,
-            parameters: AnalyzerParameters
+            parameters: InspectionsParameters
     ): Boolean {
-        val reportParameters = parameters.reportParameters
-        val quickFixParameters = parameters.quickFixParameters
-        val ideaProject = idea.openProject(projectPath, projectName, moduleName)
-        val results = idea.analyze(files, ideaProject)
-        val reportStatus = if (reportParameters != null)
-            reportProblems(idea, reportParameters, results) else true
-        val quickFixStatus = if (quickFixParameters != null)
-            quickFixProblems(quickFixParameters, projectName, moduleName, results) else true
-        return reportStatus && quickFixStatus
+        val ideaProject = idea.openProject(parameters.projectDir, projectName, moduleName)
+        val results = idea.analyze(parameters, files, ideaProject)
+        reportProblems(parameters, results)
+        return quickFixProblems(ideaProject, parameters, results)
     }
 
-    private fun Application.analyze(files: Collection<File>, ideaProject: IdeaProject): Map<String, List<PinnedProblemDescriptor>> {
+    private fun Application.analyze(
+            parameters: InspectionsParameters,
+            files: Collection<File>,
+            ideaProject: IdeaProject
+    ): Map<String, List<PinnedProblemDescriptor>> {
+        var errors = 0
+        var warnings = 0
+        var infos = 0
+
         logger.info("Before psi manager creation")
         val psiManager = PsiManager.getInstance(ideaProject)
         logger.info("Before virtual file manager creation")
@@ -131,7 +135,7 @@ abstract class AbstractInspectionsRunner(
 
         val results: MutableMap<String, MutableList<PinnedProblemDescriptor>> = mutableMapOf()
         logger.info("Before inspections launched: total of ${files.size} files to analyze")
-        inspectionLoop@ for (inspectionWrapper in getInspectionWrappers(ideaProject)) {
+        inspectionLoop@ for (inspectionWrapper in getInspectionWrappers(parameters, ideaProject)) {
             val inspectionClassName = inspectionWrapper.classFqName
             val inspectionTool = inspectionWrapper.tool
             when (inspectionTool) {
@@ -149,10 +153,11 @@ abstract class AbstractInspectionsRunner(
             val inspectionExtension = inspectionWrapper.extension
             val displayName = inspectionExtension?.displayName ?: "<Unknown diagnostic>"
             val inspectionResults = mutableListOf<PinnedProblemDescriptor>()
+            var success = true
             runReadAction {
                 val task = Runnable {
                     try {
-                        for (sourceFile in files) {
+                        analysisLoop@ for (sourceFile in files) {
                             val filePath = sourceFile.absolutePath
                             val virtualFile = virtualFileSystem.findFileByPath(filePath)
                                     ?: throw InspectionRunnerException("Cannot find virtual file for $filePath")
@@ -165,7 +170,32 @@ abstract class AbstractInspectionsRunner(
                             if (!inspectionEnabledForFile(inspectionWrapper, psiFile)) continue
                             val document = documentManager.getDocument(virtualFile)
                                     ?: throw InspectionRunnerException("Cannot get document for $filePath")
-                            inspectionResults += inspectionTool.analyze(psiFile, document, displayName, inspectionWrapper.level)
+                            val problems = inspectionTool.analyze(psiFile, document, displayName, inspectionWrapper.level)
+                            inspectionResults += problems
+                            for (problem in problems) {
+                                val level = problem.getLevel(inspectionClassName, parameters)
+                                if (level == null) {
+                                    logger.warn("Problem level is undefined for $inspectionClassName")
+                                    continue
+                                }
+                                when (level) {
+                                    ProblemLevel.ERROR -> errors++
+                                    ProblemLevel.WARNING, ProblemLevel.WEAK_WARNING -> warnings++
+                                    ProblemLevel.INFORMATION -> infos++
+                                }
+                                val inspections = listOf(
+                                        Triple("errors", parameters.errors, errors),
+                                        Triple("warnings", parameters.warnings, warnings),
+                                        Triple("infos", parameters.infos, infos)
+                                )
+                                for ((name, parameter, number) in inspections) {
+                                    if (parameter.isTooMany(number)) {
+                                        logger.error("Too many $name found: $number. Analysis stopped")
+                                        success = false
+                                        break@analysisLoop
+                                    }
+                                }
+                            }
                         }
                     } catch (ie: InspectionException) {
                         logger.error("Exception during inspection running: " + ie.message)
@@ -175,79 +205,50 @@ abstract class AbstractInspectionsRunner(
                 }
                 ProgressManager.getInstance().runProcess(task, EmptyProgressIndicator())
             }
+            if (!success) break@inspectionLoop
             results[inspectionClassName] = inspectionResults
         }
         return results
     }
 
-    private fun reportProblems(idea: Application, parameters: ReportParameters, results: Map<String, List<PinnedProblemDescriptor>>): Boolean {
-        var errors = 0
-        var warnings = 0
-
+    private fun reportProblems(parameters: InspectionsParameters, results: Map<String, List<PinnedProblemDescriptor>>) {
         val generators = listOfNotNull(
-                parameters.xmlReport?.let { XMLGenerator(it) },
-                parameters.htmlReport?.let { HTMLGenerator(it, idea) }
+                parameters.report.xml?.let { XMLGenerator(it) },
+                parameters.report.html?.let { HTMLGenerator(it, idea) }
         )
-
-        var success = true
-        val sortedResults = results.entries.map { entry -> entry.value.map { entry.key to it } }.flatten().sortedBy {
-            val line = it.second.line
-            val row = it.second.row
-            (line shl 16) + row
-        }.groupBy { it.second.fileName }
-        logger.info("Total of ${sortedResults.values.flatten().count {
-            val inspectionClass = it.first
-            val problem = it.second
-            problem.actualLevel(parameters.getLevel(inspectionClass)) != null
-        }} problem(s) found")
-
+        if (generators.isEmpty() && parameters.report.isQuiet) return
+        val sortedResults = results.entries
+                .map { entry -> entry.value.map { entry.key to it } }
+                .flatten()
+                .sortedBy { (it.second.line shl 16) + it.second.row }
+                .groupBy { it.second.fileName }
+        val numProblems = sortedResults.values
+                .flatten()
+                .mapNotNull {
+                    val inspectionClass = it.first
+                    val problem = it.second
+                    problem.getLevel(inspectionClass, parameters)
+                }
+                .count()
+        logger.info("Total of $numProblems problem(s) found")
         analysisLoop@ for (fileInspectionAndProblems in sortedResults.values) {
             for ((inspectionClass, problem) in fileInspectionAndProblems) {
-                val level = problem.actualLevel(parameters.getLevel(inspectionClass)) ?: continue
-                when (level) {
-                    ProblemLevel.ERROR -> errors++
-                    ProblemLevel.WARNING, ProblemLevel.WEAK_WARNING -> warnings++
-                    ProblemLevel.INFORMATION -> {
-                    }
-                }
-                if (!parameters.quiet) {
-                    log(level, problem.renderWithLocation())
-                }
+                val level = problem.getLevel(inspectionClass, parameters) ?: continue
+                if (!parameters.report.isQuiet) log(level, problem)
                 generators.forEach { it.report(problem, level, inspectionClass) }
-                if (errors > parameters.maxErrors) {
-                    logger.error("Too many errors found: $errors. Analysis stopped")
-                    success = false
-                    break@analysisLoop
-                }
-                if (warnings > parameters.maxWarnings) {
-                    logger.error("Too many warnings found: $warnings. Analysis stopped")
-                    success = false
-                    break@analysisLoop
-                }
             }
         }
         generators.forEach { it.generate() }
-        return success
     }
 
     private fun quickFixProblems(
-            parameters: QuickFixParameters,
-            projectName: String,
-            moduleName: String,
+            project: IdeaProject,
+            parameters: InspectionsParameters,
             results: Map<String, List<PinnedProblemDescriptor>>
     ): Boolean {
-        if (!parameters.hasQuickFix) return true
-        val destination = parameters.destination
-        val quickFixProjectPath = destination?.absolutePath ?: projectPath
-        if (destination != null) {
-            val source = File(projectPath)
-            if (!destination.exists())
-                destination.deleteRecursively()
-            destination.mkdirs()
-            source.copyTo(destination)
-        }
-        val project = idea.openProject(quickFixProjectPath, projectName, moduleName)
+        if (!parameters.quickFix) return true
         WriteCommandAction.runWriteCommandAction(project) {
+            @Suppress("UNUSED_VARIABLE")
             for ((inspectionClassName, result) in results) {
                 for (problem in result) {
                     val fixes = problem.fixes
@@ -257,25 +258,30 @@ abstract class AbstractInspectionsRunner(
                     }
                     val fix = fixes[0]
                     fix.applyFix(project, problem)
-                    logger.info("Fixed ${fix.name} for $inspectionClassName inspection")
+                    logger.info("Applied fix '${fix.name}'")
                 }
             }
         }
         return true
     }
 
-    private fun ReportParameters.getLevel(clazz: String) = when (clazz) {
-        in errors -> ProblemLevel.ERROR
-        in warnings -> ProblemLevel.WARNING
-        in infos -> ProblemLevel.INFORMATION
+    private fun InspectionTypeParameters.isTooMany(value: Int) = max?.let { value > it } ?: false
+
+    private fun PinnedProblemDescriptor.getLevel(inspectionClass: String, parameters: InspectionsParameters) =
+            actualLevel(parameters.getLevel(inspectionClass))
+
+    private fun InspectionsParameters.getLevel(inspectionClass: String) = when (inspectionClass) {
+        in errors.inspections -> ProblemLevel.ERROR
+        in warnings.inspections -> ProblemLevel.WARNING
+        in infos.inspections -> ProblemLevel.INFORMATION
         else -> null
     }
 
-    private fun log(level: ProblemLevel, s: String) {
+    private fun log(level: ProblemLevel, problem: PinnedProblemDescriptor) {
         when (level) {
-            ProblemLevel.INFORMATION -> logger.info(s)
-            ProblemLevel.WARNING, ProblemLevel.WEAK_WARNING -> logger.warn(s)
-            ProblemLevel.ERROR -> logger.error(s)
+            ProblemLevel.INFORMATION -> logger.info(problem.renderWithLocation())
+            ProblemLevel.WARNING, ProblemLevel.WEAK_WARNING -> logger.warn(problem.renderWithLocation())
+            ProblemLevel.ERROR -> logger.error(problem.renderWithLocation())
         }
     }
 
@@ -311,10 +317,10 @@ abstract class AbstractInspectionsRunner(
         }
     }
 
-    private fun Application.openProject(projectPath: String, projectName: String, moduleName: String): IdeaProject {
-        logger.info("Before project creation at '$projectPath'")
+    private fun Application.openProject(projectDir: File, projectName: String, moduleName: String): IdeaProject {
+        logger.info("Before project creation at '$projectDir'")
         var ideaProject: IdeaProject? = null
-        val projectFile = File(projectPath, projectName + ProjectFileType.DOT_DEFAULT_EXTENSION)
+        val projectFile = File(projectDir, projectName + ProjectFileType.DOT_DEFAULT_EXTENSION)
         invokeAndWait {
             ideaProject = ProjectUtil.openOrImport(
                     projectFile.absolutePath,
