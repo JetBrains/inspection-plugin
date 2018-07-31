@@ -15,6 +15,30 @@ open class InspectionPluginExtension(private val project: Project) : CodeQuality
     lateinit var config: String
 
     /**
+     * Auto reformat are to be executed if found fixable code style errors.
+     * Result of refactorings will be put ot {@destinationReformatDirectory}.
+     * Default value is the <tt>true</tt>.
+     */
+    var hasAutoReformat: Boolean = true
+
+    /**
+     * Destination dedicatory for reformat result. Defaults to <tt>null</tt> means that reformat will be in-place.
+     */
+    var destinationReformatDirectory: File? = null
+
+    /**
+     * Quick fix are to be executed if found fixable code style errors.
+     * Result of refactorings will be put ot {@destinationQuickFixDirectory}.
+     * Default value is the <tt>false</tt>.
+     */
+    var hasQuickFix: Boolean = false
+
+    /**
+     * Destination dedicatory for quick fix result. Defaults to <tt>null</tt> means that reformat will be in-place.
+     */
+    var destinationQuickFixDirectory: File? = null
+
+    /**
      * The maximum number of errors that are tolerated before breaking the build
      * or setting the failure property. Defaults to <tt>0</tt>.
      *
@@ -49,12 +73,14 @@ open class InspectionPluginExtension(private val project: Project) : CodeQuality
     var testMode = false
 
     /**
+     * Version of Kotlin Plugin.
+     */
+    var kotlinPluginVersion = InspectionPlugin.DEFAULT_KOTLIN_PLUGIN_VERSION
+
+    /**
      * Path to other configuration files. By default, this path is `$projectDir/config/inspections`
-     *
      */
     @get:Incubating
     @set:Incubating
     lateinit var configDir: File
-
-    var ideaPlugins: Array<String> = emptyArray()
 }

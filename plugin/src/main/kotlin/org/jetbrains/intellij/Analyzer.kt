@@ -4,17 +4,14 @@ import java.io.File
 import java.util.function.BiFunction
 
 interface Analyzer {
+
     // Returns true if analysis executed successfully
-    fun analyzeTreeAndLogResults(
+    fun analyze(
             files: Collection<File>,
-            ideaProjectFileName: String,
-            ideaModuleName: String,
+            projectName: String,
+            moduleName: String,
             ideaHomeDirectory: File,
-            maxErrors: Int,
-            maxWarnings: Int,
-            quiet: Boolean,
-            xmlReport: File?,
-            htmlReport: File?
+            parameters: AnalyzerParameters
     ): Boolean
 
     fun setLogger(logger: BiFunction<Int, String, Unit>)

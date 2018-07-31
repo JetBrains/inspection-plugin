@@ -6,14 +6,14 @@ buildscript {
     extra["kotlinVersion"] = "1.2.0"
     val kotlinVersion: String by extra
 
-	repositories {
-		mavenCentral()
+    repositories {
+        mavenCentral()
         mavenLocal()
         jcenter()
         maven { setUrl("https://plugins.gradle.org/m2/") }
-	}
+    }
 
-	dependencies {
+    dependencies {
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
         classpath("com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.0")
     }
@@ -75,18 +75,18 @@ configure<BintrayExtension> {
 }
 
 repositories {
-	mavenCentral()
+    mavenCentral()
     mavenLocal()
 }
 
 tasks {
-	withType<KotlinCompile> {
-		kotlinOptions {
-			jvmTarget = "1.8"
+    withType<KotlinCompile> {
+        kotlinOptions {
+            jvmTarget = "1.8"
             languageVersion = "1.0"
             apiVersion = "1.0"
-		}
-	}
+        }
+    }
 }
 
 dependencies {
@@ -98,5 +98,8 @@ dependencies {
     testCompile("junit:junit:4.12")
     testCompile(gradleTestKit())
     testCompile("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
+
+    // Version of this library dependent from gradle api version
+    compile("org.apache.httpcomponents:httpclient:4.2.2")
 }
 

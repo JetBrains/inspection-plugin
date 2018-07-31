@@ -169,7 +169,7 @@ compileTestKotlin {
     ): String {
         return StringBuilder().apply {
             for (inspectionClass in inspections) {
-                val shortClass = inspectionClass.substringAfterLast(".").substringBefore("Inspection")
+                val shortClass = inspectionClass.substringAfterLast(".").substringBefore("InspectionsTask")
                 appendln("""        <inspection_tool class="$shortClass" enabled="true" level="$level" enabled_by_default="true"/>""")
             }
         }.toString()
