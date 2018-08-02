@@ -32,10 +32,6 @@ open class UnzipIdeaTask : AbstractUnzipTask() {
     override val destinationDir: File
         get() = InspectionPlugin.ideaDirectory(ideaVersion)
 
-    @get:OutputFile
-    override val markerFile: File
-        get() = File(InspectionPlugin.DEPENDENCY_SOURCE_DIRECTORY, "markerFile")
-
     private val extension: InspectionsExtension
         get() = project.extensions.findByType(InspectionsExtension::class.java)!!
 

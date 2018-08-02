@@ -99,9 +99,9 @@ abstract class IdeaRunner<T: Analyzer.Parameters>(private val testMode: Boolean)
             idea.configureJdk()
             return analyze(files, projectName, moduleName, parameters)
         } catch (e: Throwable) {
-            logger.error("Exception during IDEA runReadAction " + e.message)
+            logger.error("Exception during analyze " + e.message)
             if (e is InspectionRunnerException) throw e
-            throw InspectionRunnerException("EXCEPTION caught in inspection plugin (IDEA runReadAction): $e", e)
+            throw InspectionRunnerException("EXCEPTION caught in inspection plugin (IDEA readAction): $e", e)
         } finally {
             systemPathMarkerChannel.close()
         }

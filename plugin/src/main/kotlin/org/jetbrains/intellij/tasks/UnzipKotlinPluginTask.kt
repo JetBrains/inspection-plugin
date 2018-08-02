@@ -3,6 +3,7 @@ package org.jetbrains.intellij.tasks
 import org.gradle.api.tasks.*
 import org.jetbrains.intellij.InspectionPlugin
 import org.jetbrains.intellij.InspectionPlugin.Companion.BASE_CACHE_DIRECTORY
+import org.jetbrains.intellij.InspectionPlugin.Companion.DEPENDENCY_SOURCE_DIRECTORY
 import org.jetbrains.intellij.extensions.InspectionsExtension
 import org.jetbrains.intellij.versions.KotlinPluginVersion
 import org.jetbrains.intellij.versions.ToolVersion
@@ -32,10 +33,6 @@ open class UnzipKotlinPluginTask : AbstractUnzipTask() {
     @get:OutputDirectory
     override val destinationDir: File
         get() = InspectionPlugin.kotlinPluginDirectory(kotlinPluginVersion)
-
-    @get:OutputFile
-    override val markerFile: File
-        get() = File(BASE_CACHE_DIRECTORY, "markerFile")
 
     private val extension: InspectionsExtension
         get() = project.extensions.findByType(InspectionsExtension::class.java)!!

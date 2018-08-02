@@ -17,7 +17,7 @@ data class InspectionsParameters(
         val report: ReportParameters,
         val quickFix: Boolean,
 
-        val inheritFormIdea: Boolean,
+        val inheritFromIdea: Boolean,
         val profileName: String?,
         val errors: InspectionTypeParameters,
         val warnings: InspectionTypeParameters,

@@ -14,13 +14,21 @@ plugins {
     id 'org.jetbrains.intellij.inspections'
 }
 inspections {
-    <maxErrors>
-    <maxWarnings>
-    <ignoreFailures>
-    <quiet>
-    <config>
+    <testMode>
     <toolVersion>
-    testMode = true
+    <ignoreFailures>
+    <profileName>
+    <inheritFromIdea>
+    <errors.inspections>
+    <warnings.inspections>
+    <infos.inspections>
+    <errors.max>
+    <warnings.max>
+    <infos.max>
+    <quiet>
+    <quickFix>
+    <reformat.quiet>
+    <reformat.quickFix>
 }
 inspectionsMain {
     reports {

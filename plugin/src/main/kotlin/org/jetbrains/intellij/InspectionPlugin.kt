@@ -65,6 +65,10 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
             it.baseType = baseType
             it.dependsOn += project.tasks.getByName(UNZIP_IDEA_TASK_NAME)
             it.dependsOn += project.tasks.getByName(UNZIP_KOTLIN_PLUGIN_TASK_NAME)
+            it.dependsOn += project.rootProject.tasks.getByName("idea")
+            for (subProject in project.rootProject.subprojects) {
+                it.dependsOn += subProject.tasks.getByName("idea")
+            }
         }
     }
 
@@ -78,8 +82,8 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
     }
 
     private fun configureDefaultDependencies(task: InspectionsTask) {
-        val ideaVersion = task.ideaVersion
         project.configurations.getByName(SHORT_NAME).defaultDependencies {
+            val ideaVersion = task.ideaVersion
             it.add(project.dependencies.create("com.jetbrains.intellij.idea:$ideaVersion"))
         }
     }
@@ -169,33 +173,53 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
         }
 
         private fun defaultIdeaVersion(toolVersion: ToolVersion) = when (toolVersion) {
+            ToolVersion.IDEA_IC_2017_2 -> IdeaVersion.IDEA_IC_2017_2
             ToolVersion.IDEA_IC_2017_3 -> IdeaVersion.IDEA_IC_2017_3
+            ToolVersion.IDEA_IC_2018_1 -> IdeaVersion.IDEA_IC_2018_1
+            ToolVersion.IDEA_IC_2018_2 -> IdeaVersion.IDEA_IC_2018_2
         }
 
         private fun defaultKotlinPluginVersion(toolVersion: ToolVersion) = when (toolVersion) {
-            ToolVersion.IDEA_IC_2017_3 -> KotlinPluginVersion.RELEASE_STUDIO_1_2_51__3_2_1
+            ToolVersion.IDEA_IC_2017_2 -> KotlinPluginVersion.RELEASE_IJ2017_2_1__1_2_60
+            ToolVersion.IDEA_IC_2017_3 -> KotlinPluginVersion.RELEASE_IJ2017_3_1__1_2_60
+            ToolVersion.IDEA_IC_2018_1 -> KotlinPluginVersion.RELEASE_IJ2018_1_1__1_2_60
+            ToolVersion.IDEA_IC_2018_2 -> KotlinPluginVersion.RELEASE_IJ2018_2_1__1_2_60
         }
 
-        internal fun kotlinPluginLocation(kotlinPluginVersion: KotlinPluginVersion) = when (kotlinPluginVersion) {
-            KotlinPluginVersion.RELEASE_STUDIO_1_2_51__3_2_1 -> "https://plugins.jetbrains.com/plugin/download?rel=true&updateId=47481"
+        private fun kotlinPluginUpdateId(kotlinPluginVersion: KotlinPluginVersion) = when (kotlinPluginVersion) {
+            KotlinPluginVersion.RELEASE_IJ2017_2_1__1_2_60 -> 48408
+            KotlinPluginVersion.RELEASE_IJ2017_3_1__1_2_60 -> 48409
+            KotlinPluginVersion.RELEASE_IJ2018_1_1__1_2_60 -> 48410
+            KotlinPluginVersion.RELEASE_IJ2018_2_1__1_2_60 -> 48411
         }
 
-        private fun ideaVersion(toolVersion: ToolVersion) = when (toolVersion) {
+        internal fun kotlinPluginLocation(kotlinPluginVersion: KotlinPluginVersion) =
+                kotlinPluginUpdateId(kotlinPluginVersion).let {
+                    "https://plugins.jetbrains.com/plugin/download?rel=true&updateId=$it"
+                }
+
+        private fun ideaVersions(toolVersion: ToolVersion) = when (toolVersion) {
+            ToolVersion.IDEA_IC_2017_2 -> setOf(IdeaVersion.IDEA_IC_2017_2)
             ToolVersion.IDEA_IC_2017_3 -> setOf(IdeaVersion.IDEA_IC_2017_3)
+            ToolVersion.IDEA_IC_2018_1 -> setOf(IdeaVersion.IDEA_IC_2018_1)
+            ToolVersion.IDEA_IC_2018_2 -> setOf(IdeaVersion.IDEA_IC_2018_2)
         }
 
-        private fun kotlinPluginVersion(toolVersion: ToolVersion) = when (toolVersion) {
-            ToolVersion.IDEA_IC_2017_3 -> setOf(KotlinPluginVersion.RELEASE_STUDIO_1_2_51__3_2_1)
+        private fun kotlinPluginVersions(toolVersion: ToolVersion) = when (toolVersion) {
+            ToolVersion.IDEA_IC_2017_2 -> setOf(KotlinPluginVersion.RELEASE_IJ2017_2_1__1_2_60)
+            ToolVersion.IDEA_IC_2017_3 -> setOf(KotlinPluginVersion.RELEASE_IJ2017_3_1__1_2_60)
+            ToolVersion.IDEA_IC_2018_1 -> setOf(KotlinPluginVersion.RELEASE_IJ2018_1_1__1_2_60)
+            ToolVersion.IDEA_IC_2018_2 -> setOf(KotlinPluginVersion.RELEASE_IJ2018_2_1__1_2_60)
         }
 
         private fun checkCompatibility(toolVersion: ToolVersion, ideaVersion: IdeaVersion) {
-            val availableVersions = ideaVersion(toolVersion)
+            val availableVersions = ideaVersions(toolVersion)
             if (ideaVersion !in availableVersions)
                 throw IllegalArgumentException("Incompatible tool version '$toolVersion' and idea version '$ideaVersion'")
         }
 
         private fun checkCompatibility(toolVersion: ToolVersion, kotlinPluginVersion: KotlinPluginVersion) {
-            val availableVersions = kotlinPluginVersion(toolVersion)
+            val availableVersions = kotlinPluginVersions(toolVersion)
             if (kotlinPluginVersion !in availableVersions)
                 throw IllegalArgumentException("Incompatible tool version '$toolVersion' and kotlin plugin version '$kotlinPluginVersion'")
         }

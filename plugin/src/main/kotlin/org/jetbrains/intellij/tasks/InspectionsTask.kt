@@ -18,7 +18,6 @@ import org.jetbrains.intellij.parameters.ReportParameters
 import org.jetbrains.intellij.versions.IdeaVersion
 import org.jetbrains.intellij.versions.KotlinPluginVersion
 import org.jetbrains.intellij.versions.ToolVersion
-import java.io.File
 import org.gradle.api.Project as GradleProject
 
 @Suppress("MemberVisibilityCanBePrivate")
@@ -128,10 +127,10 @@ open class InspectionsTask : AbstractInspectionsTask(), Reporting<CheckstyleRepo
      * profile with given {@profileName}.
      */
     @get:Input
-    var inheritFormIdea: Boolean
-        get() = extension.inheritFormIdea ?: false
-        set(value) {
-            extension.inheritFormIdea = value
+    var inheritFromIdea: Boolean
+        get() = extension.inheritFromIdea ?: inspections.isEmpty()
+        set (value) {
+            extension.inheritFromIdea = value
         }
 
     /**
@@ -217,6 +216,8 @@ open class InspectionsTask : AbstractInspectionsTask(), Reporting<CheckstyleRepo
             extension.infos.max = value
         }
 
+    private val inspections: Set<String>
+        get() = errorsInspections + warningsInspections + infosInspections
 
     private val reports = IdeaCheckstyleReports(this)
 
@@ -296,7 +297,7 @@ open class InspectionsTask : AbstractInspectionsTask(), Reporting<CheckstyleRepo
                 projectDir,
                 report,
                 quickFix,
-                inheritFormIdea,
+                inheritFromIdea,
                 profileName,
                 errors,
                 warnings,

@@ -101,7 +101,7 @@ configurations {
     }
 }
 
-task<Sync>(name = "unzip-idea") {
+task<Sync>(name = "r-unzip-idea") {
     with(configurations.getByName("idea")) {
         dependsOn(this)
         from(zipTree(singleFile))
@@ -109,11 +109,11 @@ task<Sync>(name = "unzip-idea") {
     }
 }
 
-val kotlinPluginLocation = "https://plugins.jetbrains.com/plugin/download?rel=true&updateId=47481"
+val kotlinPluginLocation = "https://plugins.jetbrains.com/plugin/download?rel=true&updateId=48409"
 val kotlinPluginArchive = File(buildDir, "kotlin-plugin.zip")
 val kotlinPluginDirectory = File(buildDir, "kotlin-plugin")
 
-task<DefaultTask>(name = "download-kotlin-plugin") {
+task<DefaultTask>(name = "r-download-kotlin-plugin") {
     val client = org.apache.http.impl.client.DefaultHttpClient()
     val request = org.apache.http.client.methods.HttpGet(kotlinPluginLocation)
     request.addHeader("User-Agent", "User-Agent")
@@ -126,16 +126,16 @@ task<DefaultTask>(name = "download-kotlin-plugin") {
     }
 }
 
-task<Sync>(name = "unzip-kotlin-plugin") {
-    dependsOn(tasks.getByName("download-kotlin-plugin"))
+task<Sync>(name = "r-unzip-kotlin-plugin") {
+    dependsOn(tasks.getByName("r-download-kotlin-plugin"))
     from(zipTree(kotlinPluginArchive))
     into(kotlinPluginDirectory)
 }
 
 tasks {
     withType<KotlinCompile> {
-        dependsOn(tasks.getByName("unzip-idea"))
-        dependsOn(tasks.getByName("unzip-kotlin-plugin"))
+        dependsOn(tasks.getByName("r-unzip-idea"))
+        dependsOn(tasks.getByName("r-unzip-kotlin-plugin"))
         kotlinOptions {
             jvmTarget = "1.8"
             languageVersion = "1.0"

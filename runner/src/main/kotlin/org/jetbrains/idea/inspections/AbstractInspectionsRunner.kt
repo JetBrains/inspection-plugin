@@ -61,7 +61,8 @@ abstract class AbstractInspectionsRunner(
     }
 
     private fun getInspectionWrappers(parameters: InspectionsParameters, ideaProject: IdeaProject): Sequence<PluginInspectionWrapper> {
-        if (parameters.inheritFormIdea) return getInspectionWrappersInheritFromIdea(parameters, ideaProject)
+        logger.info("InheritFromIdea = ${parameters.inheritFromIdea}")
+        if (parameters.inheritFromIdea) return getInspectionWrappersInheritFromIdea(parameters, ideaProject)
         return getRegisteredInspectionWrappers()
     }
 
@@ -69,13 +70,11 @@ abstract class AbstractInspectionsRunner(
 
     private fun getInspectionWrappersInheritFromIdea(parameters: InspectionsParameters, ideaProject: IdeaProject): Sequence<PluginInspectionWrapper> {
         val inspectionProfileManager = ApplicationInspectionProfileManager.getInstanceImpl()
-        val profileName = parameters.profileName ?: run {
-            logger.error("Undefined profile name")
-            return emptySequence()
-        }
-        val profileDir = parameters.projectDir / INSPECTION_PROFILES_PATH / profileName
-        val inspectionProfile = inspectionProfileManager.loadProfile(profileDir.absolutePath)
-                ?: inspectionProfileManager.currentProfile
+        val inspectionProfile = parameters.profileName?.let {
+            val profileDir = parameters.projectDir / INSPECTION_PROFILES_PATH / it
+            logger.info("Profile: $profileDir")
+            inspectionProfileManager.loadProfile(profileDir.absolutePath)
+        } ?: inspectionProfileManager.currentProfile
         val profileTools = inspectionProfile.getAllEnabledInspectionTools(ideaProject)
         return profileTools.asSequence().map {
             val wrapper = it.tool
@@ -111,19 +110,20 @@ abstract class AbstractInspectionsRunner(
             parameters: InspectionsParameters
     ): Boolean {
         val ideaProject = idea.openProject(parameters.projectDir, projectName, moduleName)
-        val results = idea.analyze(parameters, files, ideaProject)
+        val (success, results) = idea.analyze(parameters, files, ideaProject)
         reportProblems(parameters, results)
-        return quickFixProblems(ideaProject, parameters, results)
+        return success && quickFixProblems(ideaProject, parameters, results)
     }
 
     private fun Application.analyze(
             parameters: InspectionsParameters,
             files: Collection<File>,
             ideaProject: IdeaProject
-    ): Map<String, List<PinnedProblemDescriptor>> {
+    ): Pair<Boolean, Map<String, List<PinnedProblemDescriptor>>> {
         var errors = 0
         var warnings = 0
         var infos = 0
+        var success = true
 
         logger.info("Before psi manager creation")
         val psiManager = PsiManager.getInstance(ideaProject)
@@ -135,7 +135,10 @@ abstract class AbstractInspectionsRunner(
 
         val results: MutableMap<String, MutableList<PinnedProblemDescriptor>> = mutableMapOf()
         logger.info("Before inspections launched: total of ${files.size} files to analyze")
-        inspectionLoop@ for (inspectionWrapper in getInspectionWrappers(parameters, ideaProject)) {
+        val inspectionWrappers = getInspectionWrappers(parameters, ideaProject)
+        logger.info("Inspections:")
+        inspectionWrappers.forEach { logger.info("    ${it.classFqName}") }
+        inspectionLoop@ for (inspectionWrapper in inspectionWrappers) {
             val inspectionClassName = inspectionWrapper.classFqName
             val inspectionTool = inspectionWrapper.tool
             when (inspectionTool) {
@@ -153,7 +156,6 @@ abstract class AbstractInspectionsRunner(
             val inspectionExtension = inspectionWrapper.extension
             val displayName = inspectionExtension?.displayName ?: "<Unknown diagnostic>"
             val inspectionResults = mutableListOf<PinnedProblemDescriptor>()
-            var success = true
             runReadAction {
                 val task = Runnable {
                     try {
@@ -205,10 +207,10 @@ abstract class AbstractInspectionsRunner(
                 }
                 ProgressManager.getInstance().runProcess(task, EmptyProgressIndicator())
             }
-            if (!success) break@inspectionLoop
             results[inspectionClassName] = inspectionResults
+            if (!success) break@inspectionLoop
         }
-        return results
+        return Pair(success, results)
     }
 
     private fun reportProblems(parameters: InspectionsParameters, results: Map<String, List<PinnedProblemDescriptor>>) {
@@ -247,6 +249,7 @@ abstract class AbstractInspectionsRunner(
             results: Map<String, List<PinnedProblemDescriptor>>
     ): Boolean {
         if (!parameters.quickFix) return true
+        var success = true
         WriteCommandAction.runWriteCommandAction(project) {
             @Suppress("UNUSED_VARIABLE")
             for ((inspectionClassName, result) in results) {
@@ -254,15 +257,18 @@ abstract class AbstractInspectionsRunner(
                     val fixes = problem.fixes
                     if (fixes == null || fixes.size != 1) {
                         logger.error("Can not apply problem fixes to $problem")
+                        success = false
                         continue
                     }
-                    val fix = fixes[0]
-                    fix.applyFix(project, problem)
-                    logger.info("Applied fix '${fix.name}'")
+                    try {
+                        fixes[0].applyFix(project, problem)
+                    } catch (ignore: Exception) {
+                    }
+                    logger.info("Applied fix for '${problem.renderWithLocation()}'")
                 }
             }
         }
-        return true
+        return success
     }
 
     private fun InspectionTypeParameters.isTooMany(value: Int) = max?.let { value > it } ?: false
