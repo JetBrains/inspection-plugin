@@ -59,7 +59,7 @@ open class InspectionsTask : AbstractInspectionsTask(), Reporting<CheckstyleRepo
     }
 
     /**
-     * Tool (IDEA) version to use
+     * Tool version to use
      */
     @get:Input
     var toolVersion: ToolVersion
@@ -73,7 +73,7 @@ open class InspectionsTask : AbstractInspectionsTask(), Reporting<CheckstyleRepo
      */
     @get:Input
     var ideaVersion: IdeaVersion
-        get() = InspectionPlugin.ideaVersion(toolVersion, extension.ideaVersion)
+        get() = InspectionPlugin.ideaVersion(extension.ideaVersion)
         set(value) {
             extension.ideaVersion = value.value
         }
@@ -83,7 +83,7 @@ open class InspectionsTask : AbstractInspectionsTask(), Reporting<CheckstyleRepo
      */
     @get:Input
     var kotlinPluginVersion: KotlinPluginVersion
-        get() = InspectionPlugin.kotlinPluginVersion(toolVersion, extension.kotlinPluginVersion)
+        get() = InspectionPlugin.kotlinPluginVersion(ideaVersion, extension.kotlinPluginVersion, extension.kotlinPluginLocation)
         set(value) {
             extension.kotlinPluginVersion = value.value
         }

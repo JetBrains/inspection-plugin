@@ -15,7 +15,7 @@ plugins {
 }
 inspections {
     <testMode>
-    <toolVersion>
+    <ideaVersion>
     <ignoreFailures>
     <profileName>
     <inheritFromIdea>

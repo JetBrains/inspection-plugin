@@ -83,8 +83,7 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
 
     private fun configureDefaultDependencies(task: InspectionsTask) {
         project.configurations.getByName(SHORT_NAME).defaultDependencies {
-            val ideaVersion = task.ideaVersion
-            it.add(project.dependencies.create("com.jetbrains.intellij.idea:$ideaVersion"))
+            it.add(project.dependencies.create(task.ideaVersion.mavenUrl))
         }
     }
 
@@ -109,7 +108,7 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
 
     companion object {
 
-        private val DEFAULT_TOOL_VERSION = ToolVersion.IDEA_IC_2017_3
+        private val DEFAULT_TOOL_VERSION = ToolVersion.IP_0_1_4
 
         private val LOG: Logger = Logging.getLogger(InspectionPlugin::class.java)
 
@@ -154,74 +153,31 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
             return ToolVersion(toolVersion)
         }
 
-        internal fun ideaVersion(toolVersion: ToolVersion, ideaVersion: String?): IdeaVersion {
-            if (ideaVersion == null) return defaultIdeaVersion(toolVersion)
-            if (ideaVersion !in IdeaVersion.values().map { it.value })
-                throw IllegalArgumentException("Unsupported tool version version '$ideaVersion'")
+        internal fun ideaVersion(ideaVersion: String?): IdeaVersion {
+            if (ideaVersion == null) return IdeaVersion.IDEA_IC_2017_3
             val version = IdeaVersion(ideaVersion)
-            checkCompatibility(toolVersion, version)
+            if (version is IdeaVersion.Other)
+                LOG.warn("Uses custom idea version: $version")
             return version
         }
 
-        internal fun kotlinPluginVersion(toolVersion: ToolVersion, kotlinPluginVersion: String?): KotlinPluginVersion {
-            if (kotlinPluginVersion == null) return defaultKotlinPluginVersion(toolVersion)
-            if (kotlinPluginVersion !in KotlinPluginVersion.values().map { it.value })
-                throw IllegalArgumentException("Unsupported tool version version '$kotlinPluginVersion'")
-            val version = KotlinPluginVersion(kotlinPluginVersion)
-            checkCompatibility(toolVersion, version)
+        internal fun kotlinPluginVersion(ideaVersion: IdeaVersion, kotlinPluginVersion: String?, url: String?): KotlinPluginVersion {
+            if (kotlinPluginVersion == null) return defaultKotlinPluginVersion(ideaVersion)
+            val version = KotlinPluginVersion(kotlinPluginVersion, url)
+            if (version is KotlinPluginVersion.Other) {
+                LOG.warn("Uses custom kotlin plugin version $version")
+            } else if (url != null) {
+                LOG.warn("Uses custom kotlin plugin sources for defined version $version")
+            }
             return version
         }
 
-        private fun defaultIdeaVersion(toolVersion: ToolVersion) = when (toolVersion) {
-            ToolVersion.IDEA_IC_2017_2 -> IdeaVersion.IDEA_IC_2017_2
-            ToolVersion.IDEA_IC_2017_3 -> IdeaVersion.IDEA_IC_2017_3
-            ToolVersion.IDEA_IC_2018_1 -> IdeaVersion.IDEA_IC_2018_1
-            ToolVersion.IDEA_IC_2018_2 -> IdeaVersion.IDEA_IC_2018_2
-        }
-
-        private fun defaultKotlinPluginVersion(toolVersion: ToolVersion) = when (toolVersion) {
-            ToolVersion.IDEA_IC_2017_2 -> KotlinPluginVersion.RELEASE_IJ2017_2_1__1_2_60
-            ToolVersion.IDEA_IC_2017_3 -> KotlinPluginVersion.RELEASE_IJ2017_3_1__1_2_60
-            ToolVersion.IDEA_IC_2018_1 -> KotlinPluginVersion.RELEASE_IJ2018_1_1__1_2_60
-            ToolVersion.IDEA_IC_2018_2 -> KotlinPluginVersion.RELEASE_IJ2018_2_1__1_2_60
-        }
-
-        private fun kotlinPluginUpdateId(kotlinPluginVersion: KotlinPluginVersion) = when (kotlinPluginVersion) {
-            KotlinPluginVersion.RELEASE_IJ2017_2_1__1_2_60 -> 48408
-            KotlinPluginVersion.RELEASE_IJ2017_3_1__1_2_60 -> 48409
-            KotlinPluginVersion.RELEASE_IJ2018_1_1__1_2_60 -> 48410
-            KotlinPluginVersion.RELEASE_IJ2018_2_1__1_2_60 -> 48411
-        }
-
-        internal fun kotlinPluginLocation(kotlinPluginVersion: KotlinPluginVersion) =
-                kotlinPluginUpdateId(kotlinPluginVersion).let {
-                    "https://plugins.jetbrains.com/plugin/download?rel=true&updateId=$it"
-                }
-
-        private fun ideaVersions(toolVersion: ToolVersion) = when (toolVersion) {
-            ToolVersion.IDEA_IC_2017_2 -> setOf(IdeaVersion.IDEA_IC_2017_2)
-            ToolVersion.IDEA_IC_2017_3 -> setOf(IdeaVersion.IDEA_IC_2017_3)
-            ToolVersion.IDEA_IC_2018_1 -> setOf(IdeaVersion.IDEA_IC_2018_1)
-            ToolVersion.IDEA_IC_2018_2 -> setOf(IdeaVersion.IDEA_IC_2018_2)
-        }
-
-        private fun kotlinPluginVersions(toolVersion: ToolVersion) = when (toolVersion) {
-            ToolVersion.IDEA_IC_2017_2 -> setOf(KotlinPluginVersion.RELEASE_IJ2017_2_1__1_2_60)
-            ToolVersion.IDEA_IC_2017_3 -> setOf(KotlinPluginVersion.RELEASE_IJ2017_3_1__1_2_60)
-            ToolVersion.IDEA_IC_2018_1 -> setOf(KotlinPluginVersion.RELEASE_IJ2018_1_1__1_2_60)
-            ToolVersion.IDEA_IC_2018_2 -> setOf(KotlinPluginVersion.RELEASE_IJ2018_2_1__1_2_60)
-        }
-
-        private fun checkCompatibility(toolVersion: ToolVersion, ideaVersion: IdeaVersion) {
-            val availableVersions = ideaVersions(toolVersion)
-            if (ideaVersion !in availableVersions)
-                throw IllegalArgumentException("Incompatible tool version '$toolVersion' and idea version '$ideaVersion'")
-        }
-
-        private fun checkCompatibility(toolVersion: ToolVersion, kotlinPluginVersion: KotlinPluginVersion) {
-            val availableVersions = kotlinPluginVersions(toolVersion)
-            if (kotlinPluginVersion !in availableVersions)
-                throw IllegalArgumentException("Incompatible tool version '$toolVersion' and kotlin plugin version '$kotlinPluginVersion'")
+        private fun defaultKotlinPluginVersion(ideaVersion: IdeaVersion) = when (ideaVersion) {
+            IdeaVersion.IDEA_IC_2017_2 -> KotlinPluginVersion.RELEASE_IJ2017_2_1__1_2_60
+            IdeaVersion.IDEA_IC_2017_3 -> KotlinPluginVersion.RELEASE_IJ2017_3_1__1_2_60
+            IdeaVersion.IDEA_IC_2018_1 -> KotlinPluginVersion.RELEASE_IJ2018_1_1__1_2_60
+            IdeaVersion.IDEA_IC_2018_2 -> KotlinPluginVersion.RELEASE_IJ2018_2_1__1_2_60
+            else -> throw IllegalArgumentException("")
         }
     }
 }

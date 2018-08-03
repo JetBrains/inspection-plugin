@@ -22,6 +22,11 @@ open class InspectionsExtension(private val project: Project?) : CodeQualityExte
     var kotlinPluginVersion: String? = null
 
     /**
+     * Location of kotlin plugin in internet.
+     */
+    var kotlinPluginLocation: String? = null
+
+    /**
      * Whether rule violations are to be displayed on the console.
      */
     var isQuiet: Boolean? = null

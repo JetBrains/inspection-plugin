@@ -23,7 +23,7 @@ Also you should specify IDEA version to use, e.g.
 
 ```groovy
 inspections {
-    toolVersion "ideaIC:2017.2.6"
+    ideaVersion "ideaIC:2017.2.6"
 }
 ``` 
 
@@ -87,11 +87,11 @@ inspections {
         inspections = []
         max = null
     }
-    toolVersion = 'ideaIC:2017.3'
+    toolVersion = '0.1.4'
     reportsDir = file('build')
     ignoreFailures = false
     ideaVersion = 'ideaIC:2017.3'
-    kotlinPluginVersion = '1.2.51-release-Studio3.2-1'
+    kotlinPluginVersion = '1.2.60-release-IJ2017.3-1'
     quiet = false
     quickFix = false
     reformat {
@@ -104,7 +104,6 @@ inspections {
 ##### Short analog of plugin parameters
 ```
 inspections {
-    toolVersion = 'ideaIC:2017.3'
     reportsDir = file('build')
     warnings {
         inspections = [
@@ -184,7 +183,7 @@ gradlew --info --stacktrace inspectionsMain > inspections.log
 
 and attach `inspections.log` to the issue. 
 Also it's very helpful to specify Gradle version, OS and 
-IDEA version used in inspection plugin (which is set in `toolVersion` parameter).
+IDEA version used in inspection plugin (which is set in `ideaVersion` parameter).
 
 Known bugs / problems at this moment (version 0.1.4):
 

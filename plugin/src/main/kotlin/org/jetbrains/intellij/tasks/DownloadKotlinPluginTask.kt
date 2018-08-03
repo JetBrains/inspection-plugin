@@ -5,30 +5,30 @@ import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import org.jetbrains.intellij.InspectionPlugin
 import org.jetbrains.intellij.extensions.InspectionsExtension
+import org.jetbrains.intellij.versions.IdeaVersion
 import org.jetbrains.intellij.versions.KotlinPluginVersion
-import org.jetbrains.intellij.versions.ToolVersion
 import java.io.File
 
 @Suppress("MemberVisibilityCanBePrivate")
 open class DownloadKotlinPluginTask : AbstractDownloadTask() {
 
     /**
-     * Tool (IDEA) version to use
+     * Version of IDEA.
      */
     @get:Input
-    val toolVersion: ToolVersion
-        get() = InspectionPlugin.toolVersion(extension.toolVersion)
+    val ideaVersion: IdeaVersion
+        get() = InspectionPlugin.ideaVersion(extension.ideaVersion)
 
     /**
      * Version of IDEA Kotlin Plugin.
      */
     @get:Input
     val kotlinPluginVersion: KotlinPluginVersion
-        get() = InspectionPlugin.kotlinPluginVersion(toolVersion, extension.kotlinPluginVersion)
+        get() = InspectionPlugin.kotlinPluginVersion(ideaVersion, extension.kotlinPluginVersion, extension.kotlinPluginLocation)
 
     @get:Input
     override val url: String
-        get() = InspectionPlugin.kotlinPluginLocation(kotlinPluginVersion)
+        get() = kotlinPluginVersion.location
 
     @get:OutputFile
     override val destination: File

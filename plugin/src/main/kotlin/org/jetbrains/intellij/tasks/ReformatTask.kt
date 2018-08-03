@@ -45,7 +45,7 @@ open class ReformatTask : AbstractInspectionsTask() {
     }
 
     /**
-     * Tool (IDEA) version to use
+     * Tool version to use
      */
     @get:Input
     val toolVersion: ToolVersion
@@ -56,14 +56,14 @@ open class ReformatTask : AbstractInspectionsTask() {
      */
     @get:Input
     val ideaVersion: IdeaVersion
-        get() = InspectionPlugin.ideaVersion(toolVersion, extension.ideaVersion)
+        get() = InspectionPlugin.ideaVersion(extension.ideaVersion)
 
     /**
      * Version of IDEA Kotlin Plugin.
      */
     @get:Input
     val kotlinPluginVersion: KotlinPluginVersion
-        get() = InspectionPlugin.kotlinPluginVersion(toolVersion, extension.kotlinPluginVersion)
+        get() = InspectionPlugin.kotlinPluginVersion(ideaVersion, extension.kotlinPluginVersion, extension.kotlinPluginLocation)
 
     /**
      * Normally false. Value of true is used in tests to prevent IDEA shutdown.

@@ -11,18 +11,11 @@ import java.io.File
 open class UnzipIdeaTask : AbstractUnzipTask() {
 
     /**
-     * Tool (IDEA) version to use
-     */
-    @get:Input
-    val toolVersion: ToolVersion
-        get() = InspectionPlugin.toolVersion(extension.toolVersion)
-
-    /**
      * Version of IDEA.
      */
     @get:Input
     val ideaVersion: IdeaVersion
-        get() = InspectionPlugin.ideaVersion(toolVersion, extension.ideaVersion)
+        get() = InspectionPlugin.ideaVersion(extension.ideaVersion)
 
     @get:InputFile
     override val sourceFile: File
