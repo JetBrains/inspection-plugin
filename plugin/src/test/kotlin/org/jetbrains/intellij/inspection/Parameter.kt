@@ -27,7 +27,7 @@ object Parameter {
 
     inline operator fun <reified T> invoke(value: String?): T? = value?.let { Parameter.invoke<T>(it) }
 
-    inline operator fun <reified T> invoke(value: String?, action: (T) -> Unit) =
+    inline operator fun <reified T> invoke(value: String?, crossinline action: (T) -> Unit): Unit? =
             value?.let { Parameter.invoke<T>(it) }?.let { action(it) }
 
     @JvmName("valueOf")

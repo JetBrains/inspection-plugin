@@ -1,5 +1,6 @@
 package org.jetbrains.intellij
 
+import org.gradle.api.artifacts.Configuration
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.api.plugins.quality.CodeQualityExtension
@@ -9,10 +10,11 @@ import org.jetbrains.intellij.extensions.InspectionsExtension
 import org.jetbrains.intellij.tasks.*
 import org.jetbrains.intellij.versions.IdeaVersion
 import org.jetbrains.intellij.versions.KotlinPluginVersion
-import org.jetbrains.intellij.versions.ToolVersion
 import java.io.File
 
 open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
+
+    override fun configureConfiguration(configuration: Configuration) {}
 
     private val inspectionExtension: InspectionsExtension
         get() = extension as InspectionsExtension
@@ -29,7 +31,7 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
 
     override fun createExtension(): CodeQualityExtension {
         val extension = project.extensions.create(SHORT_NAME, InspectionsExtension::class.java, project)
-        LOG.info("Extension $SHORT_NAME created")
+        logger.info("InspectionPlugin: Extension $SHORT_NAME created")
         return extension
     }
 
@@ -52,32 +54,31 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
     }
 
     private fun configureTasksDefaults() {
-        project.tasks.create(CLEAN_TASK_NAME, CleanTask::class.java)
-        project.tasks.create(UNZIP_IDEA_TASK_NAME, UnzipIdeaTask::class.java)
-        project.tasks.create(DOWNLOAD_KOTLIN_PLUGIN_TASK_NAME, DownloadKotlinPluginTask::class.java)
-        project.tasks.create(UNZIP_KOTLIN_PLUGIN_TASK_NAME, UnzipKotlinPluginTask::class.java) {
-            it.dependsOn += project.tasks.getByName(DOWNLOAD_KOTLIN_PLUGIN_TASK_NAME)
+        with(project) {
+            tasks.create(UNZIP_IDEA_TASK_NAME, UnzipIdeaTask::class.java)
+            tasks.create(DOWNLOAD_KOTLIN_PLUGIN_TASK_NAME, DownloadKotlinPluginTask::class.java)
+            tasks.create(UNZIP_KOTLIN_PLUGIN_TASK_NAME, UnzipKotlinPluginTask::class.java) {
+                it.dependsOn += tasks.getByName(DOWNLOAD_KOTLIN_PLUGIN_TASK_NAME)
+            }
+            tasks.create(INSERT_PLUGINS_TASK_NAME, InsertPluginsTask::class.java) {
+                it.dependsOn += tasks.getByName(UNZIP_KOTLIN_PLUGIN_TASK_NAME)
+                it.dependsOn += tasks.getByName(UNZIP_IDEA_TASK_NAME)
+            }
         }
     }
 
     private fun configureReformatTaskDefaults(baseType: BaseType) {
         project.tasks.create(reformatTaskName(baseType), ReformatTask::class.java) {
             it.baseType = baseType
-            it.dependsOn += project.tasks.getByName(UNZIP_IDEA_TASK_NAME)
-            it.dependsOn += project.tasks.getByName(UNZIP_KOTLIN_PLUGIN_TASK_NAME)
-            it.dependsOn += project.rootProject.tasks.getByName("idea")
-            for (subProject in project.rootProject.subprojects) {
-                it.dependsOn += subProject.tasks.getByName("idea")
-            }
+            configureIdeaInspectionsTaskDependencies(it)
         }
     }
 
-    private fun configureIdeaInspectionsTaskDependencies(task: InspectionsTask) {
-        task.dependsOn += project.tasks.getByName(UNZIP_IDEA_TASK_NAME)
-        task.dependsOn += project.tasks.getByName(UNZIP_KOTLIN_PLUGIN_TASK_NAME)
-        task.dependsOn += project.rootProject.tasks.getByName("idea")
+    private fun configureIdeaInspectionsTaskDependencies(task: AbstractInspectionsTask) {
+        task.dependsOn += project.tasks.getByName(INSERT_PLUGINS_TASK_NAME)
+        task.dependsOn += project.rootProject.tasks.getByName(IDEA_TASK_NAME)
         for (subProject in project.rootProject.subprojects) {
-            task.dependsOn += subProject.tasks.getByName("idea")
+            task.dependsOn += subProject.tasks.getByName(IDEA_TASK_NAME)
         }
     }
 
@@ -100,21 +101,17 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
     override fun configureForSourceSet(sourceSet: SourceSet, task: InspectionsTask) {
         task.description = "Run IDEA inspections for " + sourceSet.name + " classes"
         task.classpath = sourceSet.output.plus(sourceSet.compileClasspath)
-        task.source = sourceSet.allSource
+        task.setSourceSet(sourceSet.allSource)
         val baseType = task.baseType
         val reformatTask = project.tasks.getByName(reformatTaskName(baseType)) as ReformatTask
-        reformatTask.source = sourceSet.allSource
+        reformatTask.setSourceSet(sourceSet.allSource)
     }
 
     companion object {
 
-        private val DEFAULT_TOOL_VERSION = ToolVersion.IP_0_1_4
-
-        private val LOG: Logger = Logging.getLogger(InspectionPlugin::class.java)
+        private val logger: Logger = Logging.getLogger(InspectionPlugin::class.java)
 
         internal const val SHORT_NAME = "inspections"
-
-        private const val CLEAN_TASK_NAME = SHORT_NAME + "Clean"
 
         private const val UNZIP_IDEA_TASK_NAME = "unzip-idea"
 
@@ -122,62 +119,62 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
 
         private const val UNZIP_KOTLIN_PLUGIN_TASK_NAME = "unzip-kotlin-plugin"
 
+        private const val INSERT_PLUGINS_TASK_NAME = "insert-plugins"
+
+        private const val IDEA_TASK_NAME = "idea"
+
         private fun reformatTaskName(baseType: BaseType) = "reformat" + baseType.baseTitle
 
-        private val TEMP_DIRECTORY: File
-            get() = File(System.getProperty("java.io.tmpdir"))
+        private val TEMP_DIRECTORY = File(System.getProperty("java.io.tmpdir"))
 
-        internal val BASE_CACHE_DIRECTORY: File
-            get() = File(TEMP_DIRECTORY, "inspection-plugin")
+        internal val BASE_CACHE_DIRECTORY = File(TEMP_DIRECTORY, "inspection-plugin")
 
-        internal val DEPENDENCY_SOURCE_DIRECTORY: File
-            get() = File(BASE_CACHE_DIRECTORY, "dependencies")
+        private val DEPENDENCY_SOURCE_DIRECTORY = File(BASE_CACHE_DIRECTORY, "dependencies")
 
-        private val DOWNLOAD_DIRECTORY: File
-            get() = File(InspectionPlugin.BASE_CACHE_DIRECTORY, "downloads")
+        private val DOWNLOAD_DIRECTORY = File(BASE_CACHE_DIRECTORY, "downloads")
+
+        internal fun ideaDirectory(ideaVersion: IdeaVersion, kotlinPluginVersion: KotlinPluginVersion?) =
+                File(DEPENDENCY_SOURCE_DIRECTORY,
+                        "[${ideaVersion.normalizeVersion}][${kotlinPluginVersion.normalizeVersion}]")
 
         internal fun kotlinPluginSource(kotlinPluginVersion: KotlinPluginVersion) =
-                File(DOWNLOAD_DIRECTORY, kotlinPluginVersion.value.normalizeVersion + ".zip")
+                File(DOWNLOAD_DIRECTORY, kotlinPluginVersion.normalizeVersion + ".zip")
 
         internal fun kotlinPluginDirectory(kotlinPluginVersion: KotlinPluginVersion) =
-                File(DEPENDENCY_SOURCE_DIRECTORY, kotlinPluginVersion.value.normalizeVersion)
+                File(DEPENDENCY_SOURCE_DIRECTORY, kotlinPluginVersion.normalizeVersion)
+
+        internal fun pluginsDirectory(ideaDirectory: File) =
+                File(ideaDirectory, "plugins")
 
         internal fun ideaDirectory(ideaVersion: IdeaVersion) =
-                File(DEPENDENCY_SOURCE_DIRECTORY, ideaVersion.value.normalizeVersion)
+                File(DEPENDENCY_SOURCE_DIRECTORY, ideaVersion.normalizeVersion)
+
+        private val IdeaVersion.normalizeVersion: String
+            get() = value.normalizeVersion
+
+        private val KotlinPluginVersion?.normalizeVersion: String
+            get() = this?.value?.normalizeVersion ?: ""
 
         private val String.normalizeVersion: String
             get() = replace(':', '_').replace('.', '_').replace('-', '_')
-
-        internal fun toolVersion(toolVersion: String?): ToolVersion {
-            if (toolVersion == null) return DEFAULT_TOOL_VERSION
-            return ToolVersion(toolVersion)
-        }
 
         internal fun ideaVersion(ideaVersion: String?): IdeaVersion {
             if (ideaVersion == null) return IdeaVersion.IDEA_IC_2017_3
             val version = IdeaVersion(ideaVersion)
             if (version is IdeaVersion.Other)
-                LOG.warn("Uses custom idea version: $version")
+                logger.warn("InspectionPlugin: Uses custom idea version: $version")
             return version
         }
 
-        internal fun kotlinPluginVersion(ideaVersion: IdeaVersion, kotlinPluginVersion: String?, url: String?): KotlinPluginVersion {
-            if (kotlinPluginVersion == null) return defaultKotlinPluginVersion(ideaVersion)
+        internal fun kotlinPluginVersion(kotlinPluginVersion: String?, url: String?): KotlinPluginVersion? {
+            if (kotlinPluginVersion == null) return null
             val version = KotlinPluginVersion(kotlinPluginVersion, url)
             if (version is KotlinPluginVersion.Other) {
-                LOG.warn("Uses custom kotlin plugin version $version")
+                logger.warn("InspectionPlugin: Uses custom kotlin plugin version $version")
             } else if (url != null) {
-                LOG.warn("Uses custom kotlin plugin sources for defined version $version")
+                logger.warn("InspectionPlugin: Uses custom kotlin plugin sources for defined version $version")
             }
             return version
-        }
-
-        private fun defaultKotlinPluginVersion(ideaVersion: IdeaVersion) = when (ideaVersion) {
-            IdeaVersion.IDEA_IC_2017_2 -> KotlinPluginVersion.RELEASE_IJ2017_2_1__1_2_60
-            IdeaVersion.IDEA_IC_2017_3 -> KotlinPluginVersion.RELEASE_IJ2017_3_1__1_2_60
-            IdeaVersion.IDEA_IC_2018_1 -> KotlinPluginVersion.RELEASE_IJ2018_1_1__1_2_60
-            IdeaVersion.IDEA_IC_2018_2 -> KotlinPluginVersion.RELEASE_IJ2018_2_1__1_2_60
-            else -> throw IllegalArgumentException("")
         }
     }
 }

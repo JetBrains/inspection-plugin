@@ -32,6 +32,7 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
                         appendln(line)
                         continue
                     }
+                    @Suppress("UNNECESSARY_SAFE_CALL")
                     when (template.value.drop(1).dropLast(1)) {
                         "kotlinGradleDependency" -> if (kotlinNeeded) {
                             appendln("        classpath \"org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion\"")
@@ -78,8 +79,14 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
                         "ignoreFailures" -> if (isIgnoreFailures) {
                             appendln("    ignoreFailures = ${isIgnoreFailures.gradleCode}")
                         }
-                        "toolVersion" -> toolVersion?.gradleCode?.let {
-                            appendln("    toolVersion = $it")
+                        "ideaVersion" -> ideaVersion?.gradleCode?.let {
+                            appendln("    ideaVersion = $it")
+                        }
+                        "kotlinPluginVersion" -> kotlinPluginVersion?.gradleCode?.let {
+                            appendln("    kotlinPluginVersion = $it")
+                        }
+                        "kotlinPluginLocation" -> kotlinPluginLocation?.gradleCode?.let {
+                            appendln("    kotlinPluginLocation = $it")
                         }
                         "testMode" -> testMode?.gradleCode?.let {
                             appendln("    testMode = $it")
@@ -127,6 +134,7 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
             (GradleRunner.create() as DefaultGradleRunner)
                     .withProjectDir(testProjectDir.root)
                     .withArguments("--info", "--stacktrace", taskName)
+//                    .withJvmArguments("-Dorg.gradle.daemon=false")
                     // This allow running remote debugger
 //                    .withJvmArguments("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005")
                     // This applies classpath from pluginUnderTestMetadata

@@ -6,6 +6,10 @@ import org.gradle.api.tasks.bundling.Jar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.idea.inspections.*
 
+plugins {
+    java
+}
+
 buildscript {
     extra["kotlinVersion"] = "1.2.0"
     val kotlinVersion: String by extra
@@ -101,41 +105,20 @@ configurations {
     }
 }
 
+val ideaDirectory = File(System.getProperty("java.io.tmpdir"), "inspection-plugin/dependencies/ideaIC_2017_3")
+
 task<Sync>(name = "r-unzip-idea") {
+    if (ideaDirectory.exists()) return@task
     with(configurations.getByName("idea")) {
         dependsOn(this)
         from(zipTree(singleFile))
-        into("$buildDir/idea")
+        into(ideaDirectory)
     }
-}
-
-val kotlinPluginLocation = "https://plugins.jetbrains.com/plugin/download?rel=true&updateId=48409"
-val kotlinPluginArchive = File(buildDir, "kotlin-plugin.zip")
-val kotlinPluginDirectory = File(buildDir, "kotlin-plugin")
-
-task<DefaultTask>(name = "r-download-kotlin-plugin") {
-    val client = org.apache.http.impl.client.DefaultHttpClient()
-    val request = org.apache.http.client.methods.HttpGet(kotlinPluginLocation)
-    request.addHeader("User-Agent", "User-Agent")
-    val response = client.execute(request)
-    kotlinPluginArchive.parentFile.mkdirs()
-    response.entity.content.use { input ->
-        kotlinPluginArchive.outputStream().use { fileOut ->
-            input.copyTo(fileOut)
-        }
-    }
-}
-
-task<Sync>(name = "r-unzip-kotlin-plugin") {
-    dependsOn(tasks.getByName("r-download-kotlin-plugin"))
-    from(zipTree(kotlinPluginArchive))
-    into(kotlinPluginDirectory)
 }
 
 tasks {
     withType<KotlinCompile> {
         dependsOn(tasks.getByName("r-unzip-idea"))
-        dependsOn(tasks.getByName("r-unzip-kotlin-plugin"))
         kotlinOptions {
             jvmTarget = "1.8"
             languageVersion = "1.0"
@@ -147,7 +130,6 @@ tasks {
 dependencies {
     compileOnly("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
     compileOnly("org.jdom:jdom2:2.0.6")
-    compileOnly(fileTree(mapOf("dir" to "$buildDir/idea/lib", "include" to "*.jar")))
-    compileOnly(files(kotlinPluginDirectory/"Kotlin"/"lib"/"kotlin-plugin.jar"))
+    compileOnly(fileTree(mapOf("dir" to "$ideaDirectory/lib", "include" to "*.jar")))
     compileOnly(project(":plugin"))
 }

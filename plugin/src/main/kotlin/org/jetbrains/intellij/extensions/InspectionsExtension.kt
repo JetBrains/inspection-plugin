@@ -9,6 +9,7 @@ open class InspectionsExtension(private val project: Project?) : CodeQualityExte
     /**
      * Value of true is used in tests to prevent IDEA shutdown.
      */
+    // todo remove it
     var testMode: Boolean? = null
 
     /**
@@ -35,6 +36,11 @@ open class InspectionsExtension(private val project: Project?) : CodeQualityExte
      * Quick fix are to be executed if found fixable errors.
      */
     var quickFix: Boolean? = null
+
+    /**
+     * Binary sources will not participate in the analysis.
+     */
+    var skipBinarySources: Boolean? = null
 
     /**
      * If this value is <tt>true</tt> implementation of inspections will be found in IDEA
@@ -90,6 +96,20 @@ open class InspectionsExtension(private val project: Project?) : CodeQualityExte
         set(value) {
             warnings.max = value
         }
+
+    /**
+     * @see InspectionsExtension.ideaVersion
+     */
+    @Deprecated("To be replaced with ideaVersion", ReplaceWith("ideaVersion"))
+    override fun getToolVersion() = ideaVersion
+
+    /**
+     * @see InspectionsExtension.ideaVersion
+     */
+    @Deprecated("To be replaced with ideaVersion = n", ReplaceWith("ideaVersion"))
+    override fun setToolVersion(value: String?) {
+        ideaVersion = value
+    }
 
     @Suppress("unused")
     fun errors(action: Action<InspectionTypeExtension>) {

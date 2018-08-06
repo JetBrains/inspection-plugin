@@ -23,7 +23,7 @@ import java.nio.channels.FileChannel
 import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 
-abstract class IdeaRunner<T: Analyzer.Parameters>(private val testMode: Boolean) : AbstractAnalyzer<T>() {
+abstract class IdeaRunner<T : Analyzer.Parameters>(private val testMode: Boolean) : AbstractAnalyzer<T>() {
 
     companion object {
         private const val AWT_HEADLESS = "java.awt.headless"
@@ -59,9 +59,9 @@ abstract class IdeaRunner<T: Analyzer.Parameters>(private val testMode: Boolean)
     private data class BuildConfiguration(val buildNumber: String, val usesUltimate: Boolean)
 
     private val File.buildConfiguration: BuildConfiguration
-        get() = let {
-            if (it.exists()) {
-                val text = it.readText()
+        get() = let { buildFile ->
+            if (buildFile.exists()) {
+                val text = buildFile.readText()
                 val usesUltimate = text.startsWith("IU")
                 text.dropWhile { !it.isDigit() }.let {
                     BuildConfiguration(if (it.isNotEmpty()) it else DEFAULT_BUILD_NUMBER, usesUltimate)
@@ -85,11 +85,11 @@ abstract class IdeaRunner<T: Analyzer.Parameters>(private val testMode: Boolean)
             ideaHomeDirectory: File,
             parameters: T
     ): Boolean {
-        logger.info("Class loader: " + this.javaClass.classLoader)
+        logger.debug("InspectionPlugin: Class loader: " + this.javaClass.classLoader)
         val (idea, systemPathMarkerChannel) = try {
             loadApplication(ideaHomeDirectory)
         } catch (e: Throwable) {
-            logger.error("Exception during IDEA loading: " + e.message)
+            logger.error("InspectionPlugin: Exception during IDEA loading: " + e.message)
             if (e is InspectionRunnerException) throw e
             throw InspectionRunnerException("EXCEPTION caught in inspection plugin (IDEA loading): $e", e)
         }
@@ -99,7 +99,6 @@ abstract class IdeaRunner<T: Analyzer.Parameters>(private val testMode: Boolean)
             idea.configureJdk()
             return analyze(files, projectName, moduleName, parameters)
         } catch (e: Throwable) {
-            logger.error("Exception during analyze " + e.message)
             if (e is InspectionRunnerException) throw e
             throw InspectionRunnerException("EXCEPTION caught in inspection plugin (IDEA readAction): $e", e)
         } finally {
@@ -108,7 +107,7 @@ abstract class IdeaRunner<T: Analyzer.Parameters>(private val testMode: Boolean)
     }
 
     private fun Application.configureJdk() {
-        logger.info("Before SDK configuration")
+        logger.debug("InspectionPlugin: Before SDK configuration")
         invokeAndWait {
             runWriteAction {
                 val javaHomePath = System.getenv(JAVA_HOME) ?: ""
@@ -117,12 +116,12 @@ abstract class IdeaRunner<T: Analyzer.Parameters>(private val testMode: Boolean)
                     if (jdkTable.findJdk(jdkVersion) != null) continue
                     val homePath = System.getenv(jdkEnvironmentVariable)
                             ?: if (jdkVersion in javaHomePath && "jdk" in javaHomePath) javaHomePath else continue
-                    logger.info("Configuring JDK $jdkVersion")
+                    logger.debug("InspectionPlugin: Configuring JDK $jdkVersion")
                     val sdk = SdkConfigurationUtil.createAndAddSDK(
                             FileUtil.toSystemIndependentName(homePath),
                             JavaSdk.getInstance()
                     ) ?: continue
-                    logger.info("Home path is ${sdk.homePath}, version string is ${sdk.versionString}")
+                    logger.debug("InspectionPlugin: Home path is ${sdk.homePath}, version string is ${sdk.versionString}")
                 }
             }
         }
@@ -143,8 +142,9 @@ abstract class IdeaRunner<T: Analyzer.Parameters>(private val testMode: Boolean)
                         if (usesUltimate) PlatformUtils.IDEA_PREFIX else PlatformUtils.IDEA_CE_PREFIX
                 )
         )
-        logger.info("IDEA home path: " + PathManager.getHomePath())
-        logger.info("IDEA system path: $systemPath")
+        logger.debug("InspectionPlugin: IDEA home dir: $ideaHomeDirectory")
+        logger.debug("InspectionPlugin: IDEA home path: " + PathManager.getHomePath())
+        logger.debug("InspectionPlugin: IDEA system path: $systemPath")
         if (getCommandLineApplication() == null) {
             createCommandLineApplication(isInternal = false, isUnitTestMode = false, isHeadless = true)
             for (plugin in USELESS_PLUGINS) {
@@ -156,11 +156,10 @@ abstract class IdeaRunner<T: Analyzer.Parameters>(private val testMode: Boolean)
             }
             // Do not remove the call of PluginManagerCore.getPlugins(), it prevents NPE in IDEA
             // NB: IdeaApplication.getStarter() from IJ community contains the same call
-            logger.info("Plugins enabled:")
-            PluginManagerCore.getPlugins().forEach { logger.info("    $it") }
+            logger.info("InspectionPlugin: Plugins enabled: " + PluginManagerCore.getPlugins())
             ApplicationManagerEx.getApplicationEx().load()
         } else {
-            logger.info("IDEA application already exists, don't bother to run it again")
+            logger.info("InspectionPlugin: IDEA application already exists, don't bother to run it again")
             shutdownNecessary = false
         }
         return (ApplicationManagerEx.getApplicationEx() ?: run {
@@ -187,7 +186,7 @@ abstract class IdeaRunner<T: Analyzer.Parameters>(private val testMode: Boolean)
                 channel = FileChannel.open(Paths.get(path, SYSTEM_MARKER_FILE), StandardOpenOption.WRITE)
                 channel.tryLock()
             } catch (e: IOException) {
-                logger.warn("IO exception while locking: ${e.message}")
+                logger.warn("InspectionPlugin: IO exception while locking: ${e.message}")
                 throw InspectionRunnerException("EXCEPTION caught in inspection plugin (IDEA system dir lock): $e", e)
             }
             if (lock == null) {
@@ -212,7 +211,7 @@ abstract class IdeaRunner<T: Analyzer.Parameters>(private val testMode: Boolean)
             }
         } else if (shutdownNecessary) {
             // NB: exit is actually performed on EDT thread!
-            logger.info("Shutting IDEA down!!!")
+            logger.info("InspectionPlugin: Shutting IDEA down!!!")
             if (application is ApplicationImpl) {
                 application.exit(true, true, false)
             } else {

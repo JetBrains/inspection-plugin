@@ -2,10 +2,10 @@ package org.jetbrains.intellij.versions
 
 @Suppress("ClassName")
 sealed class KotlinPluginVersion(val value: String, val location: String): java.io.Serializable {
-    object RELEASE_IJ2017_2_1__1_2_60 : KotlinPluginVersion("1.2.60-release-IJ2017.2-1", getUrl(48408))
-    object RELEASE_IJ2017_3_1__1_2_60 : KotlinPluginVersion("1.2.60-release-IJ2017.3-1", getUrl(48409))
-    object RELEASE_IJ2018_1_1__1_2_60 : KotlinPluginVersion("1.2.60-release-IJ2018.1-1", getUrl(48410))
-    object RELEASE_IJ2018_2_1__1_2_60 : KotlinPluginVersion("1.2.60-release-IJ2018.2-1", getUrl(48411))
+    object RELEASE_IJ2017_2_1__1_2_60 : KotlinPluginVersion(S_RELEASE_IJ2017_2_1__1_2_60, getUrl(48408))
+    object RELEASE_IJ2017_3_1__1_2_60 : KotlinPluginVersion(S_RELEASE_IJ2017_3_1__1_2_60, getUrl(48409))
+    object RELEASE_IJ2018_1_1__1_2_60 : KotlinPluginVersion(S_RELEASE_IJ2018_1_1__1_2_60, getUrl(48410))
+    object RELEASE_IJ2018_2_1__1_2_60 : KotlinPluginVersion(S_RELEASE_IJ2018_2_1__1_2_60, getUrl(48411))
     class Other(value: String, url: String) : KotlinPluginVersion(value, url)
 
     override fun toString() = value

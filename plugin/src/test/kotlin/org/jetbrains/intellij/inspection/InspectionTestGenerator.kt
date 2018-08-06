@@ -42,11 +42,11 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
             Parameter<Set<String>>(parameters("infos.inspections")) { inspections = it }
             Parameter<Int>(parameters("infos.max")) { max = it }
         }
-        Parameter<String>(parameters("toolVersion")) { toolVersion = it }
         Parameter<File>(parameters("reportsDir")) { reportsDir = it }
         Parameter<Boolean>(parameters("ignoreFailures")) { isIgnoreFailures = it }
         Parameter<String>(parameters("ideaVersion")) { ideaVersion = it }
         Parameter<String>(parameters("kotlinPluginVersion")) { kotlinPluginVersion = it }
+        Parameter<String>(parameters("kotlinPluginLocation")) { kotlinPluginLocation = it }
         Parameter<Boolean>(parameters("isQuiet")) { isQuiet = it }
         Parameter<Boolean>(parameters("quiet")) { isQuiet = it }
         Parameter<Boolean>(parameters("quickFix")) { quickFix = it }
@@ -99,6 +99,7 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
             val name = test.name.capitalize()
 
             val ignoreAnnotation = ignore?.let { "    @Ignore\n" } ?: ""
+            @Suppress("UNNECESSARY_SAFE_CALL")
             val method = /*language=kotlin*/"""
                 @Test
                 fun test$name() {
@@ -112,11 +113,11 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
                     ${extension.warnings.max?.kotlinCode?.let { "extension.warnings.max = $it" } ?: ""}
                     ${extension.infos.inspections?.kotlinCode?.let { "extension.infos.inspections = $it" } ?: ""}
                     ${extension.infos.max?.kotlinCode?.let { "extension.infos.max = $it" } ?: ""}
-                    ${extension.toolVersion?.kotlinCode?.let { "extension.toolVersion = $it" } ?: ""}
                     ${extension.reportsDir?.kotlinCode?.let { "extension.reportsDir = $it" } ?: ""}
                     ${extension.isIgnoreFailures.let { if (it) "extension.isIgnoreFailures = $it" else "" }}
                     ${extension.ideaVersion?.kotlinCode?.let { "extension.ideaVersion = $it" } ?: ""}
                     ${extension.kotlinPluginVersion?.kotlinCode?.let { "extension.kotlinPluginVersion = $it" } ?: ""}
+                    ${extension.kotlinPluginLocation?.kotlinCode?.let { "extension.kotlinPluginLocation = $it" } ?: ""}
                     ${extension.isQuiet?.kotlinCode?.let { "extension.isQuiet = $it" } ?: ""}
                     ${extension.quickFix?.kotlinCode?.let { "extension.quickFix = $it" } ?: ""}
                     ${extension.reformat.isQuiet?.kotlinCode?.let { "extension.reformat.isQuiet = $it" } ?: ""}
@@ -145,8 +146,7 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
                     val testProjectDir = TemporaryFolder()
 
                     private val testBench = InspectionTestBench(testProjectDir, ${taskName.kotlinCode})
-
         """.trimIndent()
-        resultFile.writeText(testClass + methods.joinToString("\n\n") + "\n}")
+        resultFile.writeText(testClass + "\n\n" + methods.joinToString("\n\n") + "\n}")
     }
 }

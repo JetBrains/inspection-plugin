@@ -17,7 +17,7 @@ import org.jetbrains.intellij.parameters.InspectionsParameters
 import org.jetbrains.intellij.parameters.ReportParameters
 import org.jetbrains.intellij.versions.IdeaVersion
 import org.jetbrains.intellij.versions.KotlinPluginVersion
-import org.jetbrains.intellij.versions.ToolVersion
+import java.io.File
 import org.gradle.api.Project as GradleProject
 
 @Suppress("MemberVisibilityCanBePrivate")
@@ -59,16 +59,6 @@ open class InspectionsTask : AbstractInspectionsTask(), Reporting<CheckstyleRepo
     }
 
     /**
-     * Tool version to use
-     */
-    @get:Input
-    var toolVersion: ToolVersion
-        get() = InspectionPlugin.toolVersion(extension.toolVersion)
-        set(value) {
-            extension.toolVersion = value.value
-        }
-
-    /**
      * Version of IDEA.
      */
     @get:Input
@@ -82,10 +72,11 @@ open class InspectionsTask : AbstractInspectionsTask(), Reporting<CheckstyleRepo
      * Version of IDEA Kotlin Plugin.
      */
     @get:Input
-    var kotlinPluginVersion: KotlinPluginVersion
-        get() = InspectionPlugin.kotlinPluginVersion(ideaVersion, extension.kotlinPluginVersion, extension.kotlinPluginLocation)
+    @get:Optional
+    var kotlinPluginVersion: KotlinPluginVersion?
+        get() = InspectionPlugin.kotlinPluginVersion(extension.kotlinPluginVersion, extension.kotlinPluginLocation)
         set(value) {
-            extension.kotlinPluginVersion = value.value
+            extension.kotlinPluginVersion = value?.value
         }
 
     /**
@@ -103,7 +94,6 @@ open class InspectionsTask : AbstractInspectionsTask(), Reporting<CheckstyleRepo
      *
      * @return false if violations should be displayed on console, true otherwise
      */
-    @get:Input
     @get:Console
     var isQuiet: Boolean
         get() = extension.isQuiet ?: false
@@ -120,6 +110,17 @@ open class InspectionsTask : AbstractInspectionsTask(), Reporting<CheckstyleRepo
         get() = extension.quickFix ?: false
         set(value) {
             extension.quickFix = value
+        }
+
+    /**
+     * Binary sources will not participate in the analysis..
+     * Default value is the <tt>true</tt>.
+     */
+    @get:Input
+    var skipBinarySources: Boolean
+        get() = extension.skipBinarySources ?: true
+        set(value) {
+            extension.skipBinarySources = value
         }
 
     /**
@@ -283,20 +284,20 @@ open class InspectionsTask : AbstractInspectionsTask(), Reporting<CheckstyleRepo
 
     override fun getInspectionsParameters(): InspectionsParameters {
         val projectDir = project.rootProject.projectDir
-        val xml = if (reports.xml.isEnabled) reports.xml.destination else null
-        val html = if (reports.html.isEnabled) reports.html.destination else null
+        val xml: File? = if (reports.xml.isEnabled) reports.xml.destination else null
+        val html: File? = if (reports.html.isEnabled) reports.html.destination else null
         val report = ReportParameters(isQuiet, xml, html)
         val errors = InspectionTypeParameters(errorsInspections, maxErrors)
         val warnings = InspectionTypeParameters(warningsInspections, maxWarnings)
         val infos = InspectionTypeParameters(infosInspections, maxInfos)
         return InspectionsParameters(
                 ignoreFailures,
-                toolVersion,
                 ideaVersion,
                 kotlinPluginVersion,
                 projectDir,
                 report,
                 quickFix,
+                skipBinarySources,
                 inheritFromIdea,
                 profileName,
                 errors,
@@ -309,8 +310,11 @@ open class InspectionsTask : AbstractInspectionsTask(), Reporting<CheckstyleRepo
         val className = "org.jetbrains.idea.inspections.InspectionsRunner"
         @Suppress("UNCHECKED_CAST")
         val analyzerClass = loader.loadClass(className) as Class<Analyzer<InspectionsParameters>>
-        val inspections = errorsInspections + warningsInspections + infosInspections
-        val analyzer = analyzerClass.constructors.first().newInstance(testMode, inspections)
+        val analyzer = analyzerClass.constructors.first().newInstance(testMode)
         return analyzerClass.cast(analyzer)
+    }
+
+    init {
+        outputs.upToDateWhen { false }
     }
 }

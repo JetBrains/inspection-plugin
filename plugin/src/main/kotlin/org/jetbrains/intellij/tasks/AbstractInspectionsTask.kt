@@ -13,10 +13,16 @@ import java.net.URLClassLoader
 import java.util.function.BiFunction
 import kotlin.concurrent.thread
 
-abstract class AbstractInspectionsTask : SourceTask(), VerificationTask, SourceBaseDependentTask {
+abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
+
+    companion object {
+        // TODO: take the same version as plugin
+        const val runnerVersion = "0.1.5-SNAPSHOT"
+    }
 
     private var analyzer: Analyzer<InspectionsParameters>? = null
 
+    @Internal
     abstract fun getInspectionsParameters(): InspectionsParameters
 
     abstract fun createAnalyzer(loader: ClassLoader): Analyzer<InspectionsParameters>
@@ -35,27 +41,26 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask, SourceB
         get() = listFiles { dir, name -> name.endsWith("jar") && "xmlrpc" !in name }?.toList()
                 ?: throw IllegalStateException("Files not found in directory $this")
 
+    private fun getIdeaClasspath(ideaDirectory: File): List<File> {
+        val ideaLibraries = File(ideaDirectory, "lib")
+        return ideaLibraries.classpath
+    }
+
     @Suppress("unused")
     @TaskAction
     fun run() {
         try {
             val parameters = getInspectionsParameters()
-            val ideaDirectory = InspectionPlugin.ideaDirectory(parameters.ideaVersion)
-            logger.info("Idea directory: $ideaDirectory")
-            val ideaLibraries = File(ideaDirectory, "lib")
-            val ideaClasspath = ideaLibraries.classpath
-            val kotlinPluginDirectory = InspectionPlugin.kotlinPluginDirectory(parameters.kotlinPluginVersion)
-            val kotlinPluginLibraries = File(File(kotlinPluginDirectory, "Kotlin"), "lib")
-            val kotlinPluginClasspath = kotlinPluginLibraries.classpath
+            val ideaDirectory = InspectionPlugin.ideaDirectory(parameters.ideaVersion, parameters.kotlinPluginVersion)
+            logger.info("InspectionPlugin: Idea directory: $ideaDirectory")
+            val ideaClasspath = getIdeaClasspath(ideaDirectory)
             val analyzerClasspath = listOf(tryResolveRunnerJar(project))
-            val fullClasspath = (analyzerClasspath + ideaClasspath + kotlinPluginClasspath).map { it.toURI().toURL() }
-            logger.info("Runner classpath:")
-            fullClasspath.forEach { logger.info("    $it") }
+            val fullClasspath = (analyzerClasspath + ideaClasspath /*+ pluginsClasspath*/).map { it.toURI().toURL() }
+            logger.info("InspectionPlugin: Runner classpath: $fullClasspath")
             val parentClassLoader = this.javaClass.classLoader
-            logger.info("Runner parent class loader: $parentClassLoader")
+            logger.info("InspectionPlugin: Runner parent class loader: $parentClassLoader")
             if (parentClassLoader is URLClassLoader) {
-                logger.info("Parent classpath:")
-                parentClassLoader.urLs.forEach { logger.info("    $it") }
+                logger.info("InspectionPlugin: Parent classpath: " + parentClassLoader.urLs)
             }
             val loader = ClassloaderContainer.getOrInit {
                 ChildFirstClassLoader(fullClasspath.toTypedArray(), parentClassLoader)
@@ -69,8 +74,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask, SourceB
                         0 -> logger.error(message)
                         1 -> logger.warn(message)
                         2 -> logger.info(message)
-                        else -> {
-                        }
+                        3 -> logger.debug(message)
                     }
                 })
                 var gradle: Gradle = project.gradle
@@ -88,25 +92,24 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask, SourceB
             }
             inspectionsThread.contextClassLoader = loader
             inspectionsThread.setUncaughtExceptionHandler { t, e ->
-                logger.error(e.message)
+                logger.error("InspectionPlugin: Exception during works analyzer ${e.message}")
+                logger.error("Caused by: " + (e.cause?.message ?: e.cause))
+                logger.error(e.cause?.stackTrace?.joinToString(separator = "\n"))
                 throw TaskExecutionException(this, e)
             }
             inspectionsThread.start()
             inspectionsThread.join()
 
             if (!success && !parameters.ignoreFailures) {
-                logger.error("Task execution failure")
-                throw TaskExecutionException(this, null)
+                val ex = Exception("Task execution failure")
+                throw TaskExecutionException(this, ex)
             }
         } catch (e: Throwable) {
-            logger.error("EXCEPTION caught in inspections plugin: " + e.message)
+            logger.error("InspectionPlugin: EXCEPTION caught in inspections plugin: " + e.message)
+            logger.error("Caused by: " + (e.cause?.message ?: e.cause))
+            logger.error(e.cause?.stackTrace?.joinToString(separator = "\n"))
             throw TaskExecutionException(this, e)
         }
-    }
-
-    companion object {
-        // TODO: take the same version as plugin
-        const val runnerVersion = "0.1.5-SNAPSHOT"
     }
 
     object ClassloaderContainer {

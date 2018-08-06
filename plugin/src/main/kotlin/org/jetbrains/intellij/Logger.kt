@@ -7,7 +7,8 @@ open class Logger(private val logger: BiFunction<Int, String, Unit>) {
     private enum class LoggingLevel(val level: Int) {
         ERROR(0),
         WARNING(1),
-        INFO(2)
+        INFO(2),
+        DEBUG(3)
     }
 
     fun info(s: Any? = "") {
@@ -20,5 +21,9 @@ open class Logger(private val logger: BiFunction<Int, String, Unit>) {
 
     fun error(s: Any? = "") {
         logger.apply(LoggingLevel.ERROR.level, s.toString())
+    }
+
+    fun debug(s: Any? = "") {
+        logger.apply(LoggingLevel.INFO.level, s.toString())
     }
 }

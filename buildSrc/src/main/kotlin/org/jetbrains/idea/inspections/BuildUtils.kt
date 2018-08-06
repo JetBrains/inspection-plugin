@@ -8,5 +8,3 @@ val Project.projectVersion: String
 
 val Project.projectGroup: String
     get() = this.findProperty("group") as String
-
-operator fun File.div(name: String) = File(this, name)

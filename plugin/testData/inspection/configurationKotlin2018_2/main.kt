@@ -1,5 +1,5 @@
 // warning: org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection
-// ideaVersion = ideaIC:182.2574.2
+// ideaVersion = ideaIC:2018.2
 
 public val x = 42
 

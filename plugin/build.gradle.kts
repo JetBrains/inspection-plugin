@@ -21,11 +21,15 @@ buildscript {
 
 val kotlinVersion: String by extra
 
+plugins {
+    java
+}
+
 apply {
     plugin("java-gradle-plugin")
     plugin("maven-publish")
-    plugin("kotlin")
     plugin("com.jfrog.bintray")
+    plugin("kotlin")
 }
 
 val projectName = "inspection-plugin"

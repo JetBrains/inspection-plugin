@@ -11,7 +11,7 @@ import org.jetbrains.intellij.parameters.InspectionsParameters
 import org.jetbrains.intellij.parameters.ReportParameters
 import org.jetbrains.intellij.versions.IdeaVersion
 import org.jetbrains.intellij.versions.KotlinPluginVersion
-import org.jetbrains.intellij.versions.ToolVersion
+
 
 @Suppress("MemberVisibilityCanBePrivate")
 open class ReformatTask : AbstractInspectionsTask() {
@@ -45,13 +45,6 @@ open class ReformatTask : AbstractInspectionsTask() {
     }
 
     /**
-     * Tool version to use
-     */
-    @get:Input
-    val toolVersion: ToolVersion
-        get() = InspectionPlugin.toolVersion(extension.toolVersion)
-
-    /**
      * Version of IDEA.
      */
     @get:Input
@@ -62,8 +55,9 @@ open class ReformatTask : AbstractInspectionsTask() {
      * Version of IDEA Kotlin Plugin.
      */
     @get:Input
-    val kotlinPluginVersion: KotlinPluginVersion
-        get() = InspectionPlugin.kotlinPluginVersion(ideaVersion, extension.kotlinPluginVersion, extension.kotlinPluginLocation)
+    @get:Optional
+    val kotlinPluginVersion: KotlinPluginVersion?
+        get() = InspectionPlugin.kotlinPluginVersion(extension.kotlinPluginVersion, extension.kotlinPluginLocation)
 
     /**
      * Normally false. Value of true is used in tests to prevent IDEA shutdown.
@@ -80,7 +74,6 @@ open class ReformatTask : AbstractInspectionsTask() {
      *
      * @return false if violations should be displayed on console, true otherwise
      */
-    @get:Input
     @get:Console
     var isQuiet: Boolean
         get() = extension.reformat.isQuiet ?: false
@@ -99,6 +92,14 @@ open class ReformatTask : AbstractInspectionsTask() {
             extension.reformat.quickFix = value
         }
 
+    /**
+     * Binary sources will not participate in the analysis..
+     * Default value is the <tt>true</tt>.
+     */
+    @get:Input
+    val skipBinarySources: Boolean
+        get() = extension.skipBinarySources ?: true
+
     override lateinit var baseType: BaseType
 
     private val extension: InspectionsExtension
@@ -108,16 +109,16 @@ open class ReformatTask : AbstractInspectionsTask() {
         val projectDir = project.rootProject.projectDir
         val report = ReportParameters(isQuiet, null, null)
         val errors = InspectionTypeParameters(setOf(), null)
-        val warnings = InspectionTypeParameters(setOf(), null)
+        val warnings = InspectionTypeParameters(setOf(REFORMAT_INSPECTION_TOOL), null)
         val infos = InspectionTypeParameters(setOf(), null)
         return InspectionsParameters(
                 ignoreFailures,
-                toolVersion,
                 ideaVersion,
                 kotlinPluginVersion,
                 projectDir,
                 report,
                 quickFix,
+                skipBinarySources,
                 false,
                 null,
                 errors,
@@ -127,10 +128,18 @@ open class ReformatTask : AbstractInspectionsTask() {
     }
 
     override fun createAnalyzer(loader: ClassLoader): Analyzer<InspectionsParameters> {
-        val className = "org.jetbrains.idea.inspections.ReformatInspectionRunner"
+        val className = "org.jetbrains.idea.inspections.InspectionsRunner"
         @Suppress("UNCHECKED_CAST")
         val analyzerClass = loader.loadClass(className) as Class<Analyzer<InspectionsParameters>>
         val analyzer = analyzerClass.constructors.first().newInstance(testMode)
         return analyzerClass.cast(analyzer)
+    }
+
+    init {
+        outputs.upToDateWhen { false }
+    }
+
+    companion object {
+        private const val REFORMAT_INSPECTION_TOOL = "org.jetbrains.kotlin.idea.inspections.ReformatInspection"
     }
 }

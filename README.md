@@ -87,7 +87,6 @@ inspections {
         inspections = []
         max = null
     }
-    toolVersion = '0.1.4'
     reportsDir = file('build')
     ignoreFailures = false
     ideaVersion = 'ideaIC:2017.3'
@@ -136,21 +135,19 @@ You can specify additional options in `inspections` closure, e.g.:
 
 ```groovy
 inspections {
-    maxErrors = 5
-    maxWarnings = 20
+    errors.max = 5
+    warnings.max = 20
     ignoreFailures = true
     quiet = true
-    config = "inspections.xml"
 }
 ```
 
 The meaning of the parameters is the following:
 
-* `maxErrors`: after exceeding the given number of inspection diagnostics with "error" severity, inspection task stops and fails (1 by default)
-* `maxWarnings`: after exceeding the given number of inspection diagnostics with "warning" severity, inspection task stops and fails (100 by default)
+* `errors.max`: after exceeding the given number of inspection diagnostics with "error" severity, inspection task stops and fails (1 by default)
+* `warnings.max`: after exceeding the given number of inspection diagnostics with "warning" severity, inspection task stops and fails (100 by default)
 * `ignoreFailures`: inspection task never fails (false by default)
 * `quiet`: do not report inspection messages to console, only to XML file (false by default)
-* `config`: configuration file location
 
 If you wish to change location of report file, you should specify it in closure for particular task, e.g.
 
@@ -187,7 +184,6 @@ IDEA version used in inspection plugin (which is set in `ideaVersion` parameter)
 
 Known bugs / problems at this moment (version 0.1.4):
 
-* inspection task is not executed on rerun if source code is not changed (use `inspectionsClean inspectionsMain` to make it rerun)
 * plugin does not work yet with Ultimate IDEA versions, like ideaIU:2017.3
 * analysis of Kotlin JS and common modules is only partially supported
 * Kotlin JVM module with common library in dependencies (like kotlin-stdlib-common or kotlin-test) is configured correctly only in IDEA 2018.2, e.g. IC:182.2574.2 

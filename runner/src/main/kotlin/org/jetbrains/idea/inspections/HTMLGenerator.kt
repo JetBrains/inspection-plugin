@@ -17,27 +17,27 @@ class HTMLGenerator(
     private val documentManager = FileDocumentManager.getInstance()
 
     init {
-        sb.appendln("""
-<html><head><style>
-error {
-    background-color: red;
-}
-warning {
-    background-color: yellow;
-}
-info {
-    text-decoration-style: wavy;
-    text-decoration: underline;
-}
-unused {
-    background-color: lightgray;
-}
-keyword {
-    font-weight: bold;
-}
-</style></head>
-<body>
-""")
+        sb.appendln(/*language=html*/"""
+            <html><head><style>
+            error {
+                background-color: red;
+            }
+            warning {
+                background-color: yellow;
+            }
+            info {
+                text-decoration-style: wavy;
+                text-decoration: underline;
+            }
+            unused {
+                background-color: lightgray;
+            }
+            keyword {
+                font-weight: bold;
+            }
+            </style></head>
+            <body>
+        """.trimIndent() + "\n")
     }
 
     private fun PsiElement.coversElement(problemElement: PsiElement, document: Document?): Boolean {
@@ -52,8 +52,8 @@ keyword {
     private fun PsiElement.findElementToPrint(document: Document?): PsiElement {
         var elementToPrint = this
         while (elementToPrint.parent != null &&
-               elementToPrint.parent !is PsiFile &&
-               !elementToPrint.coversElement(this, document)) {
+                elementToPrint.parent !is PsiFile &&
+                !elementToPrint.coversElement(this, document)) {
 
             elementToPrint = elementToPrint.parent
         }
