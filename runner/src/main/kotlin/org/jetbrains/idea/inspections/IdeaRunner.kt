@@ -8,9 +8,6 @@ import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.application.ex.ApplicationEx
 import com.intellij.openapi.application.ex.ApplicationManagerEx
 import com.intellij.openapi.application.impl.ApplicationImpl
-import com.intellij.openapi.command.CommandProcessor
-import com.intellij.openapi.project.ex.ProjectManagerEx
-import com.intellij.openapi.project.impl.ProjectManagerImpl
 import com.intellij.openapi.projectRoots.JavaSdk
 import com.intellij.openapi.projectRoots.ProjectJdkTable
 import com.intellij.openapi.projectRoots.impl.SdkConfigurationUtil
@@ -20,38 +17,23 @@ import org.jetbrains.intellij.Analyzer
 import java.io.File
 import java.io.IOException
 import java.nio.channels.FileChannel
-import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
+import java.lang.management.ManagementFactory
+import java.nio.channels.FileLock
+import java.nio.channels.OverlappingFileLockException
+
 
 abstract class IdeaRunner<T : Analyzer.Parameters>(private val testMode: Boolean) : AbstractAnalyzer<T>() {
 
-    companion object {
-        private const val AWT_HEADLESS = "java.awt.headless"
-        private const val IDEA_HOME_PATH = "idea.home.path"
-        private const val BUILD_NUMBER = "idea.plugins.compatible.build"
-        private const val SYSTEM_PATH = "idea.system.path"
-        private const val USER_HOME = "user.home"
-        private const val SYSTEM_MARKER_FILE = "marker.ipl"
-        private const val JAVA_HOME = "JAVA_HOME"
-        private val JDK_ENVIRONMENT_VARIABLES = mapOf(
-                "1.6" to "JDK_16",
-                "1.7" to "JDK_17",
-                "1.8" to "JDK_18"
-                // TODO: un-comment me
-                //"9" to "JDK_9"
-        )
-
-        // TODO: change to USEFUL_PLUGINS
-        private val USELESS_PLUGINS = listOf(
-                "mobi.hsz.idea.gitignore",
-                "org.jetbrains.plugins.github",
-                "Git4Idea"
-        )
-
-        private const val DEFAULT_BUILD_NUMBER = "172.1"
-    }
-
     private var application: ApplicationEx? = null
+
+    private var systemPathMarker: FileChannel? = null
+
+    private var ideaLockChannel: FileChannel? = null
+    private var ideaLock: FileLock? = null
+
+    private var shutdownLockChannel: FileChannel? = null
+    private var shutdownLock: FileLock? = null
 
     val idea: ApplicationEx
         get() = application ?: throw IllegalStateException("Idea not runned")
@@ -85,29 +67,31 @@ abstract class IdeaRunner<T : Analyzer.Parameters>(private val testMode: Boolean
             ideaHomeDirectory: File,
             parameters: T
     ): Boolean {
-        logger.debug("InspectionPlugin: Class loader: " + this.javaClass.classLoader)
-        val (idea, systemPathMarkerChannel) = try {
-            loadApplication(ideaHomeDirectory)
+        // Don't delete, change and downgrade level of log because this
+        // information used in unit tests for identification of daemon.
+        logger.info("InspectionPlugin: Daemon PID is ${getPID()}")
+        ideaLockAcquireIfNeeded()
+        logger.info("InspectionPlugin: Class loader: " + this.javaClass.classLoader)
+        try {
+            application = loadApplication(ideaHomeDirectory)
         } catch (e: Throwable) {
-            logger.error("InspectionPlugin: Exception during IDEA loading: " + e.message)
-            if (e is InspectionRunnerException) throw e
-            throw InspectionRunnerException("EXCEPTION caught in inspection plugin (IDEA loading): $e", e)
+            if (e is RunnerException) throw e
+            throw RunnerException("EXCEPTION caught in inspection plugin (IDEA loading): $e", e)
         }
-        this.application = idea
         try {
             idea.doNotSave()
             idea.configureJdk()
             return analyze(files, projectName, moduleName, parameters)
         } catch (e: Throwable) {
-            if (e is InspectionRunnerException) throw e
-            throw InspectionRunnerException("EXCEPTION caught in inspection plugin (IDEA readAction): $e", e)
+            if (e is RunnerException) throw e
+            throw RunnerException("EXCEPTION caught in inspection plugin (IDEA readAction): $e", e)
         } finally {
-            systemPathMarkerChannel.close()
+            systemPathMarker?.close()
         }
     }
 
     private fun Application.configureJdk() {
-        logger.debug("InspectionPlugin: Before SDK configuration")
+        logger.info("InspectionPlugin: Before SDK configuration")
         invokeAndWait {
             runWriteAction {
                 val javaHomePath = System.getenv(JAVA_HOME) ?: ""
@@ -116,63 +100,66 @@ abstract class IdeaRunner<T : Analyzer.Parameters>(private val testMode: Boolean
                     if (jdkTable.findJdk(jdkVersion) != null) continue
                     val homePath = System.getenv(jdkEnvironmentVariable)
                             ?: if (jdkVersion in javaHomePath && "jdk" in javaHomePath) javaHomePath else continue
-                    logger.debug("InspectionPlugin: Configuring JDK $jdkVersion")
+                    logger.info("InspectionPlugin: Configuring JDK $jdkVersion")
                     val sdk = SdkConfigurationUtil.createAndAddSDK(
                             FileUtil.toSystemIndependentName(homePath),
                             JavaSdk.getInstance()
                     ) ?: continue
-                    logger.debug("InspectionPlugin: Home path is ${sdk.homePath}, version string is ${sdk.versionString}")
+                    logger.info("InspectionPlugin: Home path is ${sdk.homePath}, version string is ${sdk.versionString}")
                 }
             }
         }
     }
 
-    private fun loadApplication(ideaHomeDirectory: File): Pair<ApplicationEx, FileChannel> {
+    private fun loadApplication(ideaHomeDirectory: File): ApplicationEx {
         System.setProperty(IDEA_HOME_PATH, ideaHomeDirectory.path)
         System.setProperty(AWT_HEADLESS, "true")
         val ideaBuildNumberFile = File(ideaHomeDirectory, "build.txt")
         val (buildNumber, usesUltimate) = ideaBuildNumberFile.buildConfiguration
         System.setProperty(BUILD_NUMBER, buildNumber)
-        val (systemPath, systemPathMarkerChannel) = generateSystemPath(buildNumber, usesUltimate)
+        val systemPath = generateSystemPath(buildNumber, usesUltimate)
         System.setProperty(SYSTEM_PATH, systemPath)
+        val platformPrefix = if (usesUltimate) PlatformUtils.IDEA_PREFIX else PlatformUtils.IDEA_CE_PREFIX
+        System.setProperty(PlatformUtils.PLATFORM_PREFIX_KEY, PlatformUtils.getPlatformPrefix(platformPrefix))
 
-        System.setProperty(
-                PlatformUtils.PLATFORM_PREFIX_KEY,
-                PlatformUtils.getPlatformPrefix(
-                        if (usesUltimate) PlatformUtils.IDEA_PREFIX else PlatformUtils.IDEA_CE_PREFIX
-                )
-        )
-        logger.debug("InspectionPlugin: IDEA home dir: $ideaHomeDirectory")
-        logger.debug("InspectionPlugin: IDEA home path: " + PathManager.getHomePath())
-        logger.debug("InspectionPlugin: IDEA system path: $systemPath")
-        if (getCommandLineApplication() == null) {
-            createCommandLineApplication(isInternal = false, isUnitTestMode = false, isHeadless = true)
-            for (plugin in USELESS_PLUGINS) {
-                PluginManagerCore.disablePlugin(plugin)
-            }
-
-            if (usesUltimate) {
-                throw InspectionRunnerException("Using of IDEA Ultimate is not yet supported in inspection runner")
-            }
-            // Do not remove the call of PluginManagerCore.getPlugins(), it prevents NPE in IDEA
-            // NB: IdeaApplication.getStarter() from IJ community contains the same call
-            logger.info("InspectionPlugin: Plugins enabled: " + PluginManagerCore.getPlugins())
-            ApplicationManagerEx.getApplicationEx().load()
-        } else {
-            logger.info("InspectionPlugin: IDEA application already exists, don't bother to run it again")
-            shutdownNecessary = false
+        logger.info("InspectionPlugin: IDEA home dir: $ideaHomeDirectory")
+        logger.info("InspectionPlugin: IDEA home path: " + PathManager.getHomePath())
+        logger.info("InspectionPlugin: IDEA system path: $systemPath")
+        if (usesUltimate)
+            throw RunnerException("Using of IDEA Ultimate is not yet supported in inspection runner")
+        if (getCommandLineApplication() != null) {
+            logger.info("InspectionPlugin: IDEA command line application already exists, don't bother to run it again")
+            val realIdeaHomeDirectory = File(PathManager.getHomePath())
+            val ideaHomePath = ideaHomeDirectory.canonicalPath
+            val realIdeaHomePath = realIdeaHomeDirectory.canonicalPath
+            if (ideaHomePath != realIdeaHomePath)
+                throw RunnerException("IDEA command line application already exists, but have other instance: $ideaHomePath and $realIdeaHomePath")
+            return ApplicationManagerEx.getApplicationEx()
         }
-        return (ApplicationManagerEx.getApplicationEx() ?: run {
-            throw InspectionRunnerException("Cannot create IDEA application")
-        }) to systemPathMarkerChannel
+        logger.info("InspectionPlugin: IDEA starting in command line mode")
+        createCommandLineApplication(isInternal = false, isUnitTestMode = false, isHeadless = true)
+        USELESS_PLUGINS.forEach { PluginManagerCore.disablePlugin(it) }
+
+//        val kotlinPluginDirectory = File(ideaHomeDirectory, "plugins/Kotlin")
+//        val kotlinPluginDescriptor = IdeaPluginDescriptorImpl(kotlinPluginDirectory)
+//        kotlinPluginDescriptor.pluginId
+//        val plugins = PluginManagerCore.getPlugins() + kotlinPluginDescriptor
+//        PluginManagerCore.setPlugins(plugins)
+
+        // Do not remove the call of PluginManagerCore.getPlugins(), it prevents NPE in IDEA
+        // NB: IdeaApplication.getStarter() from IJ community contains the same call
+        val enabledPlugins = PluginManagerCore.getPlugins().map { it.name to it.pluginId }.toMap()
+        val disabledPlugins = PluginManagerCore.getDisabledPlugins().toList()
+        logger.info("InspectionPlugin: Enabled plugins: $enabledPlugins")
+        logger.info("InspectionPlugin: Disabled plugins $disabledPlugins")
+        return ApplicationManagerEx.getApplicationEx().apply { load() }
     }
 
-    private fun generateSystemPath(buildNumber: String, usesUltimate: Boolean): Pair<String, FileChannel> {
+    private fun generateSystemPath(buildNumber: String, usesUltimate: Boolean): String {
         val homeDir = System.getProperty(USER_HOME).replace("\\", "/")
         val buildPrefix = (if (usesUltimate) "U_" else "") + buildNumber.replace(".", "_")
         var path: String
         var code = 0
-        var channel: FileChannel
         do {
             code++
             path = "$homeDir/.IntellijIDEAInspections/${buildPrefix}_code$code/system"
@@ -180,43 +167,131 @@ abstract class IdeaRunner<T : Analyzer.Parameters>(private val testMode: Boolean
             if (!file.exists()) {
                 file.mkdirs()
             }
-            File(file, SYSTEM_MARKER_FILE).createNewFile()
+            val systemMarkerFile = File(file, SYSTEM_MARKER_FILE)
+            systemMarkerFile.createNewFile()
             // To prevent usages by multiple processes
             val lock = try {
-                channel = FileChannel.open(Paths.get(path, SYSTEM_MARKER_FILE), StandardOpenOption.WRITE)
-                channel.tryLock()
+                systemPathMarker = FileChannel.open(systemMarkerFile.toPath(), StandardOpenOption.WRITE)
+                systemPathMarker?.tryLock()
             } catch (e: IOException) {
                 logger.warn("InspectionPlugin: IO exception while locking: ${e.message}")
-                throw InspectionRunnerException("EXCEPTION caught in inspection plugin (IDEA system dir lock): $e", e)
+                throw RunnerException("EXCEPTION caught in inspection plugin (IDEA system dir lock): $e", e)
             }
-            if (lock == null) {
-                if (code == 256) {
-                    throw InspectionRunnerException("Cannot create IDEA system directory (all locked)")
-                }
+            if (lock == null && code == 256) {
+                throw RunnerException("Cannot create IDEA system directory (all locked)")
             }
         } while (lock == null)
-        return path to channel
+        return path
     }
 
-    private var shutdownNecessary = true
-
-    override fun shutdownIdea() {
-        val application = this.application
-        if (testMode) {
-            application?.invokeLater {
-                val manager = ProjectManagerEx.getInstanceEx() as? ProjectManagerImpl
-                CommandProcessor.getInstance().executeCommand(null, {
-                    manager?.closeAndDisposeAllProjects(/* checkCanCloseProject = */ false)
-                }, "", null)
-            }
-        } else if (shutdownNecessary) {
-            // NB: exit is actually performed on EDT thread!
-            logger.info("InspectionPlugin: Shutting IDEA down!!!")
-            if (application is ApplicationImpl) {
-                application.exit(true, true, false)
-            } else {
-                application?.exit(true, true)
-            }
+    private fun lockAcquireIfNeeded(lockName: String): Pair<FileLock?, FileChannel?> {
+        if (!LOCKS_DIRECTORY.exists()) LOCKS_DIRECTORY.mkdirs()
+        val lockFile = File(LOCKS_DIRECTORY, lockName)
+        if (!lockFile.exists()) lockFile.createNewFile()
+        val channel = FileChannel.open(lockFile.toPath(), StandardOpenOption.WRITE)
+        val lock = try {
+            channel?.tryLock()
+        } catch (ignore: OverlappingFileLockException) {
+            null
         }
+        when (lock) {
+            null -> logger.info("InspectionPlugin: lock $lockName acquire skipped")
+            else -> logger.info("InspectionPlugin: lock $lockName acquired")
+        }
+        return lock to channel
+    }
+
+    private fun lockRelease(lock: FileLock?, channel: FileChannel?) {
+        lock?.release()
+        channel?.close()
+        logger.info("InspectionPlugin: lock released")
+    }
+
+    private fun ideaLockAcquireIfNeeded() {
+        val lockName = ideaLockFileName()
+        val (lock, channel) = lockAcquireIfNeeded(lockName)
+        ideaLock = lock
+        ideaLockChannel = channel
+    }
+
+    private fun ideaLockRelease() = lockRelease(ideaLock, ideaLockChannel)
+
+    private fun shutdownLockAcquireIfNeeded(): Boolean {
+        val lockName = shutdownLockFileName()
+        val (lock, channel) = lockAcquireIfNeeded(lockName)
+        shutdownLock = lock
+        shutdownLockChannel = channel
+        return shutdownLock != null
+    }
+
+    private fun shutdownLockRelease() = lockRelease(shutdownLock, shutdownLockChannel)
+
+    /**
+     * Killed current gradle daemon for classpath resetting
+     */
+    private fun finishGradleDaemon() {
+        // ToDo automatically finishing of gradle daemon
+        logger.error("InspectionPlugin: Gradle daemon is alive. Please do it manually.")
+    }
+
+    override fun finalize() {
+        val shutdownNeeded = shutdownLockAcquireIfNeeded()
+        if (!shutdownNeeded) {
+            logger.info("InspectionPlugin: IDEA shutting down skipped.")
+            return
+        }
+        // NB: exit is actually performed on EDT thread!
+        logger.info("InspectionPlugin: IDEA shutting down.")
+        val application = application
+        when (application) {
+            is ApplicationImpl -> application.exit(true, true, false)
+            else -> application?.exit(true, true)
+        }
+        // Release not needed if application dispatch thread is death because
+        // if dispatch is death then gradle daemon must be death. After death
+        // of gradle daemon operation system automatically released all locks.
+        application?.invokeLater {
+            finishGradleDaemon()
+            ideaLockRelease()
+            shutdownLockRelease()
+        }
+    }
+
+    companion object {
+        private const val AWT_HEADLESS = "java.awt.headless"
+        private const val IDEA_HOME_PATH = "idea.home.path"
+        private const val BUILD_NUMBER = "idea.plugins.compatible.build"
+        private const val SYSTEM_PATH = "idea.system.path"
+        private const val USER_HOME = "user.home"
+        private const val SYSTEM_MARKER_FILE = "marker.ipl"
+        private const val JAVA_HOME = "JAVA_HOME"
+        private val JDK_ENVIRONMENT_VARIABLES = mapOf(
+                "1.6" to "JDK_16",
+                "1.7" to "JDK_17",
+                "1.8" to "JDK_18"
+                // TODO: un-comment me
+                //"9" to "JDK_9"
+        )
+
+        // TODO: change to USEFUL_PLUGINS
+        private val USELESS_PLUGINS = listOf(
+                "mobi.hsz.idea.gitignore",
+                "org.jetbrains.plugins.github",
+                "Git4Idea"
+        )
+
+        private const val DEFAULT_BUILD_NUMBER = "172.1"
+
+        private val LOCKS_DIRECTORY = File(System.getProperty("java.io.tmpdir"), "inspection-plugin/locks")
+
+        private const val IDEA_LOCK_EXTENSION = "idea-lock"
+
+        private const val SHUTDOWN_LOCK_EXTENSION = "shutdown-lock"
+
+        private fun getPID() = ManagementFactory.getRuntimeMXBean().name
+
+        private fun ideaLockFileName() = "${getPID()}.$IDEA_LOCK_EXTENSION"
+
+        private fun shutdownLockFileName() = "${getPID()}.$SHUTDOWN_LOCK_EXTENSION"
     }
 }

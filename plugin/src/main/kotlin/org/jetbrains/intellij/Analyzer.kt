@@ -18,5 +18,5 @@ interface Analyzer<T : Analyzer.Parameters> {
 
     fun setLogger(logger: BiFunction<Int, String, Unit>)
 
-    fun shutdownIdea()
+    fun finalize()
 }

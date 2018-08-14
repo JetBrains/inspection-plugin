@@ -1,6 +1,6 @@
 package org.jetbrains.idea.inspections
 
-class InspectionRunnerException : RuntimeException {
+class RunnerException : RuntimeException {
 
     constructor(message: String, cause: Throwable) : super(message, cause)
 

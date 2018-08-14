@@ -74,7 +74,6 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
                         0 -> logger.error(message)
                         1 -> logger.warn(message)
                         2 -> logger.info(message)
-                        3 -> logger.debug(message)
                     }
                 })
                 var gradle: Gradle = project.gradle
@@ -92,10 +91,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
             }
             inspectionsThread.contextClassLoader = loader
             inspectionsThread.setUncaughtExceptionHandler { t, e ->
-                logger.error("InspectionPlugin: Exception during works analyzer ${e.message}")
-                logger.error("Caused by: " + (e.cause?.message ?: e.cause))
-                logger.error(e.cause?.stackTrace?.joinToString(separator = "\n"))
-                throw TaskExecutionException(this, e)
+                ExceptionHandler.handle(logger, this, e, "InspectionPlugin: Exception during works analyzer")
             }
             inspectionsThread.start()
             inspectionsThread.join()
@@ -105,10 +101,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
                 throw TaskExecutionException(this, ex)
             }
         } catch (e: Throwable) {
-            logger.error("InspectionPlugin: EXCEPTION caught in inspections plugin: " + e.message)
-            logger.error("Caused by: " + (e.cause?.message ?: e.cause))
-            logger.error(e.cause?.stackTrace?.joinToString(separator = "\n"))
-            throw TaskExecutionException(this, e)
+            ExceptionHandler.handle(logger, this, e, "InspectionPlugin: Exception caught in inspections plugin")
         }
     }
 
@@ -125,7 +118,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
 
     inner class IdeaFinishingListener : BuildListener {
         override fun buildFinished(result: BuildResult?) {
-            analyzer?.shutdownIdea()
+            analyzer?.finalize()
             analyzer = null
         }
 

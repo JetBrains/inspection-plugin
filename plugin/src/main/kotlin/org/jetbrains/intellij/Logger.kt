@@ -22,8 +22,4 @@ open class Logger(private val logger: BiFunction<Int, String, Unit>) {
     fun error(s: Any? = "") {
         logger.apply(LoggingLevel.ERROR.level, s.toString())
     }
-
-    fun debug(s: Any? = "") {
-        logger.apply(LoggingLevel.INFO.level, s.toString())
-    }
 }

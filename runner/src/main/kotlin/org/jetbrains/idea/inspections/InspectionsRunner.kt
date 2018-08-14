@@ -60,7 +60,7 @@ class InspectionsRunner(testMode: Boolean) : IdeaRunner<InspectionsParameters>(t
     }
 
     private fun getInspectionWrappers(parameters: InspectionsParameters, ideaProject: IdeaProject): Sequence<PluginInspectionWrapper> {
-        logger.debug("InspectionPlugin: InheritFromIdea = ${parameters.inheritFromIdea}")
+        logger.info("InspectionPlugin: InheritFromIdea = ${parameters.inheritFromIdea}")
         val inspections = parameters.errors.inspections + parameters.warnings.inspections + parameters.infos.inspections
         val registeredInspectionWrappers = getRegisteredInspectionWrappers(inspections)
         if (parameters.inheritFromIdea) {
@@ -74,7 +74,7 @@ class InspectionsRunner(testMode: Boolean) : IdeaRunner<InspectionsParameters>(t
         val inspectionProfileManager = ApplicationInspectionProfileManager.getInstanceImpl()
         val inspectionProfile = parameters.profileName?.let {
             val profileDir = File(File(parameters.projectDir, INSPECTION_PROFILES_PATH), it)
-            logger.debug("InspectionPlugin: Profile: $profileDir")
+            logger.info("InspectionPlugin: Profile: $profileDir")
             inspectionProfileManager.loadProfile(profileDir.absolutePath)
         } ?: inspectionProfileManager.currentProfile
         val profileTools = inspectionProfile.getAllEnabledInspectionTools(ideaProject)
@@ -127,18 +127,18 @@ class InspectionsRunner(testMode: Boolean) : IdeaRunner<InspectionsParameters>(t
         var infos = 0
         var success = true
 
-        logger.debug("InspectionPlugin: Before psi manager creation")
+        logger.info("InspectionPlugin: Before psi manager creation")
         val psiManager = PsiManager.getInstance(ideaProject)
-        logger.debug("InspectionPlugin: Before virtual file manager creation")
+        logger.info("InspectionPlugin: Before virtual file manager creation")
         val virtualFileManager = VirtualFileManager.getInstance()
         val virtualFileSystem = virtualFileManager.getFileSystem("file")
         val documentManager = FileDocumentManager.getInstance()
         val fileIndex = ProjectFileIndex.getInstance(ideaProject)
 
         val results: MutableMap<String, MutableList<PinnedProblemDescriptor>> = mutableMapOf()
-        logger.debug("InspectionPlugin: Before inspections launched: total of ${files.size} files to analyze")
-        val inspectionWrappers = getInspectionWrappers(parameters, ideaProject)
-        logger.debug("InspectionPlugin: Inspections: " + inspectionWrappers.map { it.classFqName }.toList())
+        logger.info("InspectionPlugin: Before inspections launched: total of ${files.size} files to analyze")
+        val inspectionWrappers = getInspectionWrappers(parameters, ideaProject).toList()
+        logger.info("InspectionPlugin: Inspections: " + inspectionWrappers.map { it.classFqName }.toList())
         inspectionLoop@ for (inspectionWrapper in inspectionWrappers) {
             val inspectionClassName = inspectionWrapper.classFqName
             val inspectionTool = inspectionWrapper.tool
@@ -163,7 +163,7 @@ class InspectionsRunner(testMode: Boolean) : IdeaRunner<InspectionsParameters>(t
                         analysisLoop@ for (sourceFile in files) {
                             val filePath = sourceFile.absolutePath
                             val virtualFile = virtualFileSystem.findFileByPath(filePath)
-                                    ?: throw InspectionRunnerException("Cannot find virtual file for $filePath")
+                                    ?: throw RunnerException("Cannot find virtual file for $filePath")
                             if (parameters.skipBinarySources && virtualFile.fileType.isBinary)
                                 continue
                             if (!fileIndex.isInSource(virtualFile)) {
@@ -171,7 +171,7 @@ class InspectionsRunner(testMode: Boolean) : IdeaRunner<InspectionsParameters>(t
                                 continue
                             }
                             val psiFile = psiManager.findFile(virtualFile)
-                                    ?: throw InspectionRunnerException("Cannot find PSI file for $filePath")
+                                    ?: throw RunnerException("Cannot find PSI file for $filePath")
                             if (!inspectionEnabledForFile(inspectionWrapper, psiFile)) continue
                             val document = documentManager.getDocument(virtualFile)
                             if (document == null) {
@@ -208,10 +208,12 @@ class InspectionsRunner(testMode: Boolean) : IdeaRunner<InspectionsParameters>(t
                                 }
                             }
                         }
-                    } catch (ie: InspectionException) {
-                        logger.error("InspectionPlugin: Exception during inspection running: " + ie.message)
-                        logger.error("Caused by: " + (ie.cause.message ?: ie.cause))
-                        logger.error(ie.cause.stackTrace.joinToString(separator = "\n"))
+                    } catch (exception: InspectionException) {
+                        logger.error("InspectionPlugin: Exception during inspection running ${exception.message}")
+                        logger.error(exception.stackTrace.joinToString(separator = "\n") { "    $it" })
+                        logger.error("Caused by: " + (exception.cause.message ?: exception.cause))
+                        logger.error(exception.cause.stackTrace.joinToString(separator = "\n") { "    $it" })
+                        success = false
                     }
                 }
                 ProgressManager.getInstance().runProcess(task, EmptyProgressIndicator())
@@ -266,7 +268,7 @@ class InspectionsRunner(testMode: Boolean) : IdeaRunner<InspectionsParameters>(t
                     }
                     try {
                         fixes[0].applyFix(project, problem)
-                        logger.debug("InspectionPlugin: Applied fix for '${problem.renderWithLocation()}'")
+                        logger.info("InspectionPlugin: Applied fix for '${problem.renderWithLocation()}'")
                     } catch (ignore: Exception) {
                     }
                 }
@@ -328,7 +330,7 @@ class InspectionsRunner(testMode: Boolean) : IdeaRunner<InspectionsParameters>(t
     }
 
     private fun Application.openProject(projectDir: File, projectName: String, moduleName: String): IdeaProject {
-        logger.debug("InspectionPlugin: Before project creation at '$projectDir'")
+        logger.info("InspectionPlugin: Before project creation at '$projectDir'")
         var ideaProject: IdeaProject? = null
         val projectFile = File(projectDir, projectName + ProjectFileType.DOT_DEFAULT_EXTENSION)
         invokeAndWait {
@@ -340,8 +342,8 @@ class InspectionsRunner(testMode: Boolean) : IdeaRunner<InspectionsParameters>(t
         }
         return ideaProject?.apply {
             val rootManager = ProjectRootManager.getInstance(this)
-            logger.debug("InspectionPlugin: Project SDK name: " + rootManager.projectSdkName)
-            logger.debug("InspectionPlugin: Project SDK: " + rootManager.projectSdk)
+            logger.info("InspectionPlugin: Project SDK name: " + rootManager.projectSdkName)
+            logger.info("InspectionPlugin: Project SDK: " + rootManager.projectSdk)
 
             val modules = ModuleManager.getInstance(this).modules.toList()
             for (module in modules) {
@@ -381,7 +383,7 @@ class InspectionsRunner(testMode: Boolean) : IdeaRunner<InspectionsParameters>(t
                 }
             }
         } ?: run {
-            throw InspectionRunnerException("Cannot open IDEA project: '${projectFile.absolutePath}'")
+            throw RunnerException("Cannot open IDEA project: '${projectFile.absolutePath}'")
         }
     }
 }

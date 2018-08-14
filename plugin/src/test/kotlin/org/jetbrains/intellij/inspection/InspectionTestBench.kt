@@ -1,9 +1,9 @@
 package org.jetbrains.intellij.inspection
 
+import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import org.gradle.testkit.runner.UnexpectedBuildFailure
-import org.gradle.testkit.runner.internal.DefaultGradleRunner
 import org.jdom2.input.SAXBuilder
 import org.jdom2.output.Format
 import org.jdom2.output.XMLOutputter
@@ -12,6 +12,8 @@ import org.jetbrains.intellij.utils.*
 import org.junit.Assert
 import org.junit.rules.TemporaryFolder
 import java.io.File
+import java.nio.channels.FileChannel
+import java.nio.file.StandardOpenOption
 import java.util.*
 
 class InspectionTestBench(private val testProjectDir: TemporaryFolder, private val taskName: String) {
@@ -121,63 +123,6 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
         }.toString()
     }
 
-    private fun assertInspectionBuild(
-            actualFilesBase: File,
-            actualFiles: List<File>,
-            expectedFilesBase: File,
-            expectedFiles: List<File>,
-            expectedOutcome: TaskOutcome,
-            expectedDiagnosticsStatus: DiagnosticsStatus,
-            vararg expectedDiagnostics: String
-    ) {
-        val result = try {
-            (GradleRunner.create() as DefaultGradleRunner)
-                    .withProjectDir(testProjectDir.root)
-                    .withArguments("--info", "--stacktrace", taskName)
-//                    .withJvmArguments("-Dorg.gradle.daemon=false")
-                    // This allow running remote debugger
-//                    .withJvmArguments("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005")
-                    // This applies classpath from pluginUnderTestMetadata
-                    .withPluginClasspath()
-                    .apply {
-                        // NB: this is necessary to apply actual plugin
-                        withPluginClasspath(pluginClasspath)
-                    }.build()
-        } catch (failure: UnexpectedBuildFailure) {
-            println("Exception caught in test: $failure")
-            failure.buildResult
-        }
-
-        println(result.output)
-        for (diagnostic in expectedDiagnostics) {
-            when (expectedDiagnosticsStatus) {
-                DiagnosticsStatus.SHOULD_PRESENT -> Assert.assertTrue("$diagnostic is not found (but should)",
-                        diagnostic in result.output)
-                DiagnosticsStatus.SHOULD_BE_ABSENT -> Assert.assertFalse("$diagnostic is found (but should not)", diagnostic in result.output)
-            }
-        }
-        Assert.assertEquals(expectedOutcome, result.task(":$taskName")?.outcome)
-        val actualPathFiles = actualFiles.map { it.relativeTo(actualFilesBase) }
-        val expectedPathFiles = expectedFiles
-                .map { it.relativeTo(expectedFilesBase) }
-                .map {
-                    when {
-                        it.isKotlinExpectedSource -> File("src/main/kotlin", it.path)
-                        it.isJavaExpectedSource -> File("src/main/java", it.path)
-                        else -> throw IllegalArgumentException("Undefined language of source file $it")
-                    }
-                }
-        @Suppress("UNUSED_VARIABLE")
-        for ((expectedPathFile, expectedFile) in expectedPathFiles.zip(expectedFiles)) {
-            val (actualPathFile, actualFile) = actualPathFiles.zip(actualFiles)
-                    .find { it.first.isSourceFor(expectedPathFile) }
-                    ?: throw IllegalArgumentException("Actual source for $expectedFile not found")
-            val actualCode = actualFile.readText()
-            val expectedCode = expectedFile.readText()
-            Assert.assertEquals(expectedCode, actualCode)
-        }
-    }
-
     private fun writeFile(destination: File, content: String) {
         destination.bufferedWriter().use {
             it.write(content)
@@ -232,11 +177,25 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
             vararg val expectedDiagnostics: String
     ) {
         fun doTest() {
-            val buildFile = testProjectDir.newFile("build.gradle")
-            testProjectDir.newFolder("src", "main", "kotlin")
-            testProjectDir.newFolder("src", "main", "java")
             testProjectDir.newFolder("build")
+            initTestProjectIdeaProfile()
+            initTestProjectBuildFile()
+            val testFiles = initTestProjectSources()
+            val buildResult = buildTestProject()
+            try {
+                assertInspectionBuildLog(buildResult)
+                assertInspectionBuildXmlReport()
+                assertInspectionBuildHtmlReport()
+                assertInspectionBuildProjectFiles(testFiles)
+            } finally {
+                val daemonPid = ejectDaemonPid(buildResult)
+                println("InspectionTestBench: Daemon PID is $daemonPid")
+                if (daemonPid == null) return
+                waitIdeaRelease(daemonPid)
+            }
+        }
 
+        private fun initTestProjectIdeaProfile() {
             with(extension) {
                 val errors = errors.inspections?.toList() ?: emptyList()
                 val warnings = warnings.inspections?.toList() ?: emptyList()
@@ -262,7 +221,10 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
                     )
                 }
             }
+        }
 
+        private fun initTestProjectBuildFile() {
+            val buildFile = testProjectDir.newFile("build.gradle")
             val hasKotlinFiles = sources.find { it.isKotlinSource } != null
             val buildFileContent = generateBuildFile(
                     hasKotlinFiles,
@@ -272,7 +234,11 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
                     kotlinVersion
             )
             writeFile(buildFile, buildFileContent)
+        }
 
+        private fun initTestProjectSources(): List<File> {
+            testProjectDir.newFolder("src", "main", "kotlin")
+            testProjectDir.newFolder("src", "main", "java")
             val testFiles = ArrayList<File>()
             for (source in sources) {
                 val file = source.relativeTo(testDir)
@@ -287,15 +253,105 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
                 testFiles.add(file3)
             }
             sources.zip(testFiles).forEach { it.first.copyTo(it.second, overwrite = true) }
-            assertInspectionBuild(
-                    testProjectDir.root,
-                    testFiles,
-                    testDir,
-                    expectedSources,
-                    expectedOutcome,
-                    expectedDiagnosticsStatus,
-                    *expectedDiagnostics
-            )
+            return testFiles
+        }
+
+        private fun buildTestProject(): BuildResult {
+            return try {
+                GradleRunner.create()
+                        .withProjectDir(testProjectDir.root)
+                        .withArguments("--info", "--stacktrace", taskName)
+//                        .withDebug(true)
+                        // This applies classpath from pluginUnderTestMetadata
+                        .withPluginClasspath()
+                        // NB: this is necessary to apply actual plugin
+                        .apply { withPluginClasspath(pluginClasspath) }
+                        .forwardOutput()
+                        .build()
+            } catch (failure: UnexpectedBuildFailure) {
+                println("InspectionTestBench: Exception caught in test: $failure")
+                failure.buildResult
+            }
+        }
+
+        private fun assertInspectionBuildLog(result: BuildResult) {
+            for (diagnostic in expectedDiagnostics) {
+                when (expectedDiagnosticsStatus) {
+                    DiagnosticsStatus.SHOULD_PRESENT -> Assert.assertTrue("$diagnostic is not found (but should)",
+                            diagnostic in result.output)
+                    DiagnosticsStatus.SHOULD_BE_ABSENT -> Assert.assertFalse("$diagnostic is found (but should not)", diagnostic in result.output)
+                }
+            }
+            Assert.assertEquals(expectedOutcome, result.task(":$taskName")?.outcome)
+        }
+
+        private fun assertInspectionBuildXmlReport() {
+            if (!xmlReport) return
+            fun File.toRootElement() = SAXBuilder().build(this).rootElement
+
+            val actualFile = File(testProjectDir.root, "build/report.xml")
+            val expectedFile = File(testDir, "report.xml")
+            val actualRoot = actualFile.toRootElement()
+            val expectedRoot = expectedFile.toRootElement()
+            val xmlOutputter = XMLOutputter(Format.getPrettyFormat())
+            val actualRepresentation = xmlOutputter.outputString(actualRoot)
+            val expectedRepresentation = xmlOutputter.outputString(expectedRoot)
+            Assert.assertEquals(expectedRepresentation, actualRepresentation)
+        }
+
+        private fun assertInspectionBuildHtmlReport() {
+            if (!htmlReport) return
+            val actualFile = File(testProjectDir.root, "build/report.html")
+            val expectedFile = File(testDir, "report.html")
+            Assert.assertEquals(expectedFile.readText().trim().replace("\r\n", "\n"),
+                    actualFile.readText().trim().replace("\r\n", "\n"))
+        }
+
+        private fun assertInspectionBuildProjectFiles(actualFiles: List<File>) {
+            val actualPathFiles = actualFiles.map { it.relativeTo(testProjectDir.root) }
+            val expectedPathFiles = expectedSources
+                    .map { it.relativeTo(testDir) }
+                    .map {
+                        when {
+                            it.isKotlinExpectedSource -> File("src/main/kotlin", it.path)
+                            it.isJavaExpectedSource -> File("src/main/java", it.path)
+                            else -> throw IllegalArgumentException("Undefined language of source file $it")
+                        }
+                    }
+            @Suppress("UNUSED_VARIABLE")
+            for ((expectedPathFile, expectedFile) in expectedPathFiles.zip(expectedSources)) {
+                val (actualPathFile, actualFile) = actualPathFiles.zip(actualFiles)
+                        .find { it.first.isSourceFor(expectedPathFile) }
+                        ?: throw IllegalArgumentException("Actual source for $expectedFile not found")
+                val actualCode = actualFile.readText()
+                val expectedCode = expectedFile.readText()
+                Assert.assertEquals(expectedCode, actualCode)
+            }
+        }
+
+        private fun String.removePrefix(prefix: String) = if (startsWith(prefix)) substring(prefix.length) else null
+
+        private fun ejectDaemonPid(buildResult: BuildResult) = buildResult.output
+                ?.split('\n')
+                ?.asSequence()
+                ?.map { it.replace("\r", "") }
+                ?.mapNotNull { it.removePrefix("InspectionPlugin: Daemon PID is ") }
+                ?.firstOrNull()
+
+        private fun waitIdeaRelease(daemonPid: String) {
+            val startTime = System.currentTimeMillis()
+            println("InspectionTestBench: Start waiting of idea finalize")
+            val ideaLockDir = File(System.getProperty("java.io.tmpdir"), "inspection-plugin/locks")
+            val lockFile = ideaLockDir.listFiles()?.find { it.name == "$daemonPid.idea-lock" } ?: run {
+                println("InspectionTestBench: lock file not found")
+                return
+            }
+            val ideaLockChannel = FileChannel.open(lockFile.toPath(), StandardOpenOption.WRITE) ?: return
+            while (ideaLockChannel.tryLock() == null) Thread.yield()
+            ideaLockChannel.close()
+            val endTime = System.currentTimeMillis()
+            val delay = (endTime - startTime).toDouble() / 1000.0
+            println("InspectionTestBench: End waiting of idea finalize. Took $delay secs")
         }
     }
 
@@ -336,24 +392,5 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
                 expectedDiagnosticsStatus,
                 *expectedDiagnostics.toTypedArray()
         ).doTest()
-
-        if (xmlReport) {
-            fun File.toRootElement() = SAXBuilder().build(this).rootElement
-
-            val actualFile = File(testProjectDir.root, "build/report.xml")
-            val expectedFile = File(testDir, "report.xml")
-            val actualRoot = actualFile.toRootElement()
-            val expectedRoot = expectedFile.toRootElement()
-            val xmlOutputter = XMLOutputter(Format.getPrettyFormat())
-            val actualRepresentation = xmlOutputter.outputString(actualRoot)
-            val expectedRepresentation = xmlOutputter.outputString(expectedRoot)
-            Assert.assertEquals(expectedRepresentation, actualRepresentation)
-        }
-        if (htmlReport) {
-            val actualFile = File(testProjectDir.root, "build/report.html")
-            val expectedFile = File(testDir, "report.html")
-            Assert.assertEquals(expectedFile.readText().trim().replace("\r\n", "\n"),
-                    actualFile.readText().trim().replace("\r\n", "\n"))
-        }
     }
 }
