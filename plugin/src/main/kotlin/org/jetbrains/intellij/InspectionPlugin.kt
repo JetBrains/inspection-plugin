@@ -45,8 +45,8 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
     }
 
     override fun configureTaskDefaults(task: InspectionsTask, baseName: String) {
-        val baseType = BaseType(baseName)
-        task.baseType = baseType
+        val baseType = SourceSetType(baseName)
+        task.sourceSetType = baseType
         configureReformatTaskDefaults(baseType)
         configureIdeaInspectionsTaskDependencies(task)
         configureDefaultDependencies(task)
@@ -60,22 +60,22 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
             tasks.create(UNZIP_KOTLIN_PLUGIN_TASK_NAME, UnzipKotlinPluginTask::class.java) {
                 it.dependsOn += tasks.getByName(DOWNLOAD_KOTLIN_PLUGIN_TASK_NAME)
             }
-            tasks.create(INSERT_PLUGINS_TASK_NAME, InsertPluginsTask::class.java) {
+            tasks.create(UPDATE_PLUGIN_TASK_NAME, UpdatePluginTask::class.java) {
                 it.dependsOn += tasks.getByName(UNZIP_KOTLIN_PLUGIN_TASK_NAME)
                 it.dependsOn += tasks.getByName(UNZIP_IDEA_TASK_NAME)
             }
         }
     }
 
-    private fun configureReformatTaskDefaults(baseType: BaseType) {
-        project.tasks.create(reformatTaskName(baseType), ReformatTask::class.java) {
-            it.baseType = baseType
+    private fun configureReformatTaskDefaults(sourceSetType: SourceSetType) {
+        project.tasks.create(reformatTaskName(sourceSetType), ReformatTask::class.java) {
+            it.sourceSetType = sourceSetType
             configureIdeaInspectionsTaskDependencies(it)
         }
     }
 
     private fun configureIdeaInspectionsTaskDependencies(task: AbstractInspectionsTask) {
-        task.dependsOn += project.tasks.getByName(INSERT_PLUGINS_TASK_NAME)
+        task.dependsOn += project.tasks.getByName(UPDATE_PLUGIN_TASK_NAME)
         task.dependsOn += project.rootProject.tasks.getByName(IDEA_TASK_NAME)
         for (subProject in project.rootProject.subprojects) {
             task.dependsOn += subProject.tasks.getByName(IDEA_TASK_NAME)
@@ -102,7 +102,7 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
         task.description = "Run IDEA inspections for " + sourceSet.name + " classes"
         task.classpath = sourceSet.output.plus(sourceSet.compileClasspath)
         task.setSourceSet(sourceSet.allSource)
-        val baseType = task.baseType
+        val baseType = task.sourceSetType
         val reformatTask = project.tasks.getByName(reformatTaskName(baseType)) as ReformatTask
         reformatTask.setSourceSet(sourceSet.allSource)
     }
@@ -119,11 +119,11 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
 
         private const val UNZIP_KOTLIN_PLUGIN_TASK_NAME = "unzip-kotlin-plugin"
 
-        private const val INSERT_PLUGINS_TASK_NAME = "insert-plugins"
+        private const val UPDATE_PLUGIN_TASK_NAME = "update-plugin"
 
         private const val IDEA_TASK_NAME = "idea"
 
-        private fun reformatTaskName(baseType: BaseType) = "reformat" + baseType.baseTitle
+        private fun reformatTaskName(sourceSetType: SourceSetType) = "reformat" + sourceSetType.capitalize
 
         private val TEMP_DIRECTORY = File(System.getProperty("java.io.tmpdir"))
 

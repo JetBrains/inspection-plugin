@@ -45,4 +45,3 @@ lib/
 *.iml
 *.ipr
 *.iws
-/plugin/src/test/kotlin/org/jetbrains/intellij/tests/**

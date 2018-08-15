@@ -2,7 +2,7 @@ group 'org.jetbrains'
 version '1.0-SNAPSHOT'
 
 buildscript {
-    ext.kotlin_version = '1.2.0'
+    ext.kotlin_version = '1.2.60'
 
     repositories {
         mavenCentral()
@@ -13,7 +13,7 @@ buildscript {
     }
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath group: 'org.jetbrains.intellij.plugins', name: 'inspection-plugin', version: '0.1.5-SNAPSHOT'
+        classpath "org.jetbrains.intellij.plugins:inspection-plugin:0.2.0-SNAPSHOT"
     }
 }
 
@@ -24,7 +24,6 @@ apply plugin: 'org.jetbrains.intellij.inspections'
 sourceCompatibility = 1.8
 
 inspections {
-    toolVersion "ideaIC:2017.3"
     reportsDir file("build")
     warnings.inspections = [
             "org.jetbrains.kotlin.idea.inspections.DataClassPrivateConstructorInspection",

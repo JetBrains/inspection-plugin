@@ -3,7 +3,7 @@ package org.jetbrains.intellij.tasks
 import org.gradle.api.file.FileTree
 
 
-abstract class SourceTask : org.gradle.api.tasks.SourceTask(), SourceBaseTask {
+abstract class SourceTask : org.gradle.api.tasks.SourceTask(), SourceBasedTask {
     /**
      * This method needed for save backward compatibility with gradle 3.8 and lower
      */

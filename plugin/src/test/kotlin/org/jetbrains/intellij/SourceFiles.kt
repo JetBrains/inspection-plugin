@@ -1,4 +1,4 @@
-package org.jetbrains.intellij.utils
+package org.jetbrains.intellij
 
 import java.io.File
 

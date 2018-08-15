@@ -2,13 +2,14 @@ package org.jetbrains.intellij.tasks
 
 import org.gradle.api.internal.ConventionTask
 import org.gradle.api.tasks.*
+import org.jetbrains.intellij.ExceptionHandler
 import org.jetbrains.intellij.InspectionPlugin
 import org.jetbrains.intellij.extensions.InspectionsExtension
 import org.jetbrains.intellij.versions.IdeaVersion
 import org.jetbrains.intellij.versions.KotlinPluginVersion
 import java.io.File
 
-open class InsertPluginsTask : ConventionTask() {
+open class UpdatePluginTask : ConventionTask() {
 
     @get:Input
     val ideaVersion: IdeaVersion
@@ -34,11 +35,11 @@ open class InsertPluginsTask : ConventionTask() {
 
     @Suppress("unused")
     @TaskAction
-    fun insert() {
+    fun update() {
         val idea = ideaDirectory
         val kotlinPlugin = kotlinPluginDirectory
-        if (isStored(idea, kotlinPlugin)) {
-            logger.info("InspectionPlugin: Kotlin plugin inserting not needed.")
+        if (isCached(idea, kotlinPlugin)) {
+            logger.info("InspectionPlugin: Using cached IDEA. No updating needed.")
             return
         }
         val destination = destinationIdeaDirectory
@@ -51,35 +52,34 @@ open class InsertPluginsTask : ConventionTask() {
         val pluginsDirectory = InspectionPlugin.pluginsDirectory(destination)
         val ideaKotlinPluginDirectory = File(pluginsDirectory, "Kotlin")
         if (kotlinPlugin == null) {
-            logger.info("InspectionPlugin: Using kotlin plugin inherit from idea. No inserting needed.")
-            store(idea, kotlinPlugin)
+            logger.info("InspectionPlugin: Using kotlin plugin bundled into IDEA. No updating needed.")
+            cache(idea, kotlinPlugin)
             if (ideaKotlinPluginDirectory.exists()) return
-            logger.error("InspectionPlugin: Kotlin plugin not found. Try specify kotlin plugin version.")
-            throw IllegalArgumentException("InspectionPlugin: Kotlin plugin not found. Try specify kotlin plugin version.")
+            ExceptionHandler.exception(logger, this, "Kotlin plugin not found. Try to specify kotlin plugin version.")
         }
         val kotlinPluginFile = File(kotlinPlugin, "Kotlin/lib/kotlin-plugin.jar")
         val ideaKotlinPluginFile = File(ideaKotlinPluginDirectory, "Kotlin/lib/kotlin-plugin.jar")
         if (ideaKotlinPluginFile.exists()) ideaKotlinPluginFile.delete()
         kotlinPluginFile.compareTo(ideaKotlinPluginFile)
-        store(idea, kotlinPlugin)
+        cache(idea, kotlinPlugin)
     }
 
     private val extension: InspectionsExtension
         get() = project.extensions.findByType(InspectionsExtension::class.java)!!
 
     private val markerFile: File
-        get() = File(InspectionPlugin.BASE_CACHE_DIRECTORY, "insert.cache")
+        get() = File(InspectionPlugin.BASE_CACHE_DIRECTORY, "update.cache")
 
     private val File?.globalIdentifier: String
         get() = this?.name.toString()
 
-    private fun isStored(idea: File, kotlinPlugin: File?): Boolean {
+    private fun isCached(idea: File, kotlinPlugin: File?): Boolean {
         val marker = markerFile
         val globalIdentifier = "[${idea.globalIdentifier}][${kotlinPlugin.globalIdentifier}]"
         return marker.exists() && marker.readLines().find { it == globalIdentifier } != null
     }
 
-    private fun store(idea: File, kotlinPlugin: File?) = markerFile.let {
+    private fun cache(idea: File, kotlinPlugin: File?) = markerFile.let {
         if (!it.exists()) it.createNewFile()
         logger.warn("InspectionPlugin: Marker file updated at $it")
         val globalIdentifier = "[${idea.globalIdentifier}][${kotlinPlugin.globalIdentifier}]"

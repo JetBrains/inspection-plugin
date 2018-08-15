@@ -2,4 +2,8 @@ rootProject.name = 'inspections'
 include 'runner'
 include 'plugin'
 include 'sample'
+
+// It flag provided stable plugin publishing (configuration of publishing
+// task will be in-place but not a in end of build configuration). It needed
+// for supporting gradle with version 5.0.
 enableFeaturePreview("STABLE_PUBLISHING")

@@ -3,14 +3,10 @@ package org.jetbrains.idea.inspections
 import com.intellij.codeInspection.*
 import com.intellij.codeInspection.ex.ApplicationInspectionProfileManager
 import com.intellij.codeInspection.ex.InspectionToolRegistrar
-import com.intellij.ide.highlighter.ProjectFileType
-import com.intellij.ide.impl.ProjectUtil
 import com.intellij.lang.java.JavaLanguage
-import com.intellij.openapi.application.Application
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
-import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project as IdeaProject
@@ -26,13 +22,6 @@ import java.io.File
 
 @Suppress("unused")
 class InspectionsRunner(testMode: Boolean) : IdeaRunner<InspectionsParameters>(testMode) {
-
-    companion object {
-        private const val KT_LIB = "kotlin-stdlib"
-        private const val INSPECTION_PROFILES_PATH = ".idea/inspectionProfiles"
-        private val KOTLIN_FILE_APPLICABLE_LANGUAGES = setOf(null, "kotlin", "UAST")
-        private val JAVA_FILE_APPLICABLE_LANGUAGES = setOf(null, "java", "UAST", JavaLanguage.INSTANCE.id)
-    }
 
     class PluginInspectionWrapper(
             val tool: InspectionProfileEntry,
@@ -59,7 +48,7 @@ class InspectionsRunner(testMode: Boolean) : IdeaRunner<InspectionsParameters>(t
         }
     }
 
-    private fun getInspectionWrappers(parameters: InspectionsParameters, ideaProject: IdeaProject): Sequence<PluginInspectionWrapper> {
+    private fun getInspectionWrappers(parameters: InspectionsParameters, ideaProject: IdeaProject): List<PluginInspectionWrapper> {
         logger.info("InspectionPlugin: InheritFromIdea = ${parameters.inheritFromIdea}")
         val inspections = parameters.errors.inspections + parameters.warnings.inspections + parameters.infos.inspections
         val registeredInspectionWrappers = getRegisteredInspectionWrappers(inspections)
@@ -70,38 +59,30 @@ class InspectionsRunner(testMode: Boolean) : IdeaRunner<InspectionsParameters>(t
         return registeredInspectionWrappers
     }
 
-    private fun getInspectionWrappersInheritFromIdea(parameters: InspectionsParameters, ideaProject: IdeaProject): Sequence<PluginInspectionWrapper> {
+    private fun getInspectionWrappersInheritFromIdea(parameters: InspectionsParameters, ideaProject: IdeaProject): List<PluginInspectionWrapper> {
         val inspectionProfileManager = ApplicationInspectionProfileManager.getInstanceImpl()
-        val inspectionProfile = parameters.profileName?.let {
-            val profileDir = File(File(parameters.projectDir, INSPECTION_PROFILES_PATH), it)
-            logger.info("InspectionPlugin: Profile: $profileDir")
-            inspectionProfileManager.loadProfile(profileDir.absolutePath)
-        } ?: inspectionProfileManager.currentProfile
-        val profileTools = inspectionProfile.getAllEnabledInspectionTools(ideaProject)
-        return profileTools.asSequence().map {
-            val wrapper = it.tool
+        val profile = parameters.profileName
+                ?.let { File(File(parameters.projectDir, INSPECTION_PROFILES_PATH), it) }
+                ?.apply { logger.info("InspectionPlugin: Profile: $this") }
+                ?.let { inspectionProfileManager.loadProfile(it.absolutePath) }
+                ?: inspectionProfileManager.currentProfile
+        return profile.getAllEnabledInspectionTools(ideaProject).map {
             PluginInspectionWrapper(
-                    wrapper.tool,
-                    wrapper.extension,
-                    wrapper.tool.javaClass.name,
-                    wrapper.language,
-                    it.defaultState.level.name
+                    tool = it.tool.tool,
+                    extension = it.tool.extension,
+                    classFqName = it.tool.tool.javaClass.name,
+                    language = it.tool.language,
+                    level = it.defaultState.level.name
             )
         }
     }
 
-    private fun getRegisteredInspectionWrappers(inspections: Set<String>): Sequence<PluginInspectionWrapper> {
+    private fun getRegisteredInspectionWrappers(inspections: Set<String>): List<PluginInspectionWrapper> {
         val tools = InspectionToolRegistrar.getInstance().createTools()
-        return inspections.asSequence().mapNotNull { inspectionClassName ->
-            val inspectionToolWrapper = tools.find { it.tool.javaClass.name == inspectionClassName }
-            if (inspectionToolWrapper == null) {
-                logger.error("InspectionPlugin: $inspectionClassName is not found in registrar")
-                null
-            } else {
-                inspectionToolWrapper.let {
-                    PluginInspectionWrapper(it.tool, it.extension, inspectionClassName, it.language)
-                }
-            }
+        return inspections.map { inspectionClassName ->
+            tools.find { it.tool.javaClass.name == inspectionClassName }
+                    ?.let { PluginInspectionWrapper(it.tool, it.extension, inspectionClassName, it.language) }
+                    ?: throw IllegalArgumentException("$inspectionClassName is not found in registrar")
         }
     }
 
@@ -111,13 +92,13 @@ class InspectionsRunner(testMode: Boolean) : IdeaRunner<InspectionsParameters>(t
             moduleName: String,
             parameters: InspectionsParameters
     ): Boolean {
-        val ideaProject = idea.openProject(parameters.projectDir, projectName, moduleName)
-        val (success, results) = idea.analyze(parameters, files, ideaProject)
+        val ideaProject = openProject(parameters.projectDir, projectName, moduleName)
+        val (success, results) = analyze(parameters, files, ideaProject)
         reportProblems(parameters, results)
         return success && quickFixProblems(ideaProject, parameters, results)
     }
 
-    private fun Application.analyze(
+    private fun analyze(
             parameters: InspectionsParameters,
             files: Collection<File>,
             ideaProject: IdeaProject
@@ -226,10 +207,10 @@ class InspectionsRunner(testMode: Boolean) : IdeaRunner<InspectionsParameters>(t
 
     private fun reportProblems(parameters: InspectionsParameters, results: Map<String, List<PinnedProblemDescriptor>>) {
         val generators = listOfNotNull(
-                parameters.report.xml?.let { XMLGenerator(it) },
-                parameters.report.html?.let { HTMLGenerator(it, idea) }
+                parameters.reportParameters.xml?.let { XMLGenerator(it) },
+                parameters.reportParameters.html?.let { HTMLGenerator(it) }
         )
-        if (generators.isEmpty() && parameters.report.isQuiet) return
+        if (generators.isEmpty() && parameters.reportParameters.isQuiet) return
         val sortedResults = results.entries
                 .map { entry -> entry.value.map { entry.key to it } }
                 .flatten()
@@ -237,11 +218,11 @@ class InspectionsRunner(testMode: Boolean) : IdeaRunner<InspectionsParameters>(t
                 .groupBy { it.second.fileName }
         val numProblems = sortedResults.values.flatten().count()
         logger.info("InspectionPlugin: Total of $numProblems problem(s) found")
-        idea.runReadAction {
+        runReadAction {
             analysisLoop@ for (fileInspectionAndProblems in sortedResults.values) {
                 for ((inspectionClass, problem) in fileInspectionAndProblems) {
                     val level = problem.getLevel(inspectionClass, parameters)
-                    if (!parameters.report.isQuiet) log(level, problem)
+                    if (!parameters.reportParameters.isQuiet) log(level, problem)
                     generators.forEach { it.report(problem, level, inspectionClass) }
                 }
             }
@@ -289,11 +270,11 @@ class InspectionsRunner(testMode: Boolean) : IdeaRunner<InspectionsParameters>(t
         else -> null
     }
 
-    private fun log(level: ProblemLevel, problem: PinnedProblemDescriptor) {
+    private fun log(level: ProblemLevel, problem: PinnedProblemDescriptor) = problem.renderWithLocation().let {
         when (level) {
-            ProblemLevel.INFORMATION -> logger.info(problem.renderWithLocation())
-            ProblemLevel.WARNING, ProblemLevel.WEAK_WARNING -> logger.warn(problem.renderWithLocation())
-            ProblemLevel.ERROR -> logger.error(problem.renderWithLocation())
+            ProblemLevel.INFORMATION -> logger.info(it)
+            ProblemLevel.WARNING, ProblemLevel.WEAK_WARNING -> logger.warn(it)
+            ProblemLevel.ERROR -> logger.error(it)
         }
     }
 
@@ -329,61 +310,9 @@ class InspectionsRunner(testMode: Boolean) : IdeaRunner<InspectionsParameters>(t
         }
     }
 
-    private fun Application.openProject(projectDir: File, projectName: String, moduleName: String): IdeaProject {
-        logger.info("InspectionPlugin: Before project creation at '$projectDir'")
-        var ideaProject: IdeaProject? = null
-        val projectFile = File(projectDir, projectName + ProjectFileType.DOT_DEFAULT_EXTENSION)
-        invokeAndWait {
-            ideaProject = ProjectUtil.openOrImport(
-                    projectFile.absolutePath,
-                    /* projectToClose = */ null,
-                    /* forceOpenInNewFrame = */ true
-            )
-        }
-        return ideaProject?.apply {
-            val rootManager = ProjectRootManager.getInstance(this)
-            logger.info("InspectionPlugin: Project SDK name: " + rootManager.projectSdkName)
-            logger.info("InspectionPlugin: Project SDK: " + rootManager.projectSdk)
-
-            val modules = ModuleManager.getInstance(this).modules.toList()
-            for (module in modules) {
-                if (module.name != moduleName) continue
-                val moduleRootManager = ModuleRootManager.getInstance(module)
-                val dependencyEnumerator =
-                        moduleRootManager.orderEntries().compileOnly().recursively().exportedOnly()
-                var dependsOnKotlinCommon = false
-                var dependsOnKotlinJS = false
-                var dependsOnKotlinJVM = false
-                dependencyEnumerator.forEach { orderEntry ->
-                    if (orderEntry is LibraryOrderEntry) {
-                        val library = orderEntry.library
-                        if (library != null) {
-                            if (library.getUrls(OrderRootType.CLASSES).any { "$KT_LIB-common" in it }) {
-                                dependsOnKotlinCommon = true
-                            }
-                            if (library.getUrls(OrderRootType.CLASSES).any { "$KT_LIB-js" in it }) {
-                                dependsOnKotlinJS = true
-                            }
-                            if (library.getUrls(OrderRootType.CLASSES).any { "$KT_LIB-jdk" in it || "$KT_LIB-1" in it }) {
-                                dependsOnKotlinJVM = true
-                            }
-                        }
-                    }
-                    true
-                }
-                when {
-                    dependsOnKotlinJVM ->
-                        logger.info("InspectionPlugin: Under analysis: Kotlin JVM module $module with SDK: " + moduleRootManager.sdk)
-                    dependsOnKotlinJS ->
-                        logger.warn("InspectionPlugin: Under analysis: Kotlin JS module $module (JS SDK is not supported yet)")
-                    dependsOnKotlinCommon ->
-                        logger.warn("InspectionPlugin: Under analysis: Kotlin common module $module (common SDK is not supported yet)")
-                    else ->
-                        logger.info("InspectionPlugin: Under analysis: pure Java module $module with SDK: " + moduleRootManager.sdk)
-                }
-            }
-        } ?: run {
-            throw RunnerException("Cannot open IDEA project: '${projectFile.absolutePath}'")
-        }
+    companion object {
+        private const val INSPECTION_PROFILES_PATH = ".idea/inspectionProfiles"
+        private val KOTLIN_FILE_APPLICABLE_LANGUAGES = setOf(null, "kotlin", "UAST")
+        private val JAVA_FILE_APPLICABLE_LANGUAGES = setOf(null, "java", "UAST", JavaLanguage.INSTANCE.id)
     }
 }

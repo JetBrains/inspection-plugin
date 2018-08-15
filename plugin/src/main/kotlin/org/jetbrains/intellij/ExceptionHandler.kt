@@ -5,13 +5,32 @@ import org.gradle.api.logging.Logger
 import org.gradle.api.tasks.TaskExecutionException
 
 object ExceptionHandler {
-    fun handle(logger: Logger, task: Task, exception: Throwable, message: String): Nothing {
-        logger.error("$message $exception")
-        logger.error(exception.stackTrace.joinToString(separator = "\n") { "    $it" })
-        exception.cause?.let {
-            logger.error("Caused by: " + (it.message ?: it))
-            logger.error(it.stackTrace.joinToString(separator = "\n") { line -> "    $line" })
-        }
+    private fun hasStackTraceParameter() = true
+
+    fun exception(logger: Logger, task: Task, message: String): Nothing {
+        logger.error("InspectionPlugin: $message")
+        val exception = Exception(message)
         throw TaskExecutionException(task, exception)
+    }
+
+    fun exception(logger: Logger, task: Task, throwable: Throwable, message: String): Nothing {
+        logger.error("InspectionPlugin: $message")
+        when {
+            hasStackTraceParameter() -> printStackTrace(logger, throwable)
+            else -> printNameStackTrace(logger, throwable)
+        }
+        throw TaskExecutionException(task, throwable)
+    }
+
+    private fun printNameStackTrace(logger: Logger, throwable: Throwable, indent: Int = 1) {
+        val prefix = "    ".repeat(indent)
+        logger.error(prefix + throwable.message)
+        throwable.cause?.let { printNameStackTrace(logger, it, indent + 1) }
+    }
+
+    private fun printStackTrace(logger: Logger, throwable: Throwable) {
+        logger.error("Caused by: $throwable")
+        logger.error(throwable.stackTrace.joinToString(separator = "\n") { "    $it" })
+        throwable.cause?.let { printStackTrace(logger, it) }
     }
 }

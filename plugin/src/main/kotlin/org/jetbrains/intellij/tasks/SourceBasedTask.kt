@@ -1,12 +1,12 @@
 package org.jetbrains.intellij.tasks
 
 import org.gradle.api.tasks.Internal
-import org.jetbrains.intellij.BaseType
+import org.jetbrains.intellij.SourceSetType
 
-interface SourceBaseTask {
+interface SourceBasedTask {
     /**
      * Type of analyzable source set
      */
     @get:Internal
-    var baseType: BaseType
+    var sourceSetType: SourceSetType
 }

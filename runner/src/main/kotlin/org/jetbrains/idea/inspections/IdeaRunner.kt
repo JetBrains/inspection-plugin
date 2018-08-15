@@ -1,5 +1,7 @@
 package org.jetbrains.idea.inspections
 
+import com.intellij.ide.highlighter.ProjectFileType
+import com.intellij.ide.impl.ProjectUtil
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.idea.createCommandLineApplication
 import com.intellij.idea.getCommandLineApplication
@@ -8,12 +10,18 @@ import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.application.ex.ApplicationEx
 import com.intellij.openapi.application.ex.ApplicationManagerEx
 import com.intellij.openapi.application.impl.ApplicationImpl
+import com.intellij.openapi.module.ModuleManager
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.projectRoots.JavaSdk
 import com.intellij.openapi.projectRoots.ProjectJdkTable
 import com.intellij.openapi.projectRoots.impl.SdkConfigurationUtil
+import com.intellij.openapi.roots.LibraryOrderEntry
+import com.intellij.openapi.roots.ModuleRootManager
+import com.intellij.openapi.roots.OrderRootType
+import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.util.PlatformUtils
-import org.jetbrains.intellij.Analyzer
+import org.jetbrains.intellij.Runner
 import java.io.File
 import java.io.IOException
 import java.nio.channels.FileChannel
@@ -23,7 +31,71 @@ import java.nio.channels.FileLock
 import java.nio.channels.OverlappingFileLockException
 
 
-abstract class IdeaRunner<T : Analyzer.Parameters>(private val testMode: Boolean) : AbstractAnalyzer<T>() {
+abstract class IdeaRunner<T : Runner.Parameters>(private val testMode: Boolean) : AbstractRunner<T>() {
+
+    abstract fun analyze(files: Collection<File>, projectName: String, moduleName: String, parameters: T): Boolean
+
+    fun openProject(projectDir: File, projectName: String, moduleName: String): Project {
+        logger.info("InspectionPlugin: Before project creation at '$projectDir'")
+        var ideaProject: Project? = null
+        val projectFile = File(projectDir, projectName + ProjectFileType.DOT_DEFAULT_EXTENSION)
+        invokeAndWait {
+            ideaProject = ProjectUtil.openOrImport(
+                    projectFile.absolutePath,
+                    /* projectToClose = */ null,
+                    /* forceOpenInNewFrame = */ true
+            )
+        }
+        return ideaProject?.apply {
+            val rootManager = ProjectRootManager.getInstance(this)
+            logger.info("InspectionPlugin: Project SDK name: " + rootManager.projectSdkName)
+            logger.info("InspectionPlugin: Project SDK: " + rootManager.projectSdk)
+
+            val modules = ModuleManager.getInstance(this).modules.toList()
+            for (module in modules) {
+                if (module.name != moduleName) continue
+                val moduleRootManager = ModuleRootManager.getInstance(module)
+                val dependencyEnumerator =
+                        moduleRootManager.orderEntries().compileOnly().recursively().exportedOnly()
+                var dependsOnKotlinCommon = false
+                var dependsOnKotlinJS = false
+                var dependsOnKotlinJVM = false
+                dependencyEnumerator.forEach { orderEntry ->
+                    if (orderEntry is LibraryOrderEntry) {
+                        val library = orderEntry.library
+                        if (library != null) {
+                            if (library.getUrls(OrderRootType.CLASSES).any { "$KT_LIB-common" in it }) {
+                                dependsOnKotlinCommon = true
+                            }
+                            if (library.getUrls(OrderRootType.CLASSES).any { "$KT_LIB-js" in it }) {
+                                dependsOnKotlinJS = true
+                            }
+                            if (library.getUrls(OrderRootType.CLASSES).any { "$KT_LIB-jdk" in it || "$KT_LIB-1" in it }) {
+                                dependsOnKotlinJVM = true
+                            }
+                        }
+                    }
+                    true
+                }
+                when {
+                    dependsOnKotlinJVM ->
+                        logger.info("InspectionPlugin: Under analysis: Kotlin JVM module $module with SDK: " + moduleRootManager.sdk)
+                    dependsOnKotlinJS ->
+                        logger.warn("InspectionPlugin: Under analysis: Kotlin JS module $module (JS SDK is not supported yet)")
+                    dependsOnKotlinCommon ->
+                        logger.warn("InspectionPlugin: Under analysis: Kotlin common module $module (common SDK is not supported yet)")
+                    else ->
+                        logger.info("InspectionPlugin: Under analysis: pure Java module $module with SDK: " + moduleRootManager.sdk)
+                }
+            }
+        } ?: run {
+            throw RunnerException("Cannot open IDEA project: '${projectFile.absolutePath}'")
+        }
+    }
+
+    private fun invokeAndWait(action: () -> Unit) = idea.invokeAndWait(action)
+
+    fun runReadAction(action: () -> Unit) = idea.runReadAction(action)
 
     private var application: ApplicationEx? = null
 
@@ -35,7 +107,7 @@ abstract class IdeaRunner<T : Analyzer.Parameters>(private val testMode: Boolean
     private var shutdownLockChannel: FileChannel? = null
     private var shutdownLock: FileLock? = null
 
-    val idea: ApplicationEx
+    private val idea: ApplicationEx
         get() = application ?: throw IllegalStateException("Idea not runned")
 
     private data class BuildConfiguration(val buildNumber: String, val usesUltimate: Boolean)
@@ -53,14 +125,7 @@ abstract class IdeaRunner<T : Analyzer.Parameters>(private val testMode: Boolean
             }
         }
 
-    abstract fun analyze(
-            files: Collection<File>,
-            projectName: String,
-            moduleName: String,
-            parameters: T
-    ): Boolean
-
-    override fun analyze(
+    override fun run(
             files: Collection<File>,
             projectName: String,
             moduleName: String,
@@ -70,21 +135,21 @@ abstract class IdeaRunner<T : Analyzer.Parameters>(private val testMode: Boolean
         // Don't delete, change and downgrade level of log because this
         // information used in unit tests for identification of daemon.
         logger.info("InspectionPlugin: Daemon PID is ${getPID()}")
-        ideaLockAcquireIfNeeded()
+        acquireIdeaLockIfNeeded()
         logger.info("InspectionPlugin: Class loader: " + this.javaClass.classLoader)
         try {
             application = loadApplication(ideaHomeDirectory)
         } catch (e: Throwable) {
             if (e is RunnerException) throw e
-            throw RunnerException("EXCEPTION caught in inspection plugin (IDEA loading): $e", e)
+            throw RunnerException("Exception caught in inspection plugin (IDEA loading): $e", e)
         }
         try {
-            idea.doNotSave()
-            idea.configureJdk()
+            application?.doNotSave()
+            application?.configureJdk()
             return analyze(files, projectName, moduleName, parameters)
         } catch (e: Throwable) {
             if (e is RunnerException) throw e
-            throw RunnerException("EXCEPTION caught in inspection plugin (IDEA readAction): $e", e)
+            throw RunnerException("Exception caught in inspection plugin (IDEA readAction): $e", e)
         } finally {
             systemPathMarker?.close()
         }
@@ -175,7 +240,7 @@ abstract class IdeaRunner<T : Analyzer.Parameters>(private val testMode: Boolean
                 systemPathMarker?.tryLock()
             } catch (e: IOException) {
                 logger.warn("InspectionPlugin: IO exception while locking: ${e.message}")
-                throw RunnerException("EXCEPTION caught in inspection plugin (IDEA system dir lock): $e", e)
+                throw RunnerException("Exception caught in inspection plugin (IDEA system dir lock): $e", e)
             }
             if (lock == null && code == 256) {
                 throw RunnerException("Cannot create IDEA system directory (all locked)")
@@ -207,16 +272,16 @@ abstract class IdeaRunner<T : Analyzer.Parameters>(private val testMode: Boolean
         logger.info("InspectionPlugin: lock released")
     }
 
-    private fun ideaLockAcquireIfNeeded() {
+    private fun acquireIdeaLockIfNeeded() {
         val lockName = ideaLockFileName()
         val (lock, channel) = lockAcquireIfNeeded(lockName)
         ideaLock = lock
         ideaLockChannel = channel
     }
 
-    private fun ideaLockRelease() = lockRelease(ideaLock, ideaLockChannel)
+    private fun releaseIdeaLock() = lockRelease(ideaLock, ideaLockChannel)
 
-    private fun shutdownLockAcquireIfNeeded(): Boolean {
+    private fun acquireShutdownLockIfNeeded(): Boolean {
         val lockName = shutdownLockFileName()
         val (lock, channel) = lockAcquireIfNeeded(lockName)
         shutdownLock = lock
@@ -224,7 +289,7 @@ abstract class IdeaRunner<T : Analyzer.Parameters>(private val testMode: Boolean
         return shutdownLock != null
     }
 
-    private fun shutdownLockRelease() = lockRelease(shutdownLock, shutdownLockChannel)
+    private fun releaseShutdownLock() = lockRelease(shutdownLock, shutdownLockChannel)
 
     /**
      * Killed current gradle daemon for classpath resetting
@@ -235,7 +300,7 @@ abstract class IdeaRunner<T : Analyzer.Parameters>(private val testMode: Boolean
     }
 
     override fun finalize() {
-        val shutdownNeeded = shutdownLockAcquireIfNeeded()
+        val shutdownNeeded = acquireShutdownLockIfNeeded()
         if (!shutdownNeeded) {
             logger.info("InspectionPlugin: IDEA shutting down skipped.")
             return
@@ -252,8 +317,8 @@ abstract class IdeaRunner<T : Analyzer.Parameters>(private val testMode: Boolean
         // of gradle daemon operation system automatically released all locks.
         application?.invokeLater {
             finishGradleDaemon()
-            ideaLockRelease()
-            shutdownLockRelease()
+            releaseIdeaLock()
+            releaseShutdownLock()
         }
     }
 
@@ -279,6 +344,8 @@ abstract class IdeaRunner<T : Analyzer.Parameters>(private val testMode: Boolean
                 "org.jetbrains.plugins.github",
                 "Git4Idea"
         )
+
+        private const val KT_LIB = "kotlin-stdlib"
 
         private const val DEFAULT_BUILD_NUMBER = "172.1"
 

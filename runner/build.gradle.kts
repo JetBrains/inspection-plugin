@@ -1,11 +1,12 @@
 import com.github.jengelman.gradle.plugins.shadow.ShadowExtension
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import com.jfrog.bintray.gradle.BintrayExtension
-import org.gradle.api.internal.ConventionTask
 import org.gradle.api.tasks.bundling.Jar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.idea.inspections.*
 
+// Hack for resolving problem with (Unresolved reference: compileOnly)
+// issue: https://github.com/Kotlin/kotlin-frontend-plugin/issues/25
 plugins {
     java
 }

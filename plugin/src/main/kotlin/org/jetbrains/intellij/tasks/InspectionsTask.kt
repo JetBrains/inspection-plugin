@@ -9,8 +9,10 @@ import org.gradle.api.internal.ClosureBackedAction
 import org.gradle.api.plugins.quality.CheckstyleReports
 import org.gradle.api.reporting.Reporting
 import org.gradle.api.tasks.*
-import org.jetbrains.intellij.*
-import org.jetbrains.intellij.Analyzer
+import org.jetbrains.intellij.Runner
+import org.jetbrains.intellij.IdeaCheckstyleReports
+import org.jetbrains.intellij.InspectionPlugin
+import org.jetbrains.intellij.SourceSetType
 import org.jetbrains.intellij.extensions.InspectionsExtension
 import org.jetbrains.intellij.parameters.InspectionTypeParameters
 import org.jetbrains.intellij.parameters.InspectionsParameters
@@ -277,7 +279,7 @@ open class InspectionsTask : AbstractInspectionsTask(), Reporting<CheckstyleRepo
         return reports
     }
 
-    override lateinit var baseType: BaseType
+    override lateinit var sourceSetType: SourceSetType
 
     private val extension: InspectionsExtension
         get() = project.extensions.findByType(InspectionsExtension::class.java)!!
@@ -306,10 +308,10 @@ open class InspectionsTask : AbstractInspectionsTask(), Reporting<CheckstyleRepo
         )
     }
 
-    override fun createAnalyzer(loader: ClassLoader): Analyzer<InspectionsParameters> {
+    override fun createRunner(loader: ClassLoader): Runner<InspectionsParameters> {
         val className = "org.jetbrains.idea.inspections.InspectionsRunner"
         @Suppress("UNCHECKED_CAST")
-        val analyzerClass = loader.loadClass(className) as Class<Analyzer<InspectionsParameters>>
+        val analyzerClass = loader.loadClass(className) as Class<Runner<InspectionsParameters>>
         val analyzer = analyzerClass.constructors.first().newInstance(testMode)
         return analyzerClass.cast(analyzer)
     }

@@ -1,4 +1,4 @@
-package org.jetbrains.intellij.utils
+package org.jetbrains.intellij
 
 import java.io.File
 
@@ -10,7 +10,7 @@ val Boolean.gradleCode: String
     get() = toString()
 
 val String.gradleCode: String
-    get() = "'${replace("\\", "\\\\").replace("\'","\\\'")}'"
+    get() = "'${replace("\\", "\\\\").replace("\'", "\\\'")}'"
 
 val File.gradleCode: String
     get() = "file(${absolutePath.gradleCode})"

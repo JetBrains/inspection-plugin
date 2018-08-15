@@ -8,10 +8,7 @@ import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import java.io.File
 
-class HTMLGenerator(
-        override val reportFile: File,
-        private val application: Application
-) : ReportGenerator {
+class HTMLGenerator(        override val reportFile: File) : ReportGenerator {
     private val sb = StringBuilder()
 
     private val documentManager = FileDocumentManager.getInstance()
@@ -119,18 +116,16 @@ class HTMLGenerator(
         sb.appendln("</p>")
 
         val psiElement = problem.psiElement
-        application.runReadAction {
-            val problemTag = when (problem.highlightType) {
-                ProblemHighlightType.LIKE_UNUSED_SYMBOL -> "unused"
-                else -> when (level) {
-                    ProblemLevel.ERROR -> "error"
-                    ProblemLevel.WARNING -> "warning"
-                    ProblemLevel.WEAK_WARNING, ProblemLevel.INFORMATION -> "info"
-                }
+        val problemTag = when (problem.highlightType) {
+            ProblemHighlightType.LIKE_UNUSED_SYMBOL -> "unused"
+            else -> when (level) {
+                ProblemLevel.ERROR -> "error"
+                ProblemLevel.WARNING -> "warning"
+                ProblemLevel.WEAK_WARNING, ProblemLevel.INFORMATION -> "info"
             }
-            val document = psiElement?.containingFile?.virtualFile?.let { documentManager.getDocument(it) }
-            psiElement?.findElementToPrint(document)?.printSmartly(psiElement, problemTag, document)
         }
+        val document = psiElement?.containingFile?.virtualFile?.let { documentManager.getDocument(it) }
+        psiElement?.findElementToPrint(document)?.printSmartly(psiElement, problemTag, document)
         sb.appendln("<p>")
         sb.appendln("    <i>${problem.render()}</i>")
         sb.appendln("</p>")

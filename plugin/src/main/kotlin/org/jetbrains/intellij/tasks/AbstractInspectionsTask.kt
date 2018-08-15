@@ -4,9 +4,14 @@ import org.gradle.BuildListener
 import org.gradle.BuildResult
 import org.gradle.api.initialization.Settings
 import org.gradle.api.invocation.Gradle
-import org.gradle.api.tasks.*
-import org.jetbrains.intellij.*
-import org.jetbrains.intellij.Analyzer
+import org.gradle.api.tasks.Internal
+import org.gradle.api.tasks.TaskAction
+import org.gradle.api.tasks.TaskExecutionException
+import org.gradle.api.tasks.VerificationTask
+import org.jetbrains.intellij.Runner
+import org.jetbrains.intellij.ChildFirstClassLoader
+import org.jetbrains.intellij.ExceptionHandler
+import org.jetbrains.intellij.InspectionPlugin
 import org.jetbrains.intellij.parameters.InspectionsParameters
 import java.io.File
 import java.net.URLClassLoader
@@ -17,15 +22,15 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
 
     companion object {
         // TODO: take the same version as plugin
-        const val runnerVersion = "0.1.5-SNAPSHOT"
+        const val runnerVersion = "0.2.0-SNAPSHOT"
     }
 
-    private var analyzer: Analyzer<InspectionsParameters>? = null
+    private var runner: Runner<InspectionsParameters>? = null
 
     @Internal
     abstract fun getInspectionsParameters(): InspectionsParameters
 
-    abstract fun createAnalyzer(loader: ClassLoader): Analyzer<InspectionsParameters>
+    abstract fun createRunner(loader: ClassLoader): Runner<InspectionsParameters>
 
     private fun tryResolveRunnerJar(project: org.gradle.api.Project): File = try {
         val runner = "org.jetbrains.intellij.plugins:inspection-runner:$runnerVersion"
@@ -67,9 +72,9 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
             }
             var success = true
             val inspectionsThread = thread(start = false) {
-                val analyzer = createAnalyzer(loader)
-                this.analyzer = analyzer
-                analyzer.setLogger(BiFunction { level, message ->
+                val runner = createRunner(loader)
+                this.runner = runner
+                runner.setLogger(BiFunction { level, message ->
                     when (level) {
                         0 -> logger.error(message)
                         1 -> logger.warn(message)
@@ -81,7 +86,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
                     gradle = gradle.parent ?: break
                 }
                 gradle.addBuildListener(IdeaFinishingListener())
-                success = analyzer.analyze(
+                success = runner.run(
                         files = getSource().files,
                         projectName = project.rootProject.name,
                         moduleName = project.name,
@@ -91,17 +96,16 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
             }
             inspectionsThread.contextClassLoader = loader
             inspectionsThread.setUncaughtExceptionHandler { t, e ->
-                ExceptionHandler.handle(logger, this, e, "InspectionPlugin: Exception during works analyzer")
+                ExceptionHandler.exception(logger, this, e, "Analyzing exception")
             }
             inspectionsThread.start()
             inspectionsThread.join()
 
             if (!success && !parameters.ignoreFailures) {
-                val ex = Exception("Task execution failure")
-                throw TaskExecutionException(this, ex)
+                ExceptionHandler.exception(logger, this, "Task execution failure")
             }
         } catch (e: Throwable) {
-            ExceptionHandler.handle(logger, this, e, "InspectionPlugin: Exception caught in inspections plugin")
+            ExceptionHandler.exception(logger, this, e, "Process inspection task exception")
         }
     }
 
@@ -118,8 +122,8 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
 
     inner class IdeaFinishingListener : BuildListener {
         override fun buildFinished(result: BuildResult?) {
-            analyzer?.finalize()
-            analyzer = null
+            runner?.finalize()
+            runner = null
         }
 
         override fun projectsLoaded(gradle: Gradle?) {}

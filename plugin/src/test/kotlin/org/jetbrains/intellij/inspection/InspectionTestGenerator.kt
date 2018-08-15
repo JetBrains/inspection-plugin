@@ -3,8 +3,8 @@ package org.jetbrains.intellij.inspection
 import org.jetbrains.intellij.extensions.InspectionTypeExtension
 import org.jetbrains.intellij.extensions.InspectionsExtension
 import org.jetbrains.intellij.extensions.ReformatExtension
-import org.jetbrains.intellij.utils.allSourceFiles
-import org.jetbrains.intellij.utils.kotlinCode
+import org.jetbrains.intellij.allSourceFiles
+import org.jetbrains.intellij.kotlinCode
 import java.io.File
 import java.util.*
 
@@ -97,6 +97,7 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
             }
             val extension = parseInspectionParameters(parameters)
             val name = test.name.capitalize()
+            val base = System.getProperty("user.dir")
 
             val ignoreAnnotation = ignore?.let { "    @Ignore\n" } ?: ""
             @Suppress("UNNECESSARY_SAFE_CALL")
@@ -113,7 +114,7 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
                     ${extension.warnings.max?.kotlinCode?.let { "extension.warnings.max = $it" } ?: ""}
                     ${extension.infos.inspections?.kotlinCode?.let { "extension.infos.inspections = $it" } ?: ""}
                     ${extension.infos.max?.kotlinCode?.let { "extension.infos.max = $it" } ?: ""}
-                    ${extension.reportsDir?.kotlinCode?.let { "extension.reportsDir = $it" } ?: ""}
+                    ${extension.reportsDir?.kotlinCode(base)?.let { "extension.reportsDir = $it" } ?: ""}
                     ${extension.isIgnoreFailures.let { if (it) "extension.isIgnoreFailures = $it" else "" }}
                     ${extension.ideaVersion?.kotlinCode?.let { "extension.ideaVersion = $it" } ?: ""}
                     ${extension.kotlinPluginVersion?.kotlinCode?.let { "extension.kotlinPluginVersion = $it" } ?: ""}
@@ -122,7 +123,7 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
                     ${extension.quickFix?.kotlinCode?.let { "extension.quickFix = $it" } ?: ""}
                     ${extension.reformat.isQuiet?.kotlinCode?.let { "extension.reformat.isQuiet = $it" } ?: ""}
                     ${extension.reformat.quickFix?.kotlinCode?.let { "extension.reformat.quickFix = $it" } ?: ""}
-                    testBench.doTest(${test.kotlinCode}, extension)
+                    testBench.doTest(${test.kotlinCode(base)}, extension)
                 }
             """.replaceIndent("    ")
             val removeWhiteLines = fun String.() = split('\n').filter { it.trim().isNotEmpty() }.joinToString("\n")

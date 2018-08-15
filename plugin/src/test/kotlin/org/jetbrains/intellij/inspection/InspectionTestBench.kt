@@ -7,8 +7,8 @@ import org.gradle.testkit.runner.UnexpectedBuildFailure
 import org.jdom2.input.SAXBuilder
 import org.jdom2.output.Format
 import org.jdom2.output.XMLOutputter
+import org.jetbrains.intellij.*
 import org.jetbrains.intellij.extensions.InspectionsExtension
-import org.jetbrains.intellij.utils.*
 import org.junit.Assert
 import org.junit.rules.TemporaryFolder
 import java.io.File
@@ -190,7 +190,7 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
             } finally {
                 val daemonPid = ejectDaemonPid(buildResult)
                 println("InspectionTestBench: Daemon PID is $daemonPid")
-                if (daemonPid == null) return
+                if (daemonPid == null) throw IllegalStateException("Daemon PID not found")
                 waitIdeaRelease(daemonPid)
             }
         }
@@ -277,9 +277,10 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
         private fun assertInspectionBuildLog(result: BuildResult) {
             for (diagnostic in expectedDiagnostics) {
                 when (expectedDiagnosticsStatus) {
-                    DiagnosticsStatus.SHOULD_PRESENT -> Assert.assertTrue("$diagnostic is not found (but should)",
-                            diagnostic in result.output)
-                    DiagnosticsStatus.SHOULD_BE_ABSENT -> Assert.assertFalse("$diagnostic is found (but should not)", diagnostic in result.output)
+                    DiagnosticsStatus.SHOULD_PRESENT ->
+                        Assert.assertTrue("$diagnostic is not found (but should)", diagnostic in result.output)
+                    DiagnosticsStatus.SHOULD_BE_ABSENT ->
+                        Assert.assertFalse("$diagnostic is found (but should not)", diagnostic in result.output)
                 }
             }
             Assert.assertEquals(expectedOutcome, result.task(":$taskName")?.outcome)
@@ -357,7 +358,7 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
 
     fun doTest(testDir: File, extension: InspectionsExtension) {
         val sources = testDir.allSourceFiles.toList()
-        if (sources.isEmpty()) throw IllegalArgumentException("Test file in $testDir not found")
+        if (sources.isEmpty()) throw IllegalArgumentException("Test directory in $testDir not found.")
         val expectedSources = testDir.allExpectedSourceFiles.toList()
         val lines = sources.map { it.readLines() }.flatten()
 

@@ -2,8 +2,8 @@ package org.jetbrains.intellij.tasks
 
 import org.gradle.api.file.FileTree
 import org.gradle.api.tasks.*
-import org.jetbrains.intellij.Analyzer
-import org.jetbrains.intellij.BaseType
+import org.jetbrains.intellij.Runner
+import org.jetbrains.intellij.SourceSetType
 import org.jetbrains.intellij.InspectionPlugin
 import org.jetbrains.intellij.extensions.InspectionsExtension
 import org.jetbrains.intellij.parameters.InspectionTypeParameters
@@ -100,7 +100,7 @@ open class ReformatTask : AbstractInspectionsTask() {
     val skipBinarySources: Boolean
         get() = extension.skipBinarySources ?: true
 
-    override lateinit var baseType: BaseType
+    override lateinit var sourceSetType: SourceSetType
 
     private val extension: InspectionsExtension
         get() = project.extensions.findByType(InspectionsExtension::class.java)!!
@@ -127,10 +127,10 @@ open class ReformatTask : AbstractInspectionsTask() {
         )
     }
 
-    override fun createAnalyzer(loader: ClassLoader): Analyzer<InspectionsParameters> {
+    override fun createRunner(loader: ClassLoader): Runner<InspectionsParameters> {
         val className = "org.jetbrains.idea.inspections.InspectionsRunner"
         @Suppress("UNCHECKED_CAST")
-        val analyzerClass = loader.loadClass(className) as Class<Analyzer<InspectionsParameters>>
+        val analyzerClass = loader.loadClass(className) as Class<Runner<InspectionsParameters>>
         val analyzer = analyzerClass.constructors.first().newInstance(testMode)
         return analyzerClass.cast(analyzer)
     }
