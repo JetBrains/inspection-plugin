@@ -6,7 +6,7 @@
 
 This plugin is intended to run IDEA inspections during Gradle build.
 
-Current status: beta-candidate version 0.1.4 is available.
+Current status: beta-candidate version 0.2.0-RC-1 is available.
 
 ## Usage
 
@@ -15,8 +15,8 @@ Current status: beta-candidate version 0.1.4 is available.
 * Apply plugin `'org.jetbrains.intellij.inspections'` to your gradle module
 
 This adds one inspection plugin task per source root, normally its name is `inspectionsMain` for `main` root and 
-`inspectionsTest` for `test` root respectively. Also adds reformat task for per source root. They have a same usage (
-`reformatMain`, `refeomatTest` and etc.)
+`inspectionsTest` for `test` root respectively. Also plugin adds reformat task per source root. 
+They have the same usage (`reformatMain`, `refeomatTest` and etc.)
 
 Also you should specify IDEA version to use, e.g.
 
@@ -27,9 +27,8 @@ inspections {
 ``` 
 
 In this example inspections will be taken from IDEA CE version 2017.2.6. 
-Plugin works at least with IDEA CE versions 2017.2, 2017.2.x, 2017.3, 2017.3.x, 2018.1, or 2018.2 eap like 182.2574.2
-(last four supported by inspection plugin 0.1.4 or later).
-If you have multi-platform project, it's recommended to use IDEA CE 182.2574.2 or later.
+Plugin works at least with IDEA CE versions 2017.2, 2017.2.x, 2017.3, 2017.3.x, 2018.1, 2018.2.
+If you have multi-platform project, it's recommended to use IDEA CE 2018.2.
 
 There are three ways to specify inspections for code analysis:
 
@@ -56,7 +55,7 @@ inspections {
     infos.inspections = ['org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection']
 }
 ```
-In this case will be used a inspections from manually defined list.
+In this case inspections from manually defined list will be in use.
 
 ###### Mixing definition
 ```groovy
@@ -73,12 +72,12 @@ inspections {
     infos.inspections = ['org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection']
 }
 ```
-In this case will be used a inspections from manually defined list and inherited from IDEA.
+In this case both inspections from manually defined list and inherited from IDEA will be in use.
 
 To run inspections, execute from terminal: `gradlew inspectionsMain`.
 This will download IDEA artifact to gradle cache,
 unzip it to cached temporary dir and launch all inspections.
-You will see inspection messages in console as well as in report XML located in `build/reports/inspections/main.xml`.
+You will see inspection messages in console as well as in report XML / HTML located in `build/reports/inspections`.
 
 You can find example usage in `sample` project subdirectory.
 
@@ -119,9 +118,9 @@ The meaning of the parameters is the following:
 * `warnings.max`: after exceeding the given number of inspection diagnostics with "warning" severity, inspection task stops and fails.
 * `infos.max`: after exceeding the given number of inspection diagnostics with "info" severity, inspection task stops and fails.
 * `ignoreFailures`: inspection task never fails (false by default)
-* `quiet`: do not report inspection messages to console, only to XML file (false by default)
-* `quickFix`: apply quick fixes for fixed inspection errors (false by default)
-* `reformat.quiet`: do not report reformat inspection messages to console, only to XML file (false by default)
+* `quiet`: do not report inspection messages to console, only to XML / HTML files (false by default)
+* `quickFix`: apply quick fixes for fixed inspection errors (false by default). Quick-fix is applied only if it's unique per warning.
+* `reformat.quiet`: do not report reformat inspection messages to console, only to XML / HTML files (false by default)
 * `reformat.quickFix`: apply quick fixes for fixed code-style errors (true by default)
 * `plugins.kotlin.version`: version of downloading kotlin plugin (by default used bundled to IDEA)
 * `plugins.kotlin.location`: url of downloading kotlin plugin
@@ -135,7 +134,6 @@ inspectionsMain {
             destination "reportFileName"
         }
         html {
-            // Available from version 0.1.2
             destination "reportFileName"
         }
     }
@@ -159,9 +157,9 @@ and attach `inspections.log` to the issue.
 Also it's very helpful to specify Gradle version, OS and 
 IDEA version used in inspection plugin (which is set in `idea.version` parameter).
 
-Known bugs / problems at this moment (version 0.1.4):
+Known bugs / problems at this moment (version 0.2.0-RC-1):
 
 * plugin does not work yet with Ultimate IDEA versions, like ideaIU:2017.3
 * analysis of Kotlin JS and common modules is only partially supported
-* Kotlin JVM module with common library in dependencies (like kotlin-stdlib-common or kotlin-test) is configured correctly only in IDEA 2018.2, e.g. IC:182.2574.2 
+* Kotlin JVM module with common library in dependencies (like kotlin-stdlib-common or kotlin-test) is configured correctly only in IDEA 2018.2, e.g. IC:2018.2 
 * part of inspection tools (so-called global inspections) are not supported yet. Most Kotlin inspections are supported.
