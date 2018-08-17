@@ -130,6 +130,7 @@ abstract class IdeaRunner<T : Runner.Parameters>(private val testMode: Boolean) 
             projectName: String,
             moduleName: String,
             ideaHomeDirectory: File,
+            plugins: List<File>,
             parameters: T
     ): Boolean {
         // Don't delete, change and downgrade level of log because this
@@ -138,7 +139,7 @@ abstract class IdeaRunner<T : Runner.Parameters>(private val testMode: Boolean) 
         acquireIdeaLockIfNeeded()
         logger.info("InspectionPlugin: Class loader: " + this.javaClass.classLoader)
         try {
-            application = loadApplication(ideaHomeDirectory)
+            application = loadApplication(ideaHomeDirectory, plugins)
         } catch (e: Throwable) {
             if (e is RunnerException) throw e
             throw RunnerException("Exception caught in inspection plugin (IDEA loading): $e", e)
@@ -176,7 +177,7 @@ abstract class IdeaRunner<T : Runner.Parameters>(private val testMode: Boolean) 
         }
     }
 
-    private fun loadApplication(ideaHomeDirectory: File): ApplicationEx {
+    private fun loadApplication(ideaHomeDirectory: File, plugins: List<File>): ApplicationEx {
         System.setProperty(IDEA_HOME_PATH, ideaHomeDirectory.path)
         System.setProperty(AWT_HEADLESS, "true")
         val ideaBuildNumberFile = File(ideaHomeDirectory, "build.txt")
@@ -184,11 +185,15 @@ abstract class IdeaRunner<T : Runner.Parameters>(private val testMode: Boolean) 
         System.setProperty(BUILD_NUMBER, buildNumber)
         val systemPath = generateSystemPath(buildNumber, usesUltimate)
         System.setProperty(SYSTEM_PATH, systemPath)
+        val pluginsPath = plugins.joinToString(":") { it.absolutePath }
+        System.setProperty(PLUGINS_PATH, pluginsPath)
         val platformPrefix = if (usesUltimate) PlatformUtils.IDEA_PREFIX else PlatformUtils.IDEA_CE_PREFIX
         System.setProperty(PlatformUtils.PLATFORM_PREFIX_KEY, PlatformUtils.getPlatformPrefix(platformPrefix))
 
-        logger.info("InspectionPlugin: IDEA home dir: $ideaHomeDirectory")
-        logger.info("InspectionPlugin: IDEA home path: " + PathManager.getHomePath())
+        logger.info("InspectionPlugin: IDEA home path: $ideaHomeDirectory")
+        logger.info("InspectionPlugin: IDEA home path: ${PathManager.getHomePath()}")
+        logger.info("InspectionPlugin: IDEA plugin path: $pluginsPath")
+        logger.info("InspectionPlugin: IDEA plugin path: ${PathManager.getPluginsPath()}")
         logger.info("InspectionPlugin: IDEA system path: $systemPath")
         if (usesUltimate)
             throw RunnerException("Using of IDEA Ultimate is not yet supported in inspection runner")
@@ -204,12 +209,6 @@ abstract class IdeaRunner<T : Runner.Parameters>(private val testMode: Boolean) 
         logger.info("InspectionPlugin: IDEA starting in command line mode")
         createCommandLineApplication(isInternal = false, isUnitTestMode = false, isHeadless = true)
         USELESS_PLUGINS.forEach { PluginManagerCore.disablePlugin(it) }
-
-//        val kotlinPluginDirectory = File(ideaHomeDirectory, "plugins/Kotlin")
-//        val kotlinPluginDescriptor = IdeaPluginDescriptorImpl(kotlinPluginDirectory)
-//        kotlinPluginDescriptor.pluginId
-//        val plugins = PluginManagerCore.getPlugins() + kotlinPluginDescriptor
-//        PluginManagerCore.setPlugins(plugins)
 
         // Do not remove the call of PluginManagerCore.getPlugins(), it prevents NPE in IDEA
         // NB: IdeaApplication.getStarter() from IJ community contains the same call
@@ -327,6 +326,7 @@ abstract class IdeaRunner<T : Runner.Parameters>(private val testMode: Boolean) 
         private const val IDEA_HOME_PATH = "idea.home.path"
         private const val BUILD_NUMBER = "idea.plugins.compatible.build"
         private const val SYSTEM_PATH = "idea.system.path"
+        private const val PLUGINS_PATH = "plugin.path"
         private const val USER_HOME = "user.home"
         private const val SYSTEM_MARKER_FILE = "marker.ipl"
         private const val JAVA_HOME = "JAVA_HOME"

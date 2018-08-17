@@ -44,9 +44,9 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
         }
         Parameter<File>(parameters("reportsDir")) { reportsDir = it }
         Parameter<Boolean>(parameters("ignoreFailures")) { isIgnoreFailures = it }
-        Parameter<String>(parameters("ideaVersion")) { ideaVersion = it }
-        Parameter<String>(parameters("kotlinPluginVersion")) { kotlinPluginVersion = it }
-        Parameter<String>(parameters("kotlinPluginLocation")) { kotlinPluginLocation = it }
+        Parameter<String>(parameters("idea.version")) { idea.version = it }
+        Parameter<String>(parameters("plugins.kotlin.version")) { plugins.kotlin.version = it }
+        Parameter<String>(parameters("plugins.kotlin.location")) { plugins.kotlin.location = it }
         Parameter<Boolean>(parameters("isQuiet")) { isQuiet = it }
         Parameter<Boolean>(parameters("quiet")) { isQuiet = it }
         Parameter<Boolean>(parameters("quickFix")) { quickFix = it }
@@ -96,7 +96,7 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
                 diagnosticParameters[name] ?: sourceParameters(name) ?: configParameters[name]
             }
             val extension = parseInspectionParameters(parameters)
-            val name = test.name.capitalize()
+            val name = test.name.capitalize().replace('-', '_')
             val base = System.getProperty("user.dir")
 
             val ignoreAnnotation = ignore?.let { "    @Ignore\n" } ?: ""
@@ -116,9 +116,9 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
                     ${extension.infos.max?.kotlinCode?.let { "extension.infos.max = $it" } ?: ""}
                     ${extension.reportsDir?.kotlinCode(base)?.let { "extension.reportsDir = $it" } ?: ""}
                     ${extension.isIgnoreFailures.let { if (it) "extension.isIgnoreFailures = $it" else "" }}
-                    ${extension.ideaVersion?.kotlinCode?.let { "extension.ideaVersion = $it" } ?: ""}
-                    ${extension.kotlinPluginVersion?.kotlinCode?.let { "extension.kotlinPluginVersion = $it" } ?: ""}
-                    ${extension.kotlinPluginLocation?.kotlinCode?.let { "extension.kotlinPluginLocation = $it" } ?: ""}
+                    ${extension.idea.version?.kotlinCode?.let { "extension.idea.version = $it" } ?: ""}
+                    ${extension.plugins.kotlin.version?.kotlinCode?.let { "extension.plugins.kotlin.version = $it" } ?: ""}
+                    ${extension.plugins.kotlin.location?.kotlinCode?.let { "extension.plugins.kotlin.location = $it" } ?: ""}
                     ${extension.isQuiet?.kotlinCode?.let { "extension.isQuiet = $it" } ?: ""}
                     ${extension.quickFix?.kotlinCode?.let { "extension.quickFix = $it" } ?: ""}
                     ${extension.reformat.isQuiet?.kotlinCode?.let { "extension.reformat.isQuiet = $it" } ?: ""}

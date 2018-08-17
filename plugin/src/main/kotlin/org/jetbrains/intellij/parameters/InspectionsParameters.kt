@@ -1,15 +1,13 @@
 package org.jetbrains.intellij.parameters
 
 import org.jetbrains.intellij.Runner
-import org.jetbrains.intellij.versions.IdeaVersion
-import org.jetbrains.intellij.versions.KotlinPluginVersion
 import java.io.File
 
 
 data class InspectionsParameters(
         val ignoreFailures: Boolean,
-        val ideaVersion: IdeaVersion,
-        val kotlinPluginVersion: KotlinPluginVersion?,
+        val ideaVersion: String,
+        val kotlinPluginVersion: String?,
 
         val projectDir: File,
         val reportParameters: ReportParameters,

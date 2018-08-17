@@ -13,19 +13,9 @@ open class InspectionsExtension(private val project: Project?) : CodeQualityExte
     var testMode: Boolean? = null
 
     /**
-     * Version of IDEA.
+     * Configuration of IDEA.
      */
-    var ideaVersion: String? = null
-
-    /**
-     * Version of IDEA Kotlin Plugin.
-     */
-    var kotlinPluginVersion: String? = null
-
-    /**
-     * Location of kotlin plugin in internet.
-     */
-    var kotlinPluginLocation: String? = null
+    var idea = IdeaExtension()
 
     /**
      * Whether rule violations are to be displayed on the console.
@@ -78,6 +68,12 @@ open class InspectionsExtension(private val project: Project?) : CodeQualityExte
     val reformat = ReformatExtension()
 
     /**
+     * Configurations of IDEA plugins.
+     * @see PluginsExtension
+     */
+    val plugins = PluginsExtension()
+
+    /**
      * @see InspectionTypeExtension.max
      */
     @Deprecated("To be replaced with errors.max = n", ReplaceWith("errors.max"))
@@ -98,17 +94,17 @@ open class InspectionsExtension(private val project: Project?) : CodeQualityExte
         }
 
     /**
-     * @see InspectionsExtension.ideaVersion
+     * @see InspectionsExtension.idea.version
      */
-    @Deprecated("To be replaced with ideaVersion", ReplaceWith("ideaVersion"))
-    override fun getToolVersion() = ideaVersion
+    @Deprecated("To be replaced with idea.version", ReplaceWith("idea.version"))
+    override fun getToolVersion() = idea.version
 
     /**
-     * @see InspectionsExtension.ideaVersion
+     * @see InspectionsExtension.idea.version
      */
-    @Deprecated("To be replaced with ideaVersion = n", ReplaceWith("ideaVersion"))
+    @Deprecated("To be replaced with idea.version = n", ReplaceWith("idea.version"))
     override fun setToolVersion(value: String?) {
-        ideaVersion = value
+        idea.version = value
     }
 
     @Suppress("unused")
@@ -129,5 +125,15 @@ open class InspectionsExtension(private val project: Project?) : CodeQualityExte
     @Suppress("unused")
     fun reformat(action: Action<ReformatExtension>) {
         action.execute(reformat)
+    }
+
+    @Suppress("unused")
+    fun idea(action: Action<IdeaExtension>) {
+        action.execute(idea)
+    }
+
+    @Suppress("unused")
+    fun plugins(action: Action<PluginsExtension>) {
+        action.execute(plugins)
     }
 }

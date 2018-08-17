@@ -15,9 +15,9 @@ plugins {
 }
 inspections {
     <testMode>
-    <ideaVersion>
-    <kotlinPluginVersion>
-    <kotlinPluginLocation>
+    <idea.version>
+    <plugins.kotlin.version>
+    <plugins.kotlin.location>
     <ignoreFailures>
     <profileName>
     <inheritFromIdea>

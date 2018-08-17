@@ -43,7 +43,7 @@ class InspectionsMainTestGenerated {
         val extension = InspectionsExtension(null)
         extension.testMode = true
         extension.warnings.inspections = setOf("org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection")
-        extension.ideaVersion = "ideaIC:2017.2"
+        extension.idea.version = "ideaIC:2017.2"
         testBench.doTest(File("testData\\inspection\\configurationKotlin2017_2"), extension)
     }
 
@@ -52,7 +52,7 @@ class InspectionsMainTestGenerated {
         val extension = InspectionsExtension(null)
         extension.testMode = true
         extension.warnings.inspections = setOf("org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection")
-        extension.ideaVersion = "ideaIC:2018.1"
+        extension.idea.version = "ideaIC:2018.1"
         testBench.doTest(File("testData\\inspection\\configurationKotlin2018_1"), extension)
     }
 
@@ -61,7 +61,7 @@ class InspectionsMainTestGenerated {
         val extension = InspectionsExtension(null)
         extension.testMode = true
         extension.warnings.inspections = setOf("org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection")
-        extension.ideaVersion = "ideaIC:2018.2"
+        extension.idea.version = "ideaIC:2018.2"
         testBench.doTest(File("testData\\inspection\\configurationKotlin2018_2"), extension)
     }
 
@@ -71,7 +71,7 @@ class InspectionsMainTestGenerated {
         val extension = InspectionsExtension(null)
         extension.testMode = true
         extension.warnings.inspections = setOf("org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection")
-        extension.ideaVersion = "ideaIU:2017.3"
+        extension.idea.version = "ideaIU:2017.3"
         testBench.doTest(File("testData\\inspection\\configurationKotlinUltimate"), extension)
     }
 
@@ -135,6 +135,7 @@ class InspectionsMainTestGenerated {
         val extension = InspectionsExtension(null)
         extension.testMode = true
         extension.warnings.inspections = setOf("org.jetbrains.kotlin.idea.inspections.CanSealedSubClassBeObjectInspection")
+        extension.plugins.kotlin.version = "1.2.60"
         testBench.doTest(File("testData\\inspection\\pluginInjection"), extension)
     }
 

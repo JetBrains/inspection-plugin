@@ -8,9 +8,9 @@ import org.gradle.api.plugins.quality.internal.AbstractCodeQualityPlugin
 import org.gradle.api.tasks.SourceSet
 import org.jetbrains.intellij.extensions.InspectionsExtension
 import org.jetbrains.intellij.tasks.*
-import org.jetbrains.intellij.versions.IdeaVersion
-import org.jetbrains.intellij.versions.KotlinPluginVersion
 import java.io.File
+import org.gradle.internal.hash.HashUtil.createCompactMD5
+import org.jetbrains.intellij.plugins.KotlinPlugin
 
 open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
 
@@ -60,10 +60,6 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
             tasks.create(UNZIP_KOTLIN_PLUGIN_TASK_NAME, UnzipKotlinPluginTask::class.java) {
                 it.dependsOn += tasks.getByName(DOWNLOAD_KOTLIN_PLUGIN_TASK_NAME)
             }
-            tasks.create(UPDATE_PLUGIN_TASK_NAME, UpdatePluginTask::class.java) {
-                it.dependsOn += tasks.getByName(UNZIP_KOTLIN_PLUGIN_TASK_NAME)
-                it.dependsOn += tasks.getByName(UNZIP_IDEA_TASK_NAME)
-            }
         }
     }
 
@@ -75,7 +71,8 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
     }
 
     private fun configureIdeaInspectionsTaskDependencies(task: AbstractInspectionsTask) {
-        task.dependsOn += project.tasks.getByName(UPDATE_PLUGIN_TASK_NAME)
+        task.dependsOn += project.tasks.getByName(UNZIP_IDEA_TASK_NAME)
+        task.dependsOn += project.tasks.getByName(UNZIP_KOTLIN_PLUGIN_TASK_NAME)
         task.dependsOn += project.rootProject.tasks.getByName(IDEA_TASK_NAME)
         for (subProject in project.rootProject.subprojects) {
             task.dependsOn += subProject.tasks.getByName(IDEA_TASK_NAME)
@@ -84,7 +81,8 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
 
     private fun configureDefaultDependencies(task: InspectionsTask) {
         project.configurations.getByName(SHORT_NAME).defaultDependencies {
-            it.add(project.dependencies.create(task.ideaVersion.mavenUrl))
+            val version = task.ideaVersion
+            it.add(project.dependencies.create("com.jetbrains.intellij.idea:$version"))
         }
     }
 
@@ -119,9 +117,9 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
 
         private const val UNZIP_KOTLIN_PLUGIN_TASK_NAME = "unzip-kotlin-plugin"
 
-        private const val UPDATE_PLUGIN_TASK_NAME = "update-plugin"
-
         private const val IDEA_TASK_NAME = "idea"
+
+        private const val DEFAULT_IDEA_VERSION = "ideaIC:2017.3"
 
         private fun reformatTaskName(sourceSetType: SourceSetType) = "reformat" + sourceSetType.capitalize
 
@@ -129,52 +127,33 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
 
         internal val BASE_CACHE_DIRECTORY = File(TEMP_DIRECTORY, "inspection-plugin")
 
+        internal val MARKERS_DIRECTORY = File(BASE_CACHE_DIRECTORY, "markers")
+
         private val DEPENDENCY_SOURCE_DIRECTORY = File(BASE_CACHE_DIRECTORY, "dependencies")
 
         private val DOWNLOAD_DIRECTORY = File(BASE_CACHE_DIRECTORY, "downloads")
 
-        internal fun ideaDirectory(ideaVersion: IdeaVersion, kotlinPluginVersion: KotlinPluginVersion?) =
-                File(DEPENDENCY_SOURCE_DIRECTORY,
-                        "[${ideaVersion.normalizeVersion}][${kotlinPluginVersion.normalizeVersion}]")
+        private val String.normalizedVersion: String
+            get() = replace(':', '_').replace('.', '_')
 
-        internal fun kotlinPluginSource(kotlinPluginVersion: KotlinPluginVersion) =
-                File(DOWNLOAD_DIRECTORY, kotlinPluginVersion.normalizeVersion + ".zip")
+        internal fun ideaVersion(ideaVersion: String?) = ideaVersion ?: DEFAULT_IDEA_VERSION
 
-        internal fun kotlinPluginDirectory(kotlinPluginVersion: KotlinPluginVersion) =
-                File(DEPENDENCY_SOURCE_DIRECTORY, kotlinPluginVersion.normalizeVersion)
+        internal fun kotlinPluginLocation(version: String?, ideaVersion: String) =
+                version?.let { KotlinPlugin.getUrl(it, ideaVersion) }
 
-        internal fun pluginsDirectory(ideaDirectory: File) =
-                File(ideaDirectory, "plugins")
-
-        internal fun ideaDirectory(ideaVersion: IdeaVersion) =
-                File(DEPENDENCY_SOURCE_DIRECTORY, ideaVersion.normalizeVersion)
-
-        private val IdeaVersion.normalizeVersion: String
-            get() = value.normalizeVersion
-
-        private val KotlinPluginVersion?.normalizeVersion: String
-            get() = this?.value?.normalizeVersion ?: ""
-
-        private val String.normalizeVersion: String
-            get() = replace(':', '_').replace('.', '_').replace('-', '_')
-
-        internal fun ideaVersion(ideaVersion: String?): IdeaVersion {
-            if (ideaVersion == null) return IdeaVersion.IDEA_IC_2017_3
-            val version = IdeaVersion(ideaVersion)
-            if (version is IdeaVersion.Other)
-                logger.warn("InspectionPlugin: Uses custom idea version: $version")
-            return version
+        internal fun kotlinPluginArchiveDirectory(location: String): File {
+            val hash = createCompactMD5(location)
+            val name = "kotlin-plugin-$hash"
+            return File(DOWNLOAD_DIRECTORY, name)
         }
 
-        internal fun kotlinPluginVersion(kotlinPluginVersion: String?, url: String?): KotlinPluginVersion? {
-            if (kotlinPluginVersion == null) return null
-            val version = KotlinPluginVersion(kotlinPluginVersion, url)
-            if (version is KotlinPluginVersion.Other) {
-                logger.warn("InspectionPlugin: Uses custom kotlin plugin version $version")
-            } else if (url != null) {
-                logger.warn("InspectionPlugin: Uses custom kotlin plugin sources for defined version $version")
-            }
-            return version
+        internal fun kotlinPluginDirectory(kotlinPluginVersion: String?, ideaVersion: String): File {
+            val normIdeaVersion = ideaVersion.normalizedVersion
+            val normKotlinPluginVersion = kotlinPluginVersion.toString().normalizedVersion
+            val name = "Kotlin-$normKotlinPluginVersion-$normIdeaVersion"
+            return File(DEPENDENCY_SOURCE_DIRECTORY, "$name/Kotlin")
         }
+
+        internal fun ideaDirectory(version: String) = File(DEPENDENCY_SOURCE_DIRECTORY, version.normalizedVersion)
     }
 }

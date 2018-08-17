@@ -7,45 +7,50 @@ import org.jetbrains.intellij.extensions.InspectionsExtension
 import org.jetbrains.intellij.utils.Copy
 import org.jetbrains.intellij.utils.Unpacker
 import org.jetbrains.intellij.utils.Unzip
-import org.jetbrains.intellij.versions.IdeaVersion
-import org.jetbrains.intellij.versions.KotlinPluginVersion
 import java.io.File
 
 @Suppress("MemberVisibilityCanBePrivate")
 open class UnzipKotlinPluginTask : ConventionTask() {
 
     @get:Input
-    val ideaVersion: IdeaVersion
-        get() = InspectionPlugin.ideaVersion(extension.ideaVersion)
+    val ideaVersion: String
+        get() = InspectionPlugin.ideaVersion(extension.idea.version)
 
     @get:Input
     @get:Optional
-    val kotlinPluginVersion: KotlinPluginVersion?
-        get() = InspectionPlugin.kotlinPluginVersion(extension.kotlinPluginVersion, extension.kotlinPluginLocation)
+    val version: String?
+        get() = extension.plugins.kotlin.version
+
+    @get:Input
+    @get:Optional
+    val location: String?
+        get() = extension.plugins.kotlin.location ?: InspectionPlugin.kotlinPluginLocation(version, ideaVersion)
 
     @get:InputFile
     @get:Optional
-    val sourceFile: File?
-        get() = kotlinPluginVersion?.let { InspectionPlugin.kotlinPluginSource(it) }
+    val archive: File?
+        get() = location?.let { InspectionPlugin.kotlinPluginArchiveDirectory(it).listFiles()?.firstOrNull() }
 
     @get:OutputDirectory
-    @get:Optional
-    val destinationDir: File?
-        get() = kotlinPluginVersion?.let { InspectionPlugin.kotlinPluginDirectory(it) }
+    val plugin: File
+        get() = InspectionPlugin.kotlinPluginDirectory(version, ideaVersion)
 
     @Suppress("unused")
     @TaskAction
     fun apply() {
-        if (kotlinPluginVersion == null) {
+        val version = version
+        val location = location
+        if (version == null && location == null) {
             logger.info("InspectionPlugin: Using kotlin plugin inherit from idea. No unzipping needed.")
             return
         }
         val unzip = Unzip(project)
         val copy = Copy(project)
         val unpacker = Unpacker(logger, unzip, copy)
-        unpacker.unpack(sourceFile!!, destinationDir!!)
+        unpacker.unpack(archive!!, plugin.parentFile)
     }
 
+    @get:Internal
     private val extension: InspectionsExtension
         get() = project.extensions.findByType(InspectionsExtension::class.java)!!
 }

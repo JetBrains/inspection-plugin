@@ -9,8 +9,6 @@ import org.jetbrains.intellij.extensions.InspectionsExtension
 import org.jetbrains.intellij.parameters.InspectionTypeParameters
 import org.jetbrains.intellij.parameters.InspectionsParameters
 import org.jetbrains.intellij.parameters.ReportParameters
-import org.jetbrains.intellij.versions.IdeaVersion
-import org.jetbrains.intellij.versions.KotlinPluginVersion
 
 
 @Suppress("MemberVisibilityCanBePrivate")
@@ -48,16 +46,16 @@ open class ReformatTask : AbstractInspectionsTask() {
      * Version of IDEA.
      */
     @get:Input
-    val ideaVersion: IdeaVersion
-        get() = InspectionPlugin.ideaVersion(extension.ideaVersion)
+    val ideaVersion: String
+        get() = InspectionPlugin.ideaVersion(extension.idea.version)
 
     /**
      * Version of IDEA Kotlin Plugin.
      */
     @get:Input
     @get:Optional
-    val kotlinPluginVersion: KotlinPluginVersion?
-        get() = InspectionPlugin.kotlinPluginVersion(extension.kotlinPluginVersion, extension.kotlinPluginLocation)
+    val kotlinPluginVersion: String?
+        get() = extension.plugins.kotlin.version
 
     /**
      * Normally false. Value of true is used in tests to prevent IDEA shutdown.
@@ -100,8 +98,10 @@ open class ReformatTask : AbstractInspectionsTask() {
     val skipBinarySources: Boolean
         get() = extension.skipBinarySources ?: true
 
+    @get:Internal
     override lateinit var sourceSetType: SourceSetType
 
+    @get:Internal
     private val extension: InspectionsExtension
         get() = project.extensions.findByType(InspectionsExtension::class.java)!!
 

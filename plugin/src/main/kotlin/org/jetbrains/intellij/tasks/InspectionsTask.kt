@@ -17,8 +17,6 @@ import org.jetbrains.intellij.extensions.InspectionsExtension
 import org.jetbrains.intellij.parameters.InspectionTypeParameters
 import org.jetbrains.intellij.parameters.InspectionsParameters
 import org.jetbrains.intellij.parameters.ReportParameters
-import org.jetbrains.intellij.versions.IdeaVersion
-import org.jetbrains.intellij.versions.KotlinPluginVersion
 import java.io.File
 import org.gradle.api.Project as GradleProject
 
@@ -64,10 +62,10 @@ open class InspectionsTask : AbstractInspectionsTask(), Reporting<CheckstyleRepo
      * Version of IDEA.
      */
     @get:Input
-    var ideaVersion: IdeaVersion
-        get() = InspectionPlugin.ideaVersion(extension.ideaVersion)
+    var ideaVersion: String
+        get() = InspectionPlugin.ideaVersion(extension.idea.version)
         set(value) {
-            extension.ideaVersion = value.value
+            extension.idea.version = value
         }
 
     /**
@@ -75,10 +73,10 @@ open class InspectionsTask : AbstractInspectionsTask(), Reporting<CheckstyleRepo
      */
     @get:Input
     @get:Optional
-    var kotlinPluginVersion: KotlinPluginVersion?
-        get() = InspectionPlugin.kotlinPluginVersion(extension.kotlinPluginVersion, extension.kotlinPluginLocation)
+    var kotlinPluginVersion: String?
+        get() = extension.plugins.kotlin.version
         set(value) {
-            extension.kotlinPluginVersion = value?.value
+            extension.plugins.kotlin.version = value
         }
 
     /**
@@ -279,8 +277,10 @@ open class InspectionsTask : AbstractInspectionsTask(), Reporting<CheckstyleRepo
         return reports
     }
 
+    @get:Internal
     override lateinit var sourceSetType: SourceSetType
 
+    @get:Internal
     private val extension: InspectionsExtension
         get() = project.extensions.findByType(InspectionsExtension::class.java)!!
 

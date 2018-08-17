@@ -1,49 +1,52 @@
 package org.jetbrains.intellij.tasks
 
 import org.gradle.api.internal.ConventionTask
-import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.Optional
-import org.gradle.api.tasks.OutputFile
-import org.gradle.api.tasks.TaskAction
+import org.gradle.api.tasks.*
+import org.jetbrains.intellij.ExceptionHandler
 import org.jetbrains.intellij.InspectionPlugin
 import org.jetbrains.intellij.extensions.InspectionsExtension
+import org.jetbrains.intellij.plugins.KotlinPlugin
 import org.jetbrains.intellij.utils.Downloader
-import org.jetbrains.intellij.versions.IdeaVersion
-import org.jetbrains.intellij.versions.KotlinPluginVersion
 import java.io.File
 
 @Suppress("MemberVisibilityCanBePrivate")
 open class DownloadKotlinPluginTask : ConventionTask() {
 
     @get:Input
-    val ideaVersion: IdeaVersion
-        get() = InspectionPlugin.ideaVersion(extension.ideaVersion)
+    val ideaVersion: String
+        get() = InspectionPlugin.ideaVersion(extension.idea.version)
 
     @get:Input
     @get:Optional
-    val kotlinPluginVersion: KotlinPluginVersion?
-        get() = InspectionPlugin.kotlinPluginVersion(extension.kotlinPluginVersion, extension.kotlinPluginLocation)
+    val version: String?
+        get() = extension.plugins.kotlin.version
 
     @get:Input
     @get:Optional
-    val url: String?
-        get() = kotlinPluginVersion?.location
+    val location: String?
+        get() = extension.plugins.kotlin.location ?: InspectionPlugin.kotlinPluginLocation(version, ideaVersion)
 
-    @get:OutputFile
+    @get:OutputDirectory
     @get:Optional
-    val destination: File?
-        get() = kotlinPluginVersion?.let { InspectionPlugin.kotlinPluginSource(it) }
+    val archiveDirectory: File?
+        get() = location?.let { InspectionPlugin.kotlinPluginArchiveDirectory(it) }
 
     @Suppress("unused")
     @TaskAction
     fun apply() {
-        if (kotlinPluginVersion == null) {
+        val version = version
+        val location = location
+        if (version == null && location == null) {
             logger.info("InspectionPlugin: Using kotlin plugin inherit from idea. No downloading needed.")
             return
         }
-        Downloader(logger).download(url!!, destination!!)
+        if (version == null) ExceptionHandler.exception(this, "Expected version for kotlin plugin $location")
+        if (location == null) ExceptionHandler.exception(this, "Expected url for kotlin plugin $version")
+        KotlinPlugin.checkCompatibility(this, version, ideaVersion)
+        Downloader(logger).download(location, archiveDirectory!!)
     }
 
+    @get:Internal
     private val extension: InspectionsExtension
         get() = project.extensions.findByType(InspectionsExtension::class.java)!!
 }

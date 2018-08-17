@@ -106,7 +106,7 @@ configurations {
     }
 }
 
-val ideaDirectory = File(System.getProperty("java.io.tmpdir"), "inspection-plugin/dependencies/ideaIC_2017_3")
+val ideaDirectory = File(System.getProperty("java.io.tmpdir"), "inspection-plugin/build/r-ideaIC_2017_3")
 
 task<Sync>(name = "r-unzip-idea") {
     if (ideaDirectory.exists()) return@task

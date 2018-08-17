@@ -81,14 +81,14 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
                         "ignoreFailures" -> if (isIgnoreFailures) {
                             appendln("    ignoreFailures = ${isIgnoreFailures.gradleCode}")
                         }
-                        "ideaVersion" -> ideaVersion?.gradleCode?.let {
-                            appendln("    ideaVersion = $it")
+                        "idea.version" -> idea.version?.gradleCode?.let {
+                            appendln("    idea.version = $it")
                         }
-                        "kotlinPluginVersion" -> kotlinPluginVersion?.gradleCode?.let {
-                            appendln("    kotlinPluginVersion = $it")
+                        "plugins.kotlin.version" -> plugins.kotlin.version?.gradleCode?.let {
+                            appendln("    plugins.kotlin.version = $it")
                         }
-                        "kotlinPluginLocation" -> kotlinPluginLocation?.gradleCode?.let {
-                            appendln("    kotlinPluginLocation = $it")
+                        "plugins.kotlin.location" -> plugins.kotlin.location?.gradleCode?.let {
+                            appendln("    plugins.kotlin.location = $it")
                         }
                         "testMode" -> testMode?.gradleCode?.let {
                             appendln("    testMode = $it")
@@ -269,7 +269,7 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
                         .forwardOutput()
                         .build()
             } catch (failure: UnexpectedBuildFailure) {
-                println("InspectionTestBench: Exception caught in test: $failure")
+                println("InspectionTestBench: Exception caught in test.")
                 failure.buildResult
             }
         }

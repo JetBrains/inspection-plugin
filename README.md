@@ -22,7 +22,7 @@ Also you should specify IDEA version to use, e.g.
 
 ```groovy
 inspections {
-    ideaVersion "ideaIC:2017.2.6"
+    idea.version "ideaIC:2017.2.6"
 }
 ``` 
 
@@ -108,8 +108,8 @@ inspections {
     quickFix = true
     reformat.quiet = true
     reformat.quickFix = true
-    kotlinPluginVersion = '1.2.60-release-IJ2017.3-1'
-    kotlinPluginLocation = 'https://plugins.jetbrains.com/plugin/download?rel=true&updateId=48409'
+    plugins.kotlin.version = '1.2.60'
+    plugins.kotlin.location = 'https://plugins.jetbrains.com/plugin/download?rel=true&updateId=48409'
 }
 ```
 
@@ -123,8 +123,8 @@ The meaning of the parameters is the following:
 * `quickFix`: apply quick fixes for fixed inspection errors (false by default)
 * `reformat.quiet`: do not report reformat inspection messages to console, only to XML file (false by default)
 * `reformat.quickFix`: apply quick fixes for fixed code-style errors (true by default)
-* `kotlinPluginVersion`: version of downloading kotlin plugin (by default used bundled to IDEA)
-* `kotlinPluginLocation`: url of downloading kotlin plugin
+* `plugins.kotlin.version`: version of downloading kotlin plugin (by default used bundled to IDEA)
+* `plugins.kotlin.location`: url of downloading kotlin plugin
 
 If you wish to change location of report file, you should specify it in closure for particular task, e.g.
 
@@ -157,7 +157,7 @@ gradlew --info --stacktrace inspectionsMain > inspections.log
 
 and attach `inspections.log` to the issue. 
 Also it's very helpful to specify Gradle version, OS and 
-IDEA version used in inspection plugin (which is set in `ideaVersion` parameter).
+IDEA version used in inspection plugin (which is set in `idea.version` parameter).
 
 Known bugs / problems at this moment (version 0.1.4):
 

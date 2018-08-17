@@ -7,22 +7,25 @@ import org.jetbrains.intellij.extensions.InspectionsExtension
 import org.jetbrains.intellij.utils.Copy
 import org.jetbrains.intellij.utils.Unpacker
 import org.jetbrains.intellij.utils.Unzip
-import org.jetbrains.intellij.versions.IdeaVersion
 import java.io.File
 
 @Suppress("MemberVisibilityCanBePrivate")
 open class UnzipIdeaTask : ConventionTask() {
     @get:Input
-    val ideaVersion: IdeaVersion
-        get() = InspectionPlugin.ideaVersion(extension.ideaVersion)
+    val ideaVersion: String
+        get() = InspectionPlugin.ideaVersion(extension.idea.version)
 
     @get:InputFile
-    val sourceFile: File
+    val archive: File
         get() = project.configurations.getByName(InspectionPlugin.SHORT_NAME).singleFile
 
     @get:OutputDirectory
-    val destinationDir: File
+    val idea: File
         get() = InspectionPlugin.ideaDirectory(ideaVersion)
+
+    @get:OutputDirectory
+    val kotlinPlugin: File
+        get() = InspectionPlugin.kotlinPluginDirectory(null, ideaVersion)
 
     @Suppress("unused")
     @TaskAction
@@ -30,9 +33,15 @@ open class UnzipIdeaTask : ConventionTask() {
         val unzip = Unzip(project)
         val copy = Copy(project)
         val unpacker = Unpacker(logger, unzip, copy)
-        unpacker.unpack(sourceFile, destinationDir)
+        if (!unpacker.unpack(archive, idea)) return
+        val ideaKotlinPlugin = File(idea, "plugins/Kotlin")
+        if (ideaKotlinPlugin.exists()) {
+            copy(ideaKotlinPlugin, kotlinPlugin)
+            ideaKotlinPlugin.deleteRecursively()
+        }
     }
 
+    @get:Internal
     private val extension: InspectionsExtension
         get() = project.extensions.findByType(InspectionsExtension::class.java)!!
 }

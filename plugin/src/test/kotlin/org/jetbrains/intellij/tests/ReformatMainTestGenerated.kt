@@ -15,44 +15,39 @@ class ReformatMainTestGenerated {
     private val testBench = InspectionTestBench(testProjectDir, "reformatMain")
 
     @Test
-    fun testConfigurationKotlin2017_2() {
+    fun testConfigurationKotlin_1_2_60_IJ2017_2() {
         val extension = InspectionsExtension(null)
         extension.testMode = true
-        extension.kotlinPluginVersion = "1.2.60-release-IJ2017.2-1"
-        testBench.doTest(File("testData\\reformat\\configurationKotlin2017_2"), extension)
+        extension.idea.version = "ideaIC:2017.2"
+        extension.plugins.kotlin.version = "1.2.60"
+        testBench.doTest(File("testData\\reformat\\configurationKotlin_1-2-60_IJ2017-2"), extension)
     }
 
     @Test
-    fun testConfigurationKotlin2017_3() {
+    fun testConfigurationKotlin_1_2_60_IJ2017_3() {
         val extension = InspectionsExtension(null)
         extension.testMode = true
-        extension.kotlinPluginVersion = "1.2.60-release-IJ2017.3-1"
-        testBench.doTest(File("testData\\reformat\\configurationKotlin2017_3"), extension)
+        extension.idea.version = "ideaIC:2017.3"
+        extension.plugins.kotlin.version = "1.2.60"
+        testBench.doTest(File("testData\\reformat\\configurationKotlin_1-2-60_IJ2017-3"), extension)
     }
 
     @Test
-    fun testConfigurationKotlin2018_1() {
+    fun testConfigurationKotlin_1_2_60_IJ2018_1() {
         val extension = InspectionsExtension(null)
         extension.testMode = true
-        extension.kotlinPluginVersion = "1.2.60-release-IJ2018.1-1"
-        testBench.doTest(File("testData\\reformat\\configurationKotlin2018_1"), extension)
+        extension.idea.version = "ideaIC:2018.1"
+        extension.plugins.kotlin.version = "1.2.60"
+        testBench.doTest(File("testData\\reformat\\configurationKotlin_1-2-60_IJ2018-1"), extension)
     }
 
     @Test
-    fun testConfigurationKotlin2018_2() {
+    fun testConfigurationKotlin_1_2_60_IJ2018_2() {
         val extension = InspectionsExtension(null)
         extension.testMode = true
-        extension.kotlinPluginVersion = "1.2.60-release-IJ2018.2-1"
-        testBench.doTest(File("testData\\reformat\\configurationKotlin2018_2"), extension)
-    }
-
-    @Test
-    fun testConfigurationKotlinStudio3_3c4_1() {
-        val extension = InspectionsExtension(null)
-        extension.testMode = true
-        extension.kotlinPluginVersion = "1.2.60-release-76-Studio3.3c4-1"
-        extension.kotlinPluginLocation = "https://plugins.jetbrains.com/plugin/download?rel=true&updateId=48589"
-        testBench.doTest(File("testData\\reformat\\configurationKotlinStudio3_3c4_1"), extension)
+        extension.idea.version = "ideaIC:2018.2"
+        extension.plugins.kotlin.version = "1.2.60"
+        testBench.doTest(File("testData\\reformat\\configurationKotlin_1-2-60_IJ2018-2"), extension)
     }
 
     @Test

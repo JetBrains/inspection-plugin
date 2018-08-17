@@ -6,7 +6,6 @@ import org.gradle.api.initialization.Settings
 import org.gradle.api.invocation.Gradle
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
-import org.gradle.api.tasks.TaskExecutionException
 import org.gradle.api.tasks.VerificationTask
 import org.jetbrains.intellij.Runner
 import org.jetbrains.intellij.ChildFirstClassLoader
@@ -25,6 +24,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
         const val runnerVersion = "0.2.0-SNAPSHOT"
     }
 
+    @get:Internal
     private var runner: Runner<InspectionsParameters>? = null
 
     @Internal
@@ -56,7 +56,8 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
     fun run() {
         try {
             val parameters = getInspectionsParameters()
-            val ideaDirectory = InspectionPlugin.ideaDirectory(parameters.ideaVersion, parameters.kotlinPluginVersion)
+            val ideaVersion = parameters.ideaVersion
+            val ideaDirectory = InspectionPlugin.ideaDirectory(ideaVersion)
             logger.info("InspectionPlugin: Idea directory: $ideaDirectory")
             val ideaClasspath = getIdeaClasspath(ideaDirectory)
             val analyzerClasspath = listOf(tryResolveRunnerJar(project))
@@ -70,6 +71,9 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
             val loader = ClassloaderContainer.getOrInit {
                 ChildFirstClassLoader(fullClasspath.toTypedArray(), parentClassLoader)
             }
+            val kotlinPluginVersion = parameters.kotlinPluginVersion
+            val kotlinPluginDirectory = InspectionPlugin.kotlinPluginDirectory(kotlinPluginVersion, ideaVersion)
+            val plugins = listOf(kotlinPluginDirectory)
             var success = true
             val inspectionsThread = thread(start = false) {
                 val runner = createRunner(loader)
@@ -91,21 +95,23 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
                         projectName = project.rootProject.name,
                         moduleName = project.name,
                         ideaHomeDirectory = ideaDirectory,
+                        plugins = plugins,
                         parameters = parameters
                 )
             }
             inspectionsThread.contextClassLoader = loader
             inspectionsThread.setUncaughtExceptionHandler { t, e ->
-                ExceptionHandler.exception(logger, this, e, "Analyzing exception")
+                success = false
+                ExceptionHandler.exception(this, e, "Analyzing exception")
             }
             inspectionsThread.start()
             inspectionsThread.join()
 
             if (!success && !parameters.ignoreFailures) {
-                ExceptionHandler.exception(logger, this, "Task execution failure")
+                ExceptionHandler.exception(this, "Task execution failure")
             }
         } catch (e: Throwable) {
-            ExceptionHandler.exception(logger, this, e, "Process inspection task exception")
+            ExceptionHandler.exception(this, e, "Process inspection task exception")
         }
     }
 
