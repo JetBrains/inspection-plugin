@@ -166,6 +166,9 @@ class InspectionsRunner(testMode: Boolean) : IdeaRunner<InspectionsParameters>(t
                                 logger.error("InspectionPlugin: Cannot get document for file $filePath $message")
                                 continue
                             }
+                            val fileName = psiFile.name
+                            val toolName = inspectionTool.displayName
+                            logger.info("InspectionPlugin: Inspection '$toolName' analyzing started for $fileName")
                             val problems = inspectionTool.analyze(psiFile, document, displayName, inspectionWrapper.level)
                             inspectionResults += problems
                             for (problem in problems) {
@@ -194,7 +197,6 @@ class InspectionsRunner(testMode: Boolean) : IdeaRunner<InspectionsParameters>(t
                         logger.error(exception.stackTrace.joinToString(separator = "\n") { "    $it" })
                         logger.error("Caused by: " + (exception.cause.message ?: exception.cause))
                         logger.error(exception.cause.stackTrace.joinToString(separator = "\n") { "    $it" })
-                        success = false
                     }
                 }
                 ProgressManager.getInstance().runProcess(task, EmptyProgressIndicator())
