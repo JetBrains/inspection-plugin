@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## 0.2.0-RC-1
+
+Additional features:
+
+ * reformat task
+ * opportunity to automatically apply quick-fixes
+ * opportunity to use given version of kotlin plugin (`plugins.kotlin.version`)
+
+Configuration:
+
+ * main configuration file is no more used at all
+ * `toolVersion` -> `idea.version`
+ 
+Bug fixes: 
+
+ * Gradle 4.9 support
+ * Tests with different IDEA versions are executed correctly now
+
 ## 0.1.4 
 
 Additional features:
