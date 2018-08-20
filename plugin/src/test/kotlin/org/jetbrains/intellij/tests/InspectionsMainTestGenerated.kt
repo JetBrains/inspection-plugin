@@ -159,6 +159,14 @@ class InspectionsMainTestGenerated {
     }
 
     @Test
+    fun testUnusedReceiverParameterInspection() {
+        val extension = InspectionsExtension(null)
+        extension.warnings.inspections = setOf("org.jetbrains.kotlin.idea.inspections.UnusedReceiverParameterInspection")
+        extension.quickFix = true
+        testBench.doTest(File("testData/inspection/unusedReceiverParameterInspection"), extension)
+    }
+
+    @Test
     fun testUnusedSymbolByIdeaProfile() {
         val extension = InspectionsExtension(null)
         extension.inheritFromIdea = true

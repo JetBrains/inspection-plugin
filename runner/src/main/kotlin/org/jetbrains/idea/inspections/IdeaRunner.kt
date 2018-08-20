@@ -93,7 +93,7 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
         }
     }
 
-    private fun invokeAndWait(action: () -> Unit) = idea.invokeAndWait(action)
+    fun invokeAndWait(action: () -> Unit) = idea.invokeAndWait(action)
 
     fun runReadAction(action: () -> Unit) = idea.runReadAction(action)
 

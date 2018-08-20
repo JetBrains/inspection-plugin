@@ -1,5 +1,6 @@
 package org.jetbrains.idea.inspections
 
+import com.intellij.codeInsight.FileModificationService
 import com.intellij.codeInspection.*
 import com.intellij.codeInspection.ex.ApplicationInspectionProfileManager
 import com.intellij.codeInspection.ex.InspectionToolRegistrar
@@ -18,6 +19,7 @@ import com.intellij.psi.PsiManager
 import org.jetbrains.intellij.parameters.InspectionTypeParameters
 import org.jetbrains.intellij.parameters.InspectionsParameters
 import java.io.File
+import java.util.*
 
 
 @Suppress("unused")
@@ -95,7 +97,8 @@ class InspectionsRunner : IdeaRunner<InspectionsParameters>() {
         val ideaProject = openProject(parameters.projectDir, projectName, moduleName)
         val (success, results) = analyze(parameters, files, ideaProject)
         reportProblems(parameters, results)
-        return success && quickFixProblems(ideaProject, parameters, results)
+        quickFixProblems(ideaProject, parameters, results)
+        return success
     }
 
     private fun analyze(
@@ -236,28 +239,59 @@ class InspectionsRunner : IdeaRunner<InspectionsParameters>() {
             project: IdeaProject,
             parameters: InspectionsParameters,
             results: Map<String, List<PinnedProblemDescriptor>>
-    ): Boolean {
-        if (!parameters.quickFix) return true
-        var success = true
-        WriteCommandAction.runWriteCommandAction(project) {
-            @Suppress("UNUSED_VARIABLE")
-            for ((inspectionClassName, result) in results) {
-                for (problem in result) {
-                    val fixes = problem.fixes
-                    if (fixes == null || fixes.size != 1) {
-                        logger.error("InspectionPlugin: Can not apply problem fixes to $problem")
-                        success = false
-                        continue
-                    }
-                    try {
-                        fixes[0].applyFix(project, problem)
-                        logger.info("InspectionPlugin: Applied fix for '${problem.renderWithLocation()}'")
-                    } catch (ignore: Exception) {
-                    }
+    ) {
+        if (!parameters.quickFix) return
+        val writeFixes = ArrayList<Pair<PinnedProblemDescriptor, QuickFix<CommonProblemDescriptor>>>()
+        val otherFixes = ArrayList<Pair<PinnedProblemDescriptor, QuickFix<CommonProblemDescriptor>>>()
+        @Suppress("UNUSED_VARIABLE")
+        for ((inspectionClassName, result) in results) {
+            for (problem in result) {
+                val fixes = problem.fixes ?: continue
+                if (fixes.size != 1) {
+                    logger.error("InspectionPlugin: Can not apply problem fixes for '${problem.renderWithLocation()}'")
+                    continue
+                }
+                val fix = fixes[0]
+                when (fix.startInWriteAction()) {
+                    true -> writeFixes.add(problem to fix)
+                    false -> otherFixes.add(problem to fix)
                 }
             }
         }
-        return success
+        val fileModificationService = FileModificationService.getInstance()
+        WriteCommandAction.runWriteCommandAction(project) {
+            for ((problem, fix) in writeFixes) {
+                fileModificationService.apply(fix, project, problem)
+            }
+        }
+        invokeAndWait {
+            for ((problem, fix) in otherFixes) {
+                fileModificationService.apply(fix, project, problem)
+            }
+        }
+    }
+
+    private fun FileModificationService.apply(
+            fix: QuickFix<CommonProblemDescriptor>,
+            project: IdeaProject,
+            problem: PinnedProblemDescriptor
+    ) {
+        val renderedProblem = problem.renderWithLocation()
+        if (problem.psiElement == null) {
+            logger.info("InspectionPlugin: Fix already applied for '$renderedProblem'")
+            return
+        }
+        try {
+            if (!preparePsiElementForWrite(problem.psiElement)) {
+                logger.warn("InspectionPlugin: Problem psiElement cannot be prepared for '$renderedProblem'")
+                return
+            }
+            fix.applyFix(project, problem)
+            logger.info("InspectionPlugin: Applied fix for '$renderedProblem'")
+        } catch (exception: Exception) {
+            logger.error("InspectionPlugin: Exception during applying quick fix for '$renderedProblem'")
+            logger.error("InspectionPlugin: $exception")
+        }
     }
 
     private fun InspectionTypeParameters.isTooMany(value: Int) = max?.let { value > it } ?: false
