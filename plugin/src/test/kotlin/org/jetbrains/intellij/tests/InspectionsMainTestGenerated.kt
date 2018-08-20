@@ -58,6 +58,7 @@ class InspectionsMainTestGenerated {
         testBench.doTest(File("testData/inspection/configurationKotlin2018_1"), extension)
     }
 
+    @Ignore
     @Test
     fun testConfigurationKotlin2018_2() {
         val extension = InspectionsExtension(null)
