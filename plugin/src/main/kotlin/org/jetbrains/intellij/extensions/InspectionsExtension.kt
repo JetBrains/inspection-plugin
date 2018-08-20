@@ -7,12 +7,6 @@ import org.gradle.api.Project
 open class InspectionsExtension(private val project: Project?) : CodeQualityExtension() {
 
     /**
-     * Value of true is used in tests to prevent IDEA shutdown.
-     */
-    // todo remove it
-    var testMode: Boolean? = null
-
-    /**
      * Configuration of IDEA.
      */
     var idea = IdeaExtension()

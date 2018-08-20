@@ -90,9 +90,6 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
                         "plugins.kotlin.location" -> plugins.kotlin.location?.gradleCode?.let {
                             appendln("    plugins.kotlin.location = $it")
                         }
-                        "testMode" -> testMode?.gradleCode?.let {
-                            appendln("    testMode = $it")
-                        }
                         "xmlDestination" -> if (xmlReport) {
                             appendln("            destination \"build/report.xml\"")
                         }

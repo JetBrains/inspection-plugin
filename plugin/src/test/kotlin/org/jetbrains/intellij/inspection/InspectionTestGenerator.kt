@@ -105,7 +105,6 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
                 @Test
                 fun test$name() {
                     val extension = InspectionsExtension(null)
-                    extension.testMode = true
                     ${extension.inheritFromIdea?.kotlinCode?.let { "extension.inheritFromIdea = $it" } ?: ""}
                     ${extension.profileName?.kotlinCode?.let { "extension.profileName = $it" } ?: ""}
                     ${extension.errors.inspections?.kotlinCode?.let { "extension.errors.inspections = $it" } ?: ""}
