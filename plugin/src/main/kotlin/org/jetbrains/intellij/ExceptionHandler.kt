@@ -16,12 +16,13 @@ object ExceptionHandler {
         throw TaskExecutionException(task, exception)
     }
 
-    fun exception(task: Task, throwable: Throwable, message: String): Nothing {
+    fun exception(task: Task, throwable: Throwable, message: String, beforeThrow: () -> Unit = {}): Nothing {
         task.logger.error("InspectionPlugin: $message")
         when {
             hasStackTraceParameter() -> printStackTrace(task, throwable)
             else -> printNameStackTrace(task, throwable)
         }
+        beforeThrow()
         throw TaskExecutionException(task, throwable)
     }
 

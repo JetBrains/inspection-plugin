@@ -259,6 +259,7 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
             return try {
                 GradleRunner.create()
                         .withProjectDir(testProjectDir.root)
+                        .withArguments("--no-daemon")
                         .withArguments("--info", "--stacktrace", taskName)
 //                        .withDebug(true)
                         // This applies classpath from pluginUnderTestMetadata

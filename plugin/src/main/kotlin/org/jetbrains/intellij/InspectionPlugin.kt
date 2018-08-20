@@ -45,12 +45,12 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
     }
 
     override fun configureTaskDefaults(task: InspectionsTask, baseName: String) {
-        val baseType = SourceSetType(baseName)
-        task.sourceSetType = baseType
-        configureReformatTaskDefaults(baseType)
-        configureIdeaInspectionsTaskDependencies(task)
-        configureDefaultDependencies(task)
-        configureReportsConventionMapping(task, baseName)
+        configureDefaultDependencies()
+        val sourceSetType = SourceSetType(baseName)
+        task.sourceSetType = sourceSetType
+        configureReformatTaskDefaults(sourceSetType)
+        configureAbstractInspectionsTaskDependencies(task)
+        configureAbstractInspectionsTaskReportsConventionMapping(task, sourceSetType)
     }
 
     private fun configureTasksDefaults() {
@@ -66,11 +66,12 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
     private fun configureReformatTaskDefaults(sourceSetType: SourceSetType) {
         project.tasks.create(reformatTaskName(sourceSetType), ReformatTask::class.java) {
             it.sourceSetType = sourceSetType
-            configureIdeaInspectionsTaskDependencies(it)
+            configureAbstractInspectionsTaskDependencies(it)
+            configureAbstractInspectionsTaskReportsConventionMapping(it, sourceSetType)
         }
     }
 
-    private fun configureIdeaInspectionsTaskDependencies(task: AbstractInspectionsTask) {
+    private fun configureAbstractInspectionsTaskDependencies(task: AbstractInspectionsTask) {
         task.dependsOn += project.tasks.getByName(UNZIP_IDEA_TASK_NAME)
         task.dependsOn += project.tasks.getByName(UNZIP_KOTLIN_PLUGIN_TASK_NAME)
         task.dependsOn += project.rootProject.tasks.getByName(IDEA_TASK_NAME)
@@ -79,30 +80,34 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
         }
     }
 
-    private fun configureDefaultDependencies(task: InspectionsTask) {
+    private fun configureDefaultDependencies() {
         project.configurations.getByName(SHORT_NAME).defaultDependencies {
-            val version = task.ideaVersion
+            val version = InspectionPlugin.ideaVersion(inspectionExtension.idea.version)
             it.add(project.dependencies.create("com.jetbrains.intellij.idea:$version"))
         }
     }
 
-    private fun configureReportsConventionMapping(task: InspectionsTask, baseName: String) {
+    private fun configureAbstractInspectionsTaskReportsConventionMapping(task: AbstractInspectionsTask, sourceSetType: SourceSetType) {
         task.reports.all { report ->
             val reportMapping = AbstractCodeQualityPlugin.conventionMappingOf(report)
             reportMapping.map("enabled") { true }
             reportMapping.map("destination") {
-                File(inspectionExtension.reportsDir, "$baseName.${report.name}")
+                File(inspectionExtension.reportsDir, "$sourceSetType.${report.name}")
             }
         }
     }
 
     override fun configureForSourceSet(sourceSet: SourceSet, task: InspectionsTask) {
+        configureTaskForSourceSet(sourceSet, task)
+        val baseType = task.sourceSetType
+        val reformatTask = project.tasks.getByName(reformatTaskName(baseType)) as ReformatTask
+        configureTaskForSourceSet(sourceSet, reformatTask)
+    }
+
+    private fun configureTaskForSourceSet(sourceSet: SourceSet, task: AbstractInspectionsTask) {
         task.description = "Run IDEA inspections for " + sourceSet.name + " classes"
         task.classpath = sourceSet.output.plus(sourceSet.compileClasspath)
         task.setSourceSet(sourceSet.allSource)
-        val baseType = task.sourceSetType
-        val reformatTask = project.tasks.getByName(reformatTaskName(baseType)) as ReformatTask
-        reformatTask.setSourceSet(sourceSet.allSource)
     }
 
     companion object {

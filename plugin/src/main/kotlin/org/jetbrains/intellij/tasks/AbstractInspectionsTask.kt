@@ -1,36 +1,287 @@
 package org.jetbrains.intellij.tasks
 
+import groovy.lang.Closure
+import groovy.lang.DelegatesTo
 import org.gradle.BuildListener
 import org.gradle.BuildResult
+import org.gradle.api.Action
+import org.gradle.api.file.FileCollection
+import org.gradle.api.file.FileTree
 import org.gradle.api.initialization.Settings
+import org.gradle.api.internal.ClosureBackedAction
 import org.gradle.api.invocation.Gradle
-import org.gradle.api.tasks.Internal
-import org.gradle.api.tasks.TaskAction
-import org.gradle.api.tasks.VerificationTask
-import org.jetbrains.intellij.Runner
-import org.jetbrains.intellij.ChildFirstClassLoader
-import org.jetbrains.intellij.ExceptionHandler
-import org.jetbrains.intellij.InspectionPlugin
+import org.gradle.api.plugins.quality.CheckstyleReports
+import org.gradle.api.reporting.Reporting
+import org.gradle.api.tasks.*
+import org.jetbrains.intellij.*
+import org.jetbrains.intellij.extensions.InspectionsExtension
+import org.jetbrains.intellij.parameters.InspectionTypeParameters
 import org.jetbrains.intellij.parameters.InspectionsParameters
+import org.jetbrains.intellij.parameters.ReportParameters
 import java.io.File
 import java.net.URLClassLoader
 import java.util.function.BiFunction
 import kotlin.concurrent.thread
 
-abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
+@Suppress("MemberVisibilityCanBePrivate")
+abstract class AbstractInspectionsTask : SourceTask(), VerificationTask, Reporting<CheckstyleReports> {
 
     companion object {
         // TODO: take the same version as plugin
-        const val runnerVersion = "0.2.0-RC-1"
+        const val runnerVersion = "0.2.0-RC-1-SNAPSHOT"
     }
+
+    /**
+     * The class path containing the compiled classes for the source files to be analyzed.
+     */
+    @get:Classpath
+    lateinit var classpath: FileCollection
+
+    /**
+     * {@inheritDoc}
+     *
+     *
+     * The sources for this task are relatively relocatable even though it produces output that
+     * includes absolute paths. This is a compromise made to ensure that results can be reused
+     * between different builds. The downside is that up-to-date results, or results loaded
+     * from cache can show different absolute paths than would be produced if the task was
+     * executed.
+     */
+    @PathSensitive(PathSensitivity.RELATIVE)
+    override fun getSource(): FileTree = super.getSource()
+
+    /**
+     * Whether or not this task will ignore failures and continue running the build.
+     *
+     * @return true if failures should be ignored
+     */
+    @Input
+    override fun getIgnoreFailures(): Boolean = ignoreFailures ?: extension.isIgnoreFailures
+
+    /**
+     * Whether this task will ignore failures and continue running the build.
+     */
+    override fun setIgnoreFailures(ignoreFailures: Boolean) {
+        this.ignoreFailures = ignoreFailures
+    }
+
+    /**
+     * Version of IDEA.
+     */
+    @get:Input
+    open val ideaVersion: String
+        get() = InspectionPlugin.ideaVersion(extension.idea.version)
+
+    /**
+     * Version of IDEA Kotlin Plugin.
+     */
+    @get:Input
+    @get:Optional
+    open val kotlinPluginVersion: String?
+        get() = extension.plugins.kotlin.version
+
+    /**
+     * Whether rule violations are to be displayed on the console.
+     *
+     * @return false if violations should be displayed on console, true otherwise
+     */
+    @get:Console
+    open val isQuiet: Boolean
+        get() = extension.isQuiet ?: false
+
+    /**
+     * Quick fix are to be executed if found fixable errors.
+     * Default value is the <tt>false</tt>.
+     */
+    @get:Input
+    open val quickFix: Boolean
+        get() = extension.quickFix ?: false
+
+    /**
+     * Binary sources will not participate in the analysis..
+     * Default value is the <tt>true</tt>.
+     */
+    @get:Input
+    open val skipBinarySources: Boolean
+        get() = extension.skipBinarySources ?: true
+
+    /**
+     * If this value is <tt>true</tt> implementation of inspections will be found in IDEA
+     * profile with given {@profileName}.
+     */
+    @get:Input
+    open val inheritFromIdea: Boolean
+        get() = extension.inheritFromIdea ?: inspections.isEmpty()
+
+    /**
+     * Name of profiles in IDEA. Needed for finding implementation of inspections.
+     */
+    @get:Input
+    @get:Optional
+    open val profileName: String?
+        get() = extension.profileName
+
+    /**
+     * The inspections with error problem level.
+     */
+    @get:Input
+    open val errorsInspections: Set<String>
+        get() = extension.errors.inspections ?: emptySet()
+
+    /**
+     * The maximum number of errors that are tolerated before stopping the build
+     * and setting the failure property (the last if ignoreFailures = false only)
+     *
+     * @return the maximum number of errors allowed
+     */
+    @get:Input
+    @get:Optional
+    open val maxErrors: Int?
+        get() = extension.errors.max
+
+    /**
+     * The inspections with warning problem level.
+     */
+    @get:Input
+    open val warningsInspections: Set<String>
+        get() = extension.warnings.inspections ?: emptySet()
+
+    /**
+     * The maximum number of warnings that are tolerated before stopping the build
+     * and setting the failure property (the last if ignoreFailures = false only)
+     *
+     * @return the maximum number of warnings allowed
+     */
+    @get:Input
+    @get:Optional
+    open val maxWarnings: Int?
+        get() = extension.warnings.max
+
+    /**
+     * The inspections with information problem level.
+     */
+    @get:Input
+    open val infosInspections: Set<String>
+        get() = extension.infos.inspections ?: emptySet()
+
+    /**
+     * The maximum number of infos that are tolerated before stopping the build
+     * and setting the failure property (the last if ignoreFailures = false only)
+     *
+     * @return the maximum number of infos allowed
+     */
+    @get:Input
+    @get:Optional
+    open val maxInfos: Int?
+        get() = extension.infos.max
+
+    @get:Internal
+    private val inspections: Set<String>
+        get() = errorsInspections + warningsInspections + infosInspections
+
+    @get:Internal
+    private val reports = IdeaCheckstyleReports(this)
+
+    /**
+     * The reports to be generated by this task.
+     */
+    @Nested
+    override fun getReports(): CheckstyleReports = reports
+
+    /**
+     * Configures the reports to be generated by this task.
+     *
+     * The contained reports can be configured by name and closures. Example:
+     *
+     * <pre>
+     * inspection {
+     *     reports {
+     *         html {
+     *             destination "build/codenarc.html"
+     *         }
+     *         xml {
+     *             destination "build/report.xml"
+     *         }
+     *     }
+     * }
+     * </pre>
+     *
+     *
+     * @param closure The configuration
+     * @return The reports container
+     */
+    override fun reports(
+            @DelegatesTo(value = CheckstyleReports::class, strategy = Closure.DELEGATE_FIRST) closure: Closure<*>
+    ): CheckstyleReports = reports(ClosureBackedAction(closure))
+
+    /**
+     * Configures the reports to be generated by this task.
+     *
+     * The contained reports can be configured by name and closures. Example:
+     *
+     * <pre>
+     * checkstyleTask {
+     *     reports {
+     *         html {
+     *             destination "build/codenarc.html"
+     *         }
+     *     }
+     * }
+     * </pre>
+     *
+     * @param configureAction The configuration
+     * @return The reports container
+     */
+    override fun reports(configureAction: Action<in CheckstyleReports>): CheckstyleReports {
+        configureAction.execute(reports)
+        return reports
+    }
+
+    @get:Internal
+    override lateinit var sourceSetType: SourceSetType
+
+    @get:Internal
+    private var ignoreFailures: Boolean? = null
+
+    @get:Internal
+    protected val extension: InspectionsExtension
+        get() = project.extensions.findByType(InspectionsExtension::class.java)!!
 
     @get:Internal
     private var runner: Runner<InspectionsParameters>? = null
 
     @Internal
-    abstract fun getInspectionsParameters(): InspectionsParameters
+    private fun getInspectionsParameters(): InspectionsParameters {
+        val projectDir = project.rootProject.projectDir
+        val xml: File? = if (reports.xml.isEnabled) reports.xml.destination else null
+        val html: File? = if (reports.html.isEnabled) reports.html.destination else null
+        val report = ReportParameters(isQuiet, xml, html)
+        val errors = InspectionTypeParameters(errorsInspections, maxErrors)
+        val warnings = InspectionTypeParameters(warningsInspections, maxWarnings)
+        val infos = InspectionTypeParameters(infosInspections, maxInfos)
+        return InspectionsParameters(
+                getIgnoreFailures(),
+                ideaVersion,
+                kotlinPluginVersion,
+                projectDir,
+                report,
+                quickFix,
+                skipBinarySources,
+                inheritFromIdea,
+                profileName,
+                errors,
+                warnings,
+                infos
+        )
+    }
 
-    abstract fun createRunner(loader: ClassLoader): Runner<InspectionsParameters>
+    private fun createRunner(loader: ClassLoader): Runner<InspectionsParameters> {
+        val className = "org.jetbrains.idea.inspections.InspectionsRunner"
+        @Suppress("UNCHECKED_CAST")
+        val analyzerClass = loader.loadClass(className) as Class<Runner<InspectionsParameters>>
+        val analyzer = analyzerClass.constructors.first().newInstance()
+        return analyzerClass.cast(analyzer)
+    }
 
     private fun tryResolveRunnerJar(project: org.gradle.api.Project): File = try {
         val runner = "org.jetbrains.intellij.plugins:inspection-runner:$runnerVersion"
@@ -111,8 +362,15 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
                 ExceptionHandler.exception(this, "Task execution failure")
             }
         } catch (e: Throwable) {
-            ExceptionHandler.exception(this, e, "Process inspection task exception")
+            ExceptionHandler.exception(this, e, "Process inspection task exception") {
+                runnerFinalize()
+            }
         }
+    }
+
+    private fun runnerFinalize() {
+        runner?.finalize()
+        runner = null
     }
 
     object ClassloaderContainer {
@@ -127,10 +385,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
     }
 
     inner class IdeaFinishingListener : BuildListener {
-        override fun buildFinished(result: BuildResult?) {
-            runner?.finalize()
-            runner = null
-        }
+        override fun buildFinished(result: BuildResult?) = runnerFinalize()
 
         override fun projectsLoaded(gradle: Gradle?) {}
 
@@ -139,5 +394,9 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
         override fun projectsEvaluated(gradle: Gradle?) {}
 
         override fun settingsEvaluated(settings: Settings?) {}
+    }
+
+    init {
+        outputs.upToDateWhen { false }
     }
 }

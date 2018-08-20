@@ -21,7 +21,7 @@ import java.io.File
 
 
 @Suppress("unused")
-class InspectionsRunner(testMode: Boolean) : IdeaRunner<InspectionsParameters>(testMode) {
+class InspectionsRunner : IdeaRunner<InspectionsParameters>() {
 
     class PluginInspectionWrapper(
             val tool: InspectionProfileEntry,

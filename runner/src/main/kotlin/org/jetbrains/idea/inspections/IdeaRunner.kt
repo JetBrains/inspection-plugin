@@ -31,7 +31,7 @@ import java.nio.channels.FileLock
 import java.nio.channels.OverlappingFileLockException
 
 
-abstract class IdeaRunner<T : Runner.Parameters>(private val testMode: Boolean) : AbstractRunner<T>() {
+abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
 
     abstract fun analyze(files: Collection<File>, projectName: String, moduleName: String, parameters: T): Boolean
 
@@ -99,7 +99,7 @@ abstract class IdeaRunner<T : Runner.Parameters>(private val testMode: Boolean) 
 
     private var application: ApplicationEx? = null
 
-    private var systemPathMarker: FileChannel? = null
+    private var systemLockChannel: FileChannel? = null
 
     private var ideaLockChannel: FileChannel? = null
     private var ideaLock: FileLock? = null
@@ -136,23 +136,16 @@ abstract class IdeaRunner<T : Runner.Parameters>(private val testMode: Boolean) 
         // Don't delete, change and downgrade level of log because this
         // information used in unit tests for identification of daemon.
         logger.info("InspectionPlugin: Daemon PID is ${getPID()}")
-        acquireIdeaLockIfNeeded()
         logger.info("InspectionPlugin: Class loader: " + this.javaClass.classLoader)
         try {
+            acquireIdeaLockIfNeeded()
             application = loadApplication(ideaHomeDirectory, plugins)
-        } catch (e: Throwable) {
-            if (e is RunnerException) throw e
-            throw RunnerException("Exception caught in inspection plugin (IDEA loading): $e", e)
-        }
-        try {
             application?.doNotSave()
             application?.configureJdk()
             return analyze(files, projectName, moduleName, parameters)
         } catch (e: Throwable) {
             if (e is RunnerException) throw e
-            throw RunnerException("Exception caught in inspection plugin (IDEA readAction): $e", e)
-        } finally {
-            systemPathMarker?.close()
+            throw RunnerException("Exception caught in inspection plugin: $e", e)
         }
     }
 
@@ -178,16 +171,18 @@ abstract class IdeaRunner<T : Runner.Parameters>(private val testMode: Boolean) 
     }
 
     private fun loadApplication(ideaHomeDirectory: File, plugins: List<File>): ApplicationEx {
-        System.setProperty(IDEA_HOME_PATH, ideaHomeDirectory.path)
-        System.setProperty(AWT_HEADLESS, "true")
         val ideaBuildNumberFile = File(ideaHomeDirectory, "build.txt")
         val (buildNumber, usesUltimate) = ideaBuildNumberFile.buildConfiguration
-        System.setProperty(BUILD_NUMBER, buildNumber)
+        if (usesUltimate) throw RunnerException("Using of IDEA Ultimate is not yet supported in inspection runner")
         val systemPath = generateSystemPath(buildNumber, usesUltimate)
-        System.setProperty(SYSTEM_PATH, systemPath)
         val pluginsPath = plugins.joinToString(":") { it.absolutePath }
-        System.setProperty(PLUGINS_PATH, pluginsPath)
         val platformPrefix = if (usesUltimate) PlatformUtils.IDEA_PREFIX else PlatformUtils.IDEA_CE_PREFIX
+
+        System.setProperty(IDEA_HOME_PATH, ideaHomeDirectory.path)
+        System.setProperty(AWT_HEADLESS, "true")
+        System.setProperty(BUILD_NUMBER, buildNumber)
+        System.setProperty(SYSTEM_PATH, systemPath)
+        System.setProperty(PLUGINS_PATH, pluginsPath)
         System.setProperty(PlatformUtils.PLATFORM_PREFIX_KEY, PlatformUtils.getPlatformPrefix(platformPrefix))
 
         logger.info("InspectionPlugin: IDEA home path: $ideaHomeDirectory")
@@ -195,8 +190,6 @@ abstract class IdeaRunner<T : Runner.Parameters>(private val testMode: Boolean) 
         logger.info("InspectionPlugin: IDEA plugin path: $pluginsPath")
         logger.info("InspectionPlugin: IDEA plugin path: ${PathManager.getPluginsPath()}")
         logger.info("InspectionPlugin: IDEA system path: $systemPath")
-        if (usesUltimate)
-            throw RunnerException("Using of IDEA Ultimate is not yet supported in inspection runner")
         if (getCommandLineApplication() != null) {
             logger.info("InspectionPlugin: IDEA command line application already exists, don't bother to run it again")
             val realIdeaHomeDirectory = File(PathManager.getHomePath())
@@ -235,8 +228,8 @@ abstract class IdeaRunner<T : Runner.Parameters>(private val testMode: Boolean) 
             systemMarkerFile.createNewFile()
             // To prevent usages by multiple processes
             val lock = try {
-                systemPathMarker = FileChannel.open(systemMarkerFile.toPath(), StandardOpenOption.WRITE)
-                systemPathMarker?.tryLock()
+                systemLockChannel = FileChannel.open(systemMarkerFile.toPath(), StandardOpenOption.WRITE)
+                systemLockChannel?.tryLock()
             } catch (e: IOException) {
                 logger.warn("InspectionPlugin: IO exception while locking: ${e.message}")
                 throw RunnerException("Exception caught in inspection plugin (IDEA system dir lock): $e", e)
@@ -280,6 +273,8 @@ abstract class IdeaRunner<T : Runner.Parameters>(private val testMode: Boolean) 
 
     private fun releaseIdeaLock() = lockRelease(ideaLock, ideaLockChannel)
 
+    private fun releaseSystemLock() = lockRelease(null, systemLockChannel)
+
     private fun acquireShutdownLockIfNeeded(): Boolean {
         val lockName = shutdownLockFileName()
         val (lock, channel) = lockAcquireIfNeeded(lockName)
@@ -316,6 +311,7 @@ abstract class IdeaRunner<T : Runner.Parameters>(private val testMode: Boolean) 
         // of gradle daemon operation system automatically released all locks.
         application?.invokeLater {
             finishGradleDaemon()
+            releaseSystemLock()
             releaseIdeaLock()
             releaseShutdownLock()
         }
