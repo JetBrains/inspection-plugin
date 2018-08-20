@@ -190,8 +190,7 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
             } finally {
                 val daemonPid = ejectDaemonPid(buildResult)
                 println("InspectionTestBench: Daemon PID is $daemonPid")
-                if (daemonPid == null) throw IllegalStateException("Daemon PID not found")
-                waitIdeaRelease(daemonPid)
+                if (daemonPid != null) waitIdeaRelease(daemonPid)
             }
         }
 
