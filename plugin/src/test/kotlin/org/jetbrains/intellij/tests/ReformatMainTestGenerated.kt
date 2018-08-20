@@ -20,7 +20,7 @@ class ReformatMainTestGenerated {
         extension.testMode = true
         extension.idea.version = "ideaIC:2017.2"
         extension.plugins.kotlin.version = "1.2.60"
-        testBench.doTest(File("testData\\reformat\\configurationKotlin_1-2-60_IJ2017-2"), extension)
+        testBench.doTest(File("testData/reformat/configurationKotlin_1-2-60_IJ2017-2"), extension)
     }
 
     @Test
@@ -29,7 +29,7 @@ class ReformatMainTestGenerated {
         extension.testMode = true
         extension.idea.version = "ideaIC:2017.3"
         extension.plugins.kotlin.version = "1.2.60"
-        testBench.doTest(File("testData\\reformat\\configurationKotlin_1-2-60_IJ2017-3"), extension)
+        testBench.doTest(File("testData/reformat/configurationKotlin_1-2-60_IJ2017-3"), extension)
     }
 
     @Test
@@ -38,7 +38,7 @@ class ReformatMainTestGenerated {
         extension.testMode = true
         extension.idea.version = "ideaIC:2018.1"
         extension.plugins.kotlin.version = "1.2.60"
-        testBench.doTest(File("testData\\reformat\\configurationKotlin_1-2-60_IJ2018-1"), extension)
+        testBench.doTest(File("testData/reformat/configurationKotlin_1-2-60_IJ2018-1"), extension)
     }
 
     @Test
@@ -47,20 +47,20 @@ class ReformatMainTestGenerated {
         extension.testMode = true
         extension.idea.version = "ideaIC:2018.2"
         extension.plugins.kotlin.version = "1.2.60"
-        testBench.doTest(File("testData\\reformat\\configurationKotlin_1-2-60_IJ2018-2"), extension)
+        testBench.doTest(File("testData/reformat/configurationKotlin_1-2-60_IJ2018-2"), extension)
     }
 
     @Test
     fun testMultiFile() {
         val extension = InspectionsExtension(null)
         extension.testMode = true
-        testBench.doTest(File("testData\\reformat\\multiFile"), extension)
+        testBench.doTest(File("testData/reformat/multiFile"), extension)
     }
 
     @Test
     fun testSpaces() {
         val extension = InspectionsExtension(null)
         extension.testMode = true
-        testBench.doTest(File("testData\\reformat\\spaces"), extension)
+        testBench.doTest(File("testData/reformat/spaces"), extension)
     }
 }

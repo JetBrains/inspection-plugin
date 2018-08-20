@@ -10,7 +10,7 @@ val Boolean.kotlinCode: String
     get() = toString()
 
 val String.kotlinCode: String
-    get() = replace("\\", "\\\\").replace("\"", "\\\"").let { """"$it"""" }
+    get() = replace("\\", "/").replace("\"", "\\\"").let { """"$it"""" }
 
 fun File.kotlinCode(base: String): String = File(base)
         .let { absoluteFile.relativeTo(it).path.kotlinCode }

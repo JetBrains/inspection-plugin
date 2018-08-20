@@ -19,7 +19,7 @@ class InspectionsMainTestGenerated {
         val extension = InspectionsExtension(null)
         extension.testMode = true
         extension.warnings.inspections = setOf("org.jetbrains.kotlin.idea.inspections.AddVarianceModifierInspection")
-        testBench.doTest(File("testData\\inspection\\addVariance"), extension)
+        testBench.doTest(File("testData/inspection/addVariance"), extension)
     }
 
     @Test
@@ -27,7 +27,7 @@ class InspectionsMainTestGenerated {
         val extension = InspectionsExtension(null)
         extension.testMode = true
         extension.warnings.inspections = setOf("org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection")
-        testBench.doTest(File("testData\\inspection\\configurationJava"), extension)
+        testBench.doTest(File("testData/inspection/configurationJava"), extension)
     }
 
     @Test
@@ -35,7 +35,7 @@ class InspectionsMainTestGenerated {
         val extension = InspectionsExtension(null)
         extension.testMode = true
         extension.warnings.inspections = setOf("org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection")
-        testBench.doTest(File("testData\\inspection\\configurationKotlin"), extension)
+        testBench.doTest(File("testData/inspection/configurationKotlin"), extension)
     }
 
     @Test
@@ -44,7 +44,7 @@ class InspectionsMainTestGenerated {
         extension.testMode = true
         extension.warnings.inspections = setOf("org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection")
         extension.idea.version = "ideaIC:2017.2"
-        testBench.doTest(File("testData\\inspection\\configurationKotlin2017_2"), extension)
+        testBench.doTest(File("testData/inspection/configurationKotlin2017_2"), extension)
     }
 
     @Test
@@ -53,7 +53,7 @@ class InspectionsMainTestGenerated {
         extension.testMode = true
         extension.warnings.inspections = setOf("org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection")
         extension.idea.version = "ideaIC:2018.1"
-        testBench.doTest(File("testData\\inspection\\configurationKotlin2018_1"), extension)
+        testBench.doTest(File("testData/inspection/configurationKotlin2018_1"), extension)
     }
 
     @Test
@@ -62,7 +62,7 @@ class InspectionsMainTestGenerated {
         extension.testMode = true
         extension.warnings.inspections = setOf("org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection")
         extension.idea.version = "ideaIC:2018.2"
-        testBench.doTest(File("testData\\inspection\\configurationKotlin2018_2"), extension)
+        testBench.doTest(File("testData/inspection/configurationKotlin2018_2"), extension)
     }
 
     @Ignore
@@ -72,7 +72,7 @@ class InspectionsMainTestGenerated {
         extension.testMode = true
         extension.warnings.inspections = setOf("org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection")
         extension.idea.version = "ideaIU:2017.3"
-        testBench.doTest(File("testData\\inspection\\configurationKotlinUltimate"), extension)
+        testBench.doTest(File("testData/inspection/configurationKotlinUltimate"), extension)
     }
 
     @Test
@@ -80,7 +80,7 @@ class InspectionsMainTestGenerated {
         val extension = InspectionsExtension(null)
         extension.testMode = true
         extension.warnings.inspections = setOf("org.jetbrains.kotlin.idea.intentions.ConvertToStringTemplateInspection")
-        testBench.doTest(File("testData\\inspection\\convertToStringTemplate"), extension)
+        testBench.doTest(File("testData/inspection/convertToStringTemplate"), extension)
     }
 
     @Test
@@ -88,7 +88,7 @@ class InspectionsMainTestGenerated {
         val extension = InspectionsExtension(null)
         extension.testMode = true
         extension.inheritFromIdea = true
-        testBench.doTest(File("testData\\inspection\\customConfigInheritFromIdea"), extension)
+        testBench.doTest(File("testData/inspection/customConfigInheritFromIdea"), extension)
     }
 
     @Test
@@ -97,7 +97,7 @@ class InspectionsMainTestGenerated {
         extension.testMode = true
         extension.warnings.inspections = setOf("org.jetbrains.kotlin.idea.inspections.CanBeParameterInspection")
         extension.isQuiet = true
-        testBench.doTest(File("testData\\inspection\\doNotShowViolations"), extension)
+        testBench.doTest(File("testData/inspection/doNotShowViolations"), extension)
     }
 
     @Test
@@ -108,7 +108,7 @@ class InspectionsMainTestGenerated {
         extension.errors.max = 1000
         extension.warnings.inspections = setOf("org.jetbrains.kotlin.idea.inspections.DataClassPrivateConstructorInspection", "org.jetbrains.kotlin.idea.inspections.UnusedSymbolInspection")
         extension.infos.inspections = setOf("org.jetbrains.kotlin.idea.intentions.FoldInitializerAndIfToElvisInspection")
-        testBench.doTest(File("testData\\inspection\\htmlOutput"), extension)
+        testBench.doTest(File("testData/inspection/htmlOutput"), extension)
     }
 
     @Test
@@ -117,7 +117,7 @@ class InspectionsMainTestGenerated {
         extension.testMode = true
         extension.errors.inspections = setOf("org.jetbrains.kotlin.idea.inspections.CanBeValInspection")
         extension.errors.max = 2
-        testBench.doTest(File("testData\\inspection\\maxErrors"), extension)
+        testBench.doTest(File("testData/inspection/maxErrors"), extension)
     }
 
     @Test
@@ -127,7 +127,7 @@ class InspectionsMainTestGenerated {
         extension.warnings.inspections = setOf("org.jetbrains.kotlin.idea.inspections.CanBeValInspection")
         extension.warnings.max = 2
         extension.isIgnoreFailures = true
-        testBench.doTest(File("testData\\inspection\\maxWarningsIgnoreFailures"), extension)
+        testBench.doTest(File("testData/inspection/maxWarningsIgnoreFailures"), extension)
     }
 
     @Test
@@ -136,7 +136,7 @@ class InspectionsMainTestGenerated {
         extension.testMode = true
         extension.warnings.inspections = setOf("org.jetbrains.kotlin.idea.inspections.CanSealedSubClassBeObjectInspection")
         extension.plugins.kotlin.version = "1.2.60"
-        testBench.doTest(File("testData\\inspection\\pluginInjection"), extension)
+        testBench.doTest(File("testData/inspection/pluginInjection"), extension)
     }
 
     @Test
@@ -144,7 +144,7 @@ class InspectionsMainTestGenerated {
         val extension = InspectionsExtension(null)
         extension.testMode = true
         extension.warnings.inspections = setOf("org.jetbrains.kotlin.idea.inspections.RedundantModalityModifierInspection")
-        testBench.doTest(File("testData\\inspection\\redundantModality"), extension)
+        testBench.doTest(File("testData/inspection/redundantModality"), extension)
     }
 
     @Test
@@ -153,7 +153,7 @@ class InspectionsMainTestGenerated {
         extension.testMode = true
         extension.warnings.inspections = setOf("org.jetbrains.kotlin.idea.inspections.ReformatInspection")
         extension.quickFix = true
-        testBench.doTest(File("testData\\inspection\\spaces"), extension)
+        testBench.doTest(File("testData/inspection/spaces"), extension)
     }
 
     @Test
@@ -161,7 +161,7 @@ class InspectionsMainTestGenerated {
         val extension = InspectionsExtension(null)
         extension.testMode = true
         extension.warnings.inspections = setOf("org.jetbrains.kotlin.idea.inspections.KotlinCleanupInspection", "org.jetbrains.kotlin.idea.inspections.UnusedSymbolInspection")
-        testBench.doTest(File("testData\\inspection\\stdlib"), extension)
+        testBench.doTest(File("testData/inspection/stdlib"), extension)
     }
 
     @Test
@@ -171,7 +171,7 @@ class InspectionsMainTestGenerated {
         extension.inheritFromIdea = true
         extension.errors.inspections = setOf("org.jetbrains.kotlin.idea.inspections.UnusedSymbolInspection")
         extension.errors.max = 2
-        testBench.doTest(File("testData\\inspection\\unusedSymbolByIdeaProfile"), extension)
+        testBench.doTest(File("testData/inspection/unusedSymbolByIdeaProfile"), extension)
     }
 
     @Test
@@ -179,7 +179,7 @@ class InspectionsMainTestGenerated {
         val extension = InspectionsExtension(null)
         extension.testMode = true
         extension.errors.inspections = setOf("org.jetbrains.kotlin.idea.inspections.LeakingThisInspection")
-        testBench.doTest(File("testData\\inspection\\weakWarningNeverBecomesError"), extension)
+        testBench.doTest(File("testData/inspection/weakWarningNeverBecomesError"), extension)
     }
 
     @Test
@@ -187,6 +187,6 @@ class InspectionsMainTestGenerated {
         val extension = InspectionsExtension(null)
         extension.testMode = true
         extension.warnings.inspections = setOf("org.jetbrains.kotlin.idea.inspections.DataClassPrivateConstructorInspection")
-        testBench.doTest(File("testData\\inspection\\xmlOutput"), extension)
+        testBench.doTest(File("testData/inspection/xmlOutput"), extension)
     }
 }
