@@ -14,6 +14,7 @@ class ReformatMainTestGenerated {
 
     private val testBench = InspectionTestBench(testProjectDir, "reformatMain")
 
+    @Ignore
     @Test
     fun testConfigurationKotlin_1_2_60_IJ2017_2() {
         val extension = InspectionsExtension(null)
@@ -23,6 +24,7 @@ class ReformatMainTestGenerated {
         testBench.doTest(File("testData/reformat/configurationKotlin_1-2-60_IJ2017-2"), extension)
     }
 
+    @Ignore
     @Test
     fun testConfigurationKotlin_1_2_60_IJ2017_3() {
         val extension = InspectionsExtension(null)
@@ -32,6 +34,7 @@ class ReformatMainTestGenerated {
         testBench.doTest(File("testData/reformat/configurationKotlin_1-2-60_IJ2017-3"), extension)
     }
 
+    @Ignore
     @Test
     fun testConfigurationKotlin_1_2_60_IJ2018_1() {
         val extension = InspectionsExtension(null)
@@ -41,6 +44,7 @@ class ReformatMainTestGenerated {
         testBench.doTest(File("testData/reformat/configurationKotlin_1-2-60_IJ2018-1"), extension)
     }
 
+    @Ignore
     @Test
     fun testConfigurationKotlin_1_2_60_IJ2018_2() {
         val extension = InspectionsExtension(null)
