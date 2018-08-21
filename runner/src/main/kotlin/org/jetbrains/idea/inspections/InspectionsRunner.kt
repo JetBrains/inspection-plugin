@@ -14,6 +14,7 @@ import com.intellij.openapi.project.Project as IdeaProject
 import com.intellij.openapi.roots.*
 import com.intellij.openapi.util.io.FileUtilRt
 import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import org.jetbrains.intellij.parameters.InspectionTypeParameters
@@ -268,6 +269,10 @@ class InspectionsRunner : IdeaRunner<InspectionsParameters>() {
             for ((problem, fix) in otherFixes) {
                 fileModificationService.apply(fix, project, problem)
             }
+        }
+        invokeAndWait {
+            logger.info("InspectionPlugin: Flush IDEA project")
+            PsiDocumentManager.getInstance(project).commitAllDocuments()
         }
     }
 

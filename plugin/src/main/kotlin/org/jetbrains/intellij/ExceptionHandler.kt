@@ -1,8 +1,6 @@
 package org.jetbrains.intellij
 
 import org.gradle.api.Task
-import org.gradle.api.logging.Logger
-import org.gradle.api.logging.Logging
 import org.gradle.api.tasks.TaskExecutionException
 
 object ExceptionHandler {
