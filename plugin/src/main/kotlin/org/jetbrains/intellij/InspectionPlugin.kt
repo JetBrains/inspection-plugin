@@ -3,8 +3,6 @@ package org.jetbrains.intellij
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
-import org.gradle.api.plugins.quality.CodeQualityExtension
-import org.gradle.api.plugins.quality.internal.AbstractCodeQualityPlugin
 import org.gradle.api.tasks.SourceSet
 import org.jetbrains.intellij.extensions.InspectionsExtension
 import org.jetbrains.intellij.tasks.*
@@ -12,24 +10,20 @@ import java.io.File
 import org.gradle.internal.hash.HashUtil.createCompactMD5
 import org.jetbrains.intellij.plugins.KotlinPlugin
 
-open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
+open class InspectionPlugin : AbstractCodeQualityPlugin<AbstractInspectionsTask, InspectionsExtension>() {
 
-    override fun configureConfiguration(configuration: Configuration) {}
+    override val toolName: String = "IDEA Inspections"
 
-    private val inspectionExtension: InspectionsExtension
-        get() = extension as InspectionsExtension
+    override val configurationName: String = SHORT_NAME
 
-    override fun getToolName(): String = "IDEA Inspections"
+    override val reportName: String = SHORT_NAME
 
-    override fun getTaskType(): Class<InspectionsTask> = InspectionsTask::class.java
+    override val sourceBasedTasks = mapOf(
+            SHORT_NAME to InspectionsTask::class.java,
+            REFORMAT_SHORT_TASK_NAME to ReformatTask::class.java
+    )
 
-    override fun getConfigurationName(): String = SHORT_NAME
-
-    override fun getTaskBaseName(): String = SHORT_NAME
-
-    override fun getReportName(): String = SHORT_NAME
-
-    override fun createExtension(): CodeQualityExtension {
+    override fun createExtension(): InspectionsExtension {
         val extension = project.extensions.create(SHORT_NAME, InspectionsExtension::class.java, project)
         logger.info("InspectionPlugin: Extension $SHORT_NAME created")
         return extension
@@ -44,13 +38,16 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
         }
     }
 
-    override fun configureTaskDefaults(task: InspectionsTask, baseName: String) {
-        configureDefaultDependencies()
-        val sourceSetType = SourceSetType(baseName)
-        task.sourceSetType = sourceSetType
-        configureReformatTaskDefaults(sourceSetType)
-        configureAbstractInspectionsTaskDependencies(task)
-        configureAbstractInspectionsTaskReportsConventionMapping(task, sourceSetType)
+    override fun configureConfiguration(configuration: Configuration) {
+        configuration.defaultDependencies {
+            val version = InspectionPlugin.ideaVersion(extension.idea.version)
+            it.add(project.dependencies.create("com.jetbrains.intellij.idea:$version"))
+        }
+    }
+
+    override fun configureTaskDefaults(task: AbstractInspectionsTask, baseName: String) {
+        configureTaskDependencies(task)
+        configureReportsConventionMapping(task, baseName)
     }
 
     private fun configureTasksDefaults() {
@@ -63,15 +60,7 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
         }
     }
 
-    private fun configureReformatTaskDefaults(sourceSetType: SourceSetType) {
-        project.tasks.create(reformatTaskName(sourceSetType), ReformatTask::class.java) {
-            it.sourceSetType = sourceSetType
-            configureAbstractInspectionsTaskDependencies(it)
-            configureAbstractInspectionsTaskReportsConventionMapping(it, sourceSetType)
-        }
-    }
-
-    private fun configureAbstractInspectionsTaskDependencies(task: AbstractInspectionsTask) {
+    private fun configureTaskDependencies(task: AbstractInspectionsTask) {
         task.dependsOn += project.tasks.getByName(UNZIP_IDEA_TASK_NAME)
         task.dependsOn += project.tasks.getByName(UNZIP_KOTLIN_PLUGIN_TASK_NAME)
         task.dependsOn += project.rootProject.tasks.getByName(IDEA_TASK_NAME)
@@ -80,31 +69,17 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
         }
     }
 
-    private fun configureDefaultDependencies() {
-        project.configurations.getByName(SHORT_NAME).defaultDependencies {
-            val version = InspectionPlugin.ideaVersion(inspectionExtension.idea.version)
-            it.add(project.dependencies.create("com.jetbrains.intellij.idea:$version"))
-        }
-    }
-
-    private fun configureAbstractInspectionsTaskReportsConventionMapping(task: AbstractInspectionsTask, sourceSetType: SourceSetType) {
+    private fun configureReportsConventionMapping(task: AbstractInspectionsTask, baseName: String) {
         task.reports.all { report ->
             val reportMapping = AbstractCodeQualityPlugin.conventionMappingOf(report)
             reportMapping.map("enabled") { true }
             reportMapping.map("destination") {
-                File(inspectionExtension.reportsDir, "$sourceSetType.${report.name}")
+                File(extension.reportsDir, "$baseName.${report.name}")
             }
         }
     }
 
-    override fun configureForSourceSet(sourceSet: SourceSet, task: InspectionsTask) {
-        configureTaskForSourceSet(sourceSet, task)
-        val baseType = task.sourceSetType
-        val reformatTask = project.tasks.getByName(reformatTaskName(baseType)) as ReformatTask
-        configureTaskForSourceSet(sourceSet, reformatTask)
-    }
-
-    private fun configureTaskForSourceSet(sourceSet: SourceSet, task: AbstractInspectionsTask) {
+    override fun configureForSourceSet(sourceSet: SourceSet, task: AbstractInspectionsTask) {
         task.description = "Run IDEA inspections for " + sourceSet.name + " classes"
         task.classpath = sourceSet.output.plus(sourceSet.compileClasspath)
         task.setSourceSet(sourceSet.allSource)
@@ -126,7 +101,7 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<InspectionsTask>() {
 
         private const val DEFAULT_IDEA_VERSION = "ideaIC:2017.3"
 
-        private fun reformatTaskName(sourceSetType: SourceSetType) = "reformat" + sourceSetType.capitalize
+        private const val REFORMAT_SHORT_TASK_NAME = "reformat"
 
         private val TEMP_DIRECTORY = File(System.getProperty("java.io.tmpdir"))
 
