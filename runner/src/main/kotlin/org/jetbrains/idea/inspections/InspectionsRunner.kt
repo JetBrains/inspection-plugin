@@ -260,23 +260,67 @@ class InspectionsRunner : IdeaRunner<InspectionsParameters>() {
             }
         }
         val fileModificationService = FileModificationService.getInstance()
-        WriteCommandAction.runWriteCommandAction(project) {
+        val files = ArrayList<PsiFile>()
+        runWriteCommandAction(project) {
             for ((problem, fix) in writeFixes) {
-                fileModificationService.apply(fix, project, problem)
+                fileModificationService.applyFixWithChecks(fix, project, problem)?.let {
+                    files.add(it)
+                }
             }
         }
         invokeAndWait {
             for ((problem, fix) in otherFixes) {
-                fileModificationService.apply(fix, project, problem)
+                fileModificationService.applyFixWithChecks(fix, project, problem)?.let {
+                    files.add(it)
+                }
             }
         }
         invokeAndWait {
-            logger.info("InspectionPlugin: Flush IDEA project")
-            PsiDocumentManager.getInstance(project).commitAllDocuments()
+            flushIdeaProjectChanges(project, files)
         }
     }
 
-    private fun FileModificationService.apply(
+    private fun runWriteCommandAction(project: com.intellij.openapi.project.Project, action: () -> Unit) =
+            WriteCommandAction.runWriteCommandAction(project, action)
+
+    private fun FileModificationService.applyFixWithChecks(
+            fix: QuickFix<CommonProblemDescriptor>,
+            project: IdeaProject,
+            problem: PinnedProblemDescriptor
+    ): PsiFile? {
+        val file = problem.psiElement?.containingFile
+        runReadAction {
+            val beforeText = file?.text
+            applyFix(fix, project, problem)
+            val afterText = file?.text
+            when {
+                beforeText == null -> logger.info("InspectionPlugin: Inapplicable fix")
+                afterText == null -> logger.info("InspectionPlugin: File deleted after fix")
+                afterText == beforeText -> logger.warn("InspectionPlugin: File hasn't changes after fix")
+                else -> logger.info("InspectionPlugin: File has changes after fix")
+            }
+        }
+        return file
+    }
+
+    private fun flushIdeaProjectChanges(project: IdeaProject, files: List<PsiFile>) {
+        logger.info("InspectionPlugin: Flush IDEA project")
+        val psiDocumentManager = PsiDocumentManager.getInstance(project)
+        val fileDocumentManager = FileDocumentManager.getInstance()
+        psiDocumentManager.commitAllDocuments()
+        for (file in files) {
+            val document = psiDocumentManager.getDocument(file)
+            if (document == null) {
+                logger.warn("InspectionPlugin: Document for file '${file.name}' not found.")
+                continue
+            }
+            psiDocumentManager.doPostponedOperationsAndUnblockDocument(document)
+            logger.info("InspectionPlugin: File '${file.name}' is flushed")
+        }
+        fileDocumentManager.saveAllDocuments()
+    }
+
+    private fun FileModificationService.applyFix(
             fix: QuickFix<CommonProblemDescriptor>,
             project: IdeaProject,
             problem: PinnedProblemDescriptor
