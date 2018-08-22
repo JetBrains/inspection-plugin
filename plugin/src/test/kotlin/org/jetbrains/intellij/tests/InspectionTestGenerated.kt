@@ -21,6 +21,13 @@ class InspectionTestGenerated {
         testBench.doTest(File("testData/inspection/addVariance"), extension)
     }
 
+    @Test
+    fun testConfigurationIdea_Default() {
+        val extension = InspectionPluginExtension(null)
+        extension.warnings.inspection("org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection")
+        testBench.doTest(File("testData/inspection/configurationIdea_Default"), extension)
+    }
+
     @Ignore
     @Test
     fun testConfigurationIdea_IJ2017_2() {
@@ -58,26 +65,11 @@ class InspectionTestGenerated {
     }
 
     @Test
-    fun testConfigurationJava() {
-        val extension = InspectionPluginExtension(null)
-        extension.warnings.inspection("org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection")
-        testBench.doTest(File("testData/inspection/configurationJava"), extension)
-    }
-
-    @Test
-    fun testConfigurationKotlin() {
-        val extension = InspectionPluginExtension(null)
-        extension.warnings.inspection("org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection")
-        testBench.doTest(File("testData/inspection/configurationKotlin"), extension)
-    }
-
-    @Ignore
-    @Test
-    fun testConfigurationKotlinUltimate() {
+    fun testConfigurationIdea_IU2017_3() {
         val extension = InspectionPluginExtension(null)
         extension.idea.version = "ideaIU:2017.3"
         extension.warnings.inspection("org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection")
-        testBench.doTest(File("testData/inspection/configurationKotlinUltimate"), extension)
+        testBench.doTest(File("testData/inspection/configurationIdea_IU2017_3"), extension)
     }
 
     @Test
@@ -111,6 +103,13 @@ class InspectionTestGenerated {
         extension.warnings.inspection("org.jetbrains.kotlin.idea.inspections.DataClassPrivateConstructorInspection")
         extension.infos.inspection("org.jetbrains.kotlin.idea.intentions.FoldInitializerAndIfToElvisInspection")
         testBench.doTest(File("testData/inspection/htmlOutput"), extension)
+    }
+
+    @Test
+    fun testJavaInspections() {
+        val extension = InspectionPluginExtension(null)
+        extension.warnings.inspection("org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection")
+        testBench.doTest(File("testData/inspection/javaInspections"), extension)
     }
 
     @Test

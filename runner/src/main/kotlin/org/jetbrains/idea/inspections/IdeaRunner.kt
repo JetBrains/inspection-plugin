@@ -193,6 +193,7 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
         logger.info("InspectionPlugin: IDEA system path: $systemPath")
         if (getCommandLineApplication() != null) {
             logger.info("InspectionPlugin: IDEA command line application already exists, don't bother to run it again")
+            if (ideaLock != null) throw RunnerException("Uses old IDEA, but previous run not registered")
             val realIdeaHomeDirectory = File(PathManager.getHomePath())
             val ideaHomePath = ideaHomeDirectory.canonicalPath
             val realIdeaHomePath = realIdeaHomeDirectory.canonicalPath
@@ -201,6 +202,7 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
             return ApplicationManagerEx.getApplicationEx()
         }
         logger.info("InspectionPlugin: IDEA starting in command line mode")
+        if (ideaLock == null) throw RunnerException("New IDEA started with old classpath")
         createCommandLineApplication(isInternal = false, isUnitTestMode = false, isHeadless = true)
         USELESS_PLUGINS.forEach { PluginManagerCore.disablePlugin(it) }
 
@@ -257,10 +259,10 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
         return lock to channel
     }
 
-    private fun lockRelease(lock: FileLock?, channel: FileChannel?) {
+    private fun lockRelease(name: String, lock: FileLock?, channel: FileChannel?) {
         lock?.release()
         channel?.close()
-        logger.info("InspectionPlugin: lock released")
+        logger.info("InspectionPlugin: $name lock released")
     }
 
     private fun acquireIdeaLockIfNeeded() {
@@ -270,9 +272,9 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
         ideaLockChannel = channel
     }
 
-    private fun releaseIdeaLock() = lockRelease(ideaLock, ideaLockChannel)
+    private fun releaseIdeaLock() = lockRelease("Idea", ideaLock, ideaLockChannel)
 
-    private fun releaseSystemLock() = lockRelease(null, systemLockChannel)
+    private fun releaseSystemLock() = lockRelease("System", null, systemLockChannel)
 
     private fun acquireShutdownLockIfNeeded(): Boolean {
         val lockName = shutdownLockFileName()
@@ -282,14 +284,11 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
         return shutdownLock != null
     }
 
-    private fun releaseShutdownLock() = lockRelease(shutdownLock, shutdownLockChannel)
+    private fun releaseShutdownLock() = lockRelease("Shutdown", shutdownLock, shutdownLockChannel)
 
-    /**
-     * Killed current gradle daemon for classpath resetting
-     */
     private fun finishGradleDaemon() {
-        // ToDo automatically finishing of gradle daemon
-        logger.error("InspectionPlugin: Gradle daemon is alive. Please do it manually.")
+        logger.error("InspectionPlugin: Killed current gradle daemon for classpath resetting")
+        System.exit(1)
     }
 
     override fun finalize() {
@@ -305,15 +304,16 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
             is ApplicationImpl -> application.exit(true, true, false)
             else -> application?.exit(true, true)
         }
-        // Release not needed if application dispatch thread is death because
-        // if dispatch is death then gradle daemon must be death. After death
-        // of gradle daemon operation system automatically released all locks.
-        application?.invokeLater {
+        val release = {
             finishGradleDaemon()
             releaseSystemLock()
             releaseIdeaLock()
             releaseShutdownLock()
         }
+        // Release not needed if application dispatch thread is death because
+        // if dispatch is death then gradle daemon must be death. After death
+        // of gradle daemon operation system automatically released all locks.
+        application?.invokeLater(release) ?: run(release)
     }
 
     companion object {
@@ -322,7 +322,6 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
         private const val BUILD_NUMBER = "idea.plugins.compatible.build"
         private const val SYSTEM_PATH = "idea.system.path"
         private const val PLUGINS_PATH = "plugin.path"
-        private const val USER_HOME = "user.home"
         private const val SYSTEM_MARKER_FILE = "marker.ipl"
         private const val JAVA_HOME = "JAVA_HOME"
         private val JDK_ENVIRONMENT_VARIABLES = mapOf(
