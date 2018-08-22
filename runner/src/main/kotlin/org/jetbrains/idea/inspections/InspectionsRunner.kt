@@ -17,14 +17,14 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
-import org.jetbrains.intellij.parameters.InspectionTypeParameters
 import org.jetbrains.intellij.parameters.InspectionsParameters
+import org.jetbrains.intellij.parameters.InspectionPluginParameters
 import java.io.File
 import java.util.*
 
 
 @Suppress("unused")
-class InspectionsRunner : IdeaRunner<InspectionsParameters>() {
+class InspectionsRunner : IdeaRunner<InspectionPluginParameters>() {
 
     class PluginInspectionWrapper(
             val tool: InspectionProfileEntry,
@@ -51,24 +51,23 @@ class InspectionsRunner : IdeaRunner<InspectionsParameters>() {
         }
     }
 
-    private fun getInspectionWrappers(parameters: InspectionsParameters, ideaProject: IdeaProject): List<PluginInspectionWrapper> {
+    private fun getInspectionWrappers(parameters: InspectionPluginParameters, ideaProject: IdeaProject): List<PluginInspectionWrapper> {
         logger.info("InspectionPlugin: InheritFromIdea = ${parameters.inheritFromIdea}")
-        val inspections = parameters.errors.inspections + parameters.warnings.inspections + parameters.infos.inspections
-        val registeredInspectionWrappers = getRegisteredInspectionWrappers(inspections)
+        val registeredInspectionWrappers = getRegisteredInspectionWrappers(parameters.inspections.keys)
         if (parameters.inheritFromIdea) {
             val inspectionWrappersInheritFromIdea = getInspectionWrappersInheritFromIdea(parameters, ideaProject)
-            return registeredInspectionWrappers + inspectionWrappersInheritFromIdea
+            return inspectionWrappersInheritFromIdea + registeredInspectionWrappers
         }
         return registeredInspectionWrappers
     }
 
-    private fun getInspectionWrappersInheritFromIdea(parameters: InspectionsParameters, ideaProject: IdeaProject): List<PluginInspectionWrapper> {
+    private fun getInspectionWrappersInheritFromIdea(parameters: InspectionPluginParameters, ideaProject: IdeaProject): List<PluginInspectionWrapper> {
         val inspectionProfileManager = ApplicationInspectionProfileManager.getInstanceImpl()
         val profile = parameters.profileName
                 ?.let { File(File(parameters.projectDir, INSPECTION_PROFILES_PATH), it) }
-                ?.apply { logger.info("InspectionPlugin: Profile: $this") }
                 ?.let { inspectionProfileManager.loadProfile(it.absolutePath) }
                 ?: inspectionProfileManager.currentProfile
+        logger.info("InspectionPlugin: Profile file = ${profile.name}")
         return profile.getAllEnabledInspectionTools(ideaProject).map {
             PluginInspectionWrapper(
                     tool = it.tool.tool,
@@ -93,7 +92,7 @@ class InspectionsRunner : IdeaRunner<InspectionsParameters>() {
             files: Collection<File>,
             projectName: String,
             moduleName: String,
-            parameters: InspectionsParameters
+            parameters: InspectionPluginParameters
     ): Boolean {
         val ideaProject = openProject(parameters.projectDir, projectName, moduleName)
         val (success, results) = analyze(parameters, files, ideaProject)
@@ -103,7 +102,7 @@ class InspectionsRunner : IdeaRunner<InspectionsParameters>() {
     }
 
     private fun analyze(
-            parameters: InspectionsParameters,
+            parameters: InspectionPluginParameters,
             files: Collection<File>,
             ideaProject: IdeaProject
     ): Pair<Boolean, Map<String, List<PinnedProblemDescriptor>>> {
@@ -211,12 +210,12 @@ class InspectionsRunner : IdeaRunner<InspectionsParameters>() {
         return Pair(success, results)
     }
 
-    private fun reportProblems(parameters: InspectionsParameters, results: Map<String, List<PinnedProblemDescriptor>>) {
+    private fun reportProblems(parameters: InspectionPluginParameters, results: Map<String, List<PinnedProblemDescriptor>>) {
         val generators = listOfNotNull(
                 parameters.reportParameters.xml?.let { XMLGenerator(it) },
                 parameters.reportParameters.html?.let { HTMLGenerator(it) }
         )
-        if (generators.isEmpty() && parameters.reportParameters.isQuiet) return
+        if (generators.isEmpty()) return
         val sortedResults = results.entries
                 .map { entry -> entry.value.map { entry.key to it } }
                 .flatten()
@@ -225,7 +224,7 @@ class InspectionsRunner : IdeaRunner<InspectionsParameters>() {
         val numProblems = sortedResults.values.flatten().count()
         logger.info("InspectionPlugin: Total of $numProblems problem(s) found")
         runReadAction {
-            analysisLoop@ for (fileInspectionAndProblems in sortedResults.values) {
+            for (fileInspectionAndProblems in sortedResults.values) {
                 for ((inspectionClass, problem) in fileInspectionAndProblems) {
                     val level = problem.getLevel(inspectionClass, parameters)
                     if (!parameters.reportParameters.isQuiet) log(level, problem)
@@ -238,14 +237,15 @@ class InspectionsRunner : IdeaRunner<InspectionsParameters>() {
 
     private fun quickFixProblems(
             project: IdeaProject,
-            parameters: InspectionsParameters,
+            parameters: InspectionPluginParameters,
             results: Map<String, List<PinnedProblemDescriptor>>
     ) {
-        if (!parameters.quickFix) return
         val writeFixes = ArrayList<Pair<PinnedProblemDescriptor, QuickFix<CommonProblemDescriptor>>>()
         val otherFixes = ArrayList<Pair<PinnedProblemDescriptor, QuickFix<CommonProblemDescriptor>>>()
         @Suppress("UNUSED_VARIABLE")
         for ((inspectionClassName, result) in results) {
+            val quickFix = parameters.inspections[inspectionClassName]?.quickFix
+            if (quickFix != true) continue
             for (problem in result) {
                 val fixes = problem.fixes ?: continue
                 if (fixes.size != 1) {
@@ -343,12 +343,12 @@ class InspectionsRunner : IdeaRunner<InspectionsParameters>() {
         }
     }
 
-    private fun InspectionTypeParameters.isTooMany(value: Int) = max?.let { value > it } ?: false
+    private fun InspectionsParameters.isTooMany(value: Int) = max?.let { value > it } ?: false
 
-    private fun PinnedProblemDescriptor.getLevel(inspectionClass: String, parameters: InspectionsParameters) =
+    private fun PinnedProblemDescriptor.getLevel(inspectionClass: String, parameters: InspectionPluginParameters) =
             actualLevel(parameters.getLevel(inspectionClass)) ?: ProblemLevel.INFORMATION
 
-    private fun InspectionsParameters.getLevel(inspectionClass: String) = when (inspectionClass) {
+    private fun InspectionPluginParameters.getLevel(inspectionClass: String) = when (inspectionClass) {
         in errors.inspections -> ProblemLevel.ERROR
         in warnings.inspections -> ProblemLevel.WARNING
         in infos.inspections -> ProblemLevel.INFORMATION

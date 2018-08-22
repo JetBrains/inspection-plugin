@@ -6,6 +6,7 @@ import java.io.File
 fun main(args: Array<String>) {
     val testsDir = File("src/test/kotlin/org/jetbrains/intellij/tests")
     val testDataDir = File("testData")
+    testsDir.mkdirs()
     val testGenerator = InspectionTestGenerator(testsDir, testDataDir)
     testGenerator.generate("inspectionsMain", "inspection")
     testGenerator.generate("reformatMain", "reformat")

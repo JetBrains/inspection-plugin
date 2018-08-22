@@ -4,13 +4,13 @@ import org.gradle.api.artifacts.Configuration
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
 import org.gradle.api.tasks.SourceSet
-import org.jetbrains.intellij.extensions.InspectionsExtension
+import org.jetbrains.intellij.extensions.InspectionPluginExtension
 import org.jetbrains.intellij.tasks.*
 import java.io.File
 import org.gradle.internal.hash.HashUtil.createCompactMD5
 import org.jetbrains.intellij.plugins.KotlinPlugin
 
-open class InspectionPlugin : AbstractCodeQualityPlugin<AbstractInspectionsTask, InspectionsExtension>() {
+open class InspectionPlugin : AbstractCodeQualityPlugin<AbstractInspectionsTask, InspectionPluginExtension>() {
 
     override val toolName: String = "IDEA Inspections"
 
@@ -23,8 +23,8 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<AbstractInspectionsTask,
             REFORMAT_SHORT_TASK_NAME to ReformatTask::class.java
     )
 
-    override fun createExtension(): InspectionsExtension {
-        val extension = project.extensions.create(SHORT_NAME, InspectionsExtension::class.java, project)
+    override fun createExtension(): InspectionPluginExtension {
+        val extension = project.extensions.create(SHORT_NAME, InspectionPluginExtension::class.java, project)
         logger.info("InspectionPlugin: Extension $SHORT_NAME created")
         return extension
     }

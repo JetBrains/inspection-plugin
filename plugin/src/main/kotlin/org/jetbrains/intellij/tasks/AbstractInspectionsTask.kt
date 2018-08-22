@@ -14,9 +14,11 @@ import org.gradle.api.plugins.quality.CheckstyleReports
 import org.gradle.api.reporting.Reporting
 import org.gradle.api.tasks.*
 import org.jetbrains.intellij.*
+import org.jetbrains.intellij.extensions.InspectionPluginExtension
 import org.jetbrains.intellij.extensions.InspectionsExtension
-import org.jetbrains.intellij.parameters.InspectionTypeParameters
+import org.jetbrains.intellij.parameters.InspectionParameters
 import org.jetbrains.intellij.parameters.InspectionsParameters
+import org.jetbrains.intellij.parameters.InspectionPluginParameters
 import org.jetbrains.intellij.parameters.ReportParameters
 import java.io.File
 import java.net.URLClassLoader
@@ -90,14 +92,6 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask, Reporti
         get() = extension.isQuiet ?: false
 
     /**
-     * Quick fix are to be executed if found fixable errors.
-     * Default value is the <tt>false</tt>.
-     */
-    @get:Input
-    open val quickFix: Boolean
-        get() = extension.quickFix ?: false
-
-    /**
      * Binary sources will not participate in the analysis..
      * Default value is the <tt>true</tt>.
      */
@@ -125,8 +119,8 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask, Reporti
      * The inspections with error problem level.
      */
     @get:Input
-    open val errorsInspections: Set<String>
-        get() = extension.errors.inspections ?: emptySet()
+    open val errorsInspections: Map<String, InspectionParameters>
+        get() = getInspections(extension.errors)
 
     /**
      * The maximum number of errors that are tolerated before stopping the build
@@ -143,8 +137,8 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask, Reporti
      * The inspections with warning problem level.
      */
     @get:Input
-    open val warningsInspections: Set<String>
-        get() = extension.warnings.inspections ?: emptySet()
+    open val warningsInspections: Map<String, InspectionParameters>
+        get() = getInspections(extension.warnings)
 
     /**
      * The maximum number of warnings that are tolerated before stopping the build
@@ -161,8 +155,8 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask, Reporti
      * The inspections with information problem level.
      */
     @get:Input
-    open val infosInspections: Set<String>
-        get() = extension.infos.inspections ?: emptySet()
+    open val infosInspections: Map<String, InspectionParameters>
+        get() = getInspections(extension.infos)
 
     /**
      * The maximum number of infos that are tolerated before stopping the build
@@ -176,9 +170,10 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask, Reporti
         get() = extension.infos.max
 
     @get:Internal
-    private val inspections: Set<String>
+    private val inspections: Map<String, InspectionParameters>
         get() = errorsInspections + warningsInspections + infosInspections
 
+    @Suppress("LeakingThis")
     @get:Internal
     private val reports = IdeaCheckstyleReports(this)
 
@@ -244,28 +239,36 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask, Reporti
     private var ignoreFailures: Boolean? = null
 
     @get:Internal
-    protected val extension: InspectionsExtension
-        get() = project.extensions.findByType(InspectionsExtension::class.java)!!
+    protected val extension: InspectionPluginExtension
+        get() = project.extensions.findByType(InspectionPluginExtension::class.java)!!
 
     @get:Internal
-    private var runner: Runner<InspectionsParameters>? = null
+    private var runner: Runner<InspectionPluginParameters>? = null
 
     @Internal
-    private fun getInspectionsParameters(): InspectionsParameters {
+    private fun getInspections(ex: InspectionsExtension): Map<String, InspectionParameters> {
+        val inspections = ex.inspections.map {
+            val quickFix = it.value.quickFix ?: false
+            InspectionParameters(it.key, quickFix)
+        }
+        return inspections.map { it.name to it }.toMap()
+    }
+
+    @Internal
+    private fun getInspectionsParameters(): InspectionPluginParameters {
         val projectDir = project.rootProject.projectDir
         val xml: File? = if (reports.xml.isEnabled) reports.xml.destination else null
         val html: File? = if (reports.html.isEnabled) reports.html.destination else null
         val report = ReportParameters(isQuiet, xml, html)
-        val errors = InspectionTypeParameters(errorsInspections, maxErrors)
-        val warnings = InspectionTypeParameters(warningsInspections, maxWarnings)
-        val infos = InspectionTypeParameters(infosInspections, maxInfos)
-        return InspectionsParameters(
+        val errors = InspectionsParameters(errorsInspections, maxErrors)
+        val warnings = InspectionsParameters(warningsInspections, maxWarnings)
+        val infos = InspectionsParameters(infosInspections, maxInfos)
+        return InspectionPluginParameters(
                 getIgnoreFailures(),
                 ideaVersion,
                 kotlinPluginVersion,
                 projectDir,
                 report,
-                quickFix,
                 skipBinarySources,
                 inheritFromIdea,
                 profileName,
@@ -275,10 +278,10 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask, Reporti
         )
     }
 
-    private fun createRunner(loader: ClassLoader): Runner<InspectionsParameters> {
+    private fun createRunner(loader: ClassLoader): Runner<InspectionPluginParameters> {
         val className = "org.jetbrains.idea.inspections.InspectionsRunner"
         @Suppress("UNCHECKED_CAST")
-        val analyzerClass = loader.loadClass(className) as Class<Runner<InspectionsParameters>>
+        val analyzerClass = loader.loadClass(className) as Class<Runner<InspectionPluginParameters>>
         val analyzer = analyzerClass.constructors.first().newInstance()
         return analyzerClass.cast(analyzer)
     }

@@ -8,7 +8,7 @@ import org.jdom2.input.SAXBuilder
 import org.jdom2.output.Format
 import org.jdom2.output.XMLOutputter
 import org.jetbrains.intellij.*
-import org.jetbrains.intellij.extensions.InspectionsExtension
+import org.jetbrains.intellij.extensions.InspectionPluginExtension
 import org.junit.Assert
 import org.junit.rules.TemporaryFolder
 import java.io.File
@@ -20,7 +20,7 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
 
     private fun generateBuildFile(
             kotlinNeeded: Boolean,
-            extension: InspectionsExtension,
+            extension: InspectionPluginExtension,
             xmlReport: Boolean = false,
             htmlReport: Boolean = false,
             kotlinVersion: String = "1.2.41"
@@ -48,14 +48,26 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
                         "profileName" -> profileName?.gradleCode?.let {
                             appendln("    profileName = $it")
                         }
-                        "errors.inspections" -> errors.inspections?.gradleCode?.let {
-                            appendln("    errors.inspections = $it")
+                        "errors.inspections" -> errors.inspections?.forEach { entry ->
+                            val name = entry.key.gradleCode
+                            if (inheritFromIdea != true) appendln("    errors.inspection($name)")
+                            entry.value.quickFix?.gradleCode?.let {
+                                appendln("    errors.inspection($name).quickFix = $it")
+                            }
                         }
-                        "warnings.inspections" -> warnings.inspections?.gradleCode?.let {
-                            appendln("    warnings.inspections = $it")
+                        "warnings.inspections" -> warnings.inspections?.forEach { entry ->
+                            val name = entry.key.gradleCode
+                            if (inheritFromIdea != true) appendln("    warnings.inspection($name)")
+                            entry.value.quickFix?.gradleCode?.let {
+                                appendln("    warnings.inspection($name).quickFix = $it")
+                            }
                         }
-                        "infos.inspections" -> infos.inspections?.gradleCode?.let {
-                            appendln("    infos.inspections = $it")
+                        "infos.inspections" -> infos.inspections?.forEach { entry ->
+                            val name = entry.key.gradleCode
+                            if (inheritFromIdea != true) appendln("    infos.inspection($name)")
+                            entry.value.quickFix?.gradleCode?.let {
+                                appendln("    infos.inspection($name).quickFix = $it")
+                            }
                         }
                         "errors.max" -> errors.max?.gradleCode?.let {
                             appendln("    errors.max = $it")
@@ -68,12 +80,6 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
                         }
                         "quiet" -> isQuiet?.gradleCode?.let {
                             appendln("    quiet = $it")
-                        }
-                        "quickFix" -> quickFix?.gradleCode?.let {
-                            appendln("    quickFix = $it")
-                        }
-                        "reformat.quiet" -> reformat.isQuiet?.gradleCode?.let {
-                            appendln("    reformat.quiet = $it")
                         }
                         "reformat.quickFix" -> reformat.quickFix?.gradleCode?.let {
                             appendln("    reformat.quickFix = $it")
@@ -139,11 +145,7 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
 
     }
 
-    private fun generateInspectionProfileFile(
-            errors: List<String> = emptyList(),
-            warnings: List<String> = emptyList(),
-            infos: List<String> = emptyList()
-    ): String {
+    private fun generateInspectionProfileFile(errors: List<String>, warnings: List<String>, infos: List<String>): String {
         return StringBuilder().apply {
             appendln("<component name=\"InspectionProjectProfileManager\">")
             appendln("    <profile version=\"1.0\">\n")
@@ -165,7 +167,7 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
             val testDir: File,
             val sources: List<File>,
             val expectedSources: List<File>,
-            val extension: InspectionsExtension,
+            val extension: InspectionPluginExtension,
             val xmlReport: Boolean = false,
             val htmlReport: Boolean = false,
             val kotlinVersion: String = "1.2.0",
@@ -193,9 +195,9 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
 
         private fun initTestProjectIdeaProfile() {
             with(extension) {
-                val errors = errors.inspections?.toList() ?: emptyList()
-                val warnings = warnings.inspections?.toList() ?: emptyList()
-                val infos = infos.inspections?.toList() ?: emptyList()
+                val errors = errors.inspections.keys.toList()
+                val warnings = warnings.inspections.keys.toList()
+                val infos = infos.inspections.keys.toList()
                 if (inheritFromIdea == true && (errors + warnings + infos).isNotEmpty()) {
                     if (profileName != null)
                         throw IllegalArgumentException("Idea profile in inspection test has auto generating")
@@ -353,7 +355,7 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
         }
     }
 
-    fun doTest(testDir: File, extension: InspectionsExtension) {
+    fun doTest(testDir: File, extension: InspectionPluginExtension) {
         val sources = testDir.allSourceFiles.toList()
         if (sources.isEmpty()) throw IllegalArgumentException("Test directory in $testDir not found.")
         val expectedSources = testDir.allExpectedSourceFiles.toList()

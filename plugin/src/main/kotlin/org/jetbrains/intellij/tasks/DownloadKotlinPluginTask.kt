@@ -4,7 +4,7 @@ import org.gradle.api.internal.ConventionTask
 import org.gradle.api.tasks.*
 import org.jetbrains.intellij.ExceptionHandler
 import org.jetbrains.intellij.InspectionPlugin
-import org.jetbrains.intellij.extensions.InspectionsExtension
+import org.jetbrains.intellij.extensions.InspectionPluginExtension
 import org.jetbrains.intellij.plugins.KotlinPlugin
 import org.jetbrains.intellij.utils.Downloader
 import java.io.File
@@ -47,6 +47,6 @@ open class DownloadKotlinPluginTask : ConventionTask() {
     }
 
     @get:Internal
-    private val extension: InspectionsExtension
-        get() = project.extensions.findByType(InspectionsExtension::class.java)!!
+    private val extension: InspectionPluginExtension
+        get() = project.extensions.findByType(InspectionPluginExtension::class.java)!!
 }
