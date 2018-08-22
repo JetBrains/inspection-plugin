@@ -138,7 +138,7 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
     ): String {
         return StringBuilder().apply {
             for (inspectionClass in inspections) {
-                val shortClass = inspectionClass.substringAfterLast(".").substringBefore("InspectionsTask")
+                val shortClass = inspectionClass.substringAfterLast(".").substringBefore("Inspection")
                 appendln("""        <inspection_tool class="$shortClass" enabled="true" level="$level" enabled_by_default="true"/>""")
             }
         }.toString()
@@ -205,6 +205,7 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
                     profileName = "Project_Default.xml"
                     val inspectionProfileFile = testProjectDir.newFile(".idea/inspectionProfiles/$profileName")
                     val inspectionProfileContent = generateInspectionProfileFile(errors, warnings, infos)
+                    println(inspectionProfileContent)
                     writeFile(inspectionProfileFile, inspectionProfileContent)
                     val profilesSettingFile = testProjectDir.newFile(".idea/inspectionProfiles/profiles_settings.xml")
                     writeFile(profilesSettingFile, """
