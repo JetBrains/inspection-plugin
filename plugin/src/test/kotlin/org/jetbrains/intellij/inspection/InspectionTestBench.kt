@@ -19,7 +19,9 @@ import java.nio.channels.FileChannel
 import java.nio.file.StandardOpenOption
 import java.util.*
 
-class InspectionTestBench(private val testProjectDir: TemporaryFolder, private val taskName: String) {
+class InspectionTestBench(private val taskName: String) {
+
+    private val testProjectDir = TemporaryFolder(File(System.getProperty("java.io.tmpdir")))
 
     sealed class Outcome {
         class Simple(val instance: TaskOutcome) : Outcome()
@@ -184,6 +186,7 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
             vararg val expectedDiagnostics: String
     ) {
         fun doTest() {
+            testProjectDir.create()
             testProjectDir.newFolder("build")
             initTestProjectIdeaProfile()
             initTestProjectBuildFile()
@@ -199,6 +202,7 @@ class InspectionTestBench(private val testProjectDir: TemporaryFolder, private v
                 println("InspectionTestBench: Daemon PID is $daemonPid")
                 if (daemonPid != null) waitIdeaRelease(daemonPid)
             }
+            testProjectDir.delete()
         }
 
         private fun initTestProjectIdeaProfile() {

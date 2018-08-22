@@ -2,17 +2,10 @@ import org.jetbrains.intellij.extensions.InspectionPluginExtension
 import org.jetbrains.intellij.inspection.InspectionTestBench
 import org.junit.Test
 import org.junit.Ignore
-import org.junit.Rule
-import org.junit.rules.TemporaryFolder
 import java.io.File
 
 class InspectionTestGenerated {
-
-    @Rule
-    @JvmField
-    val testProjectDir = TemporaryFolder()
-
-    private val testBench = InspectionTestBench(testProjectDir, "inspectionsMain")
+    private val testBench = InspectionTestBench("inspectionsMain")
 
     @Test
     fun testAddVariance() {
@@ -64,6 +57,7 @@ class InspectionTestGenerated {
         testBench.doTest(File("testData/inspection/configurationIdea_IJ2018_2"), extension)
     }
 
+    @Ignore
     @Test
     fun testConfigurationIdea_IU2017_3() {
         val extension = InspectionPluginExtension(null)

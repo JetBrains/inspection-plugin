@@ -148,17 +148,10 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
                 import org.jetbrains.intellij.inspection.InspectionTestBench
                 import org.junit.Test
                 import org.junit.Ignore
-                import org.junit.Rule
-                import org.junit.rules.TemporaryFolder
                 import java.io.File
 
                 class $testClassName {
-
-                    @Rule
-                    @JvmField
-                    val testProjectDir = TemporaryFolder()
-
-                    private val testBench = InspectionTestBench(testProjectDir, ${taskName.kotlinCode})
+                    private val testBench = InspectionTestBench(${taskName.kotlinCode})
         """.trimIndent()
         resultFile.writeText(testClass + "\n\n" + methods.joinToString("\n\n") + "\n}")
     }

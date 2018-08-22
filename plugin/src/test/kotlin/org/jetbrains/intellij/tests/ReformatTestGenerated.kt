@@ -2,17 +2,10 @@ import org.jetbrains.intellij.extensions.InspectionPluginExtension
 import org.jetbrains.intellij.inspection.InspectionTestBench
 import org.junit.Test
 import org.junit.Ignore
-import org.junit.Rule
-import org.junit.rules.TemporaryFolder
 import java.io.File
 
 class ReformatTestGenerated {
-
-    @Rule
-    @JvmField
-    val testProjectDir = TemporaryFolder()
-
-    private val testBench = InspectionTestBench(testProjectDir, "reformatMain")
+    private val testBench = InspectionTestBench("reformatMain")
 
     @Ignore
     @Test
