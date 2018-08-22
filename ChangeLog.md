@@ -17,6 +17,7 @@ Bug fixes:
 
  * Gradle 4.9 support
  * Tests with different IDEA versions are executed correctly now
+ * KT-25041
 
 ## 0.1.4 
 

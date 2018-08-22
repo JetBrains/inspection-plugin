@@ -44,15 +44,11 @@ If `profileName` is not given, `Project_Default.xml` will be used by default.
 ###### Manual inspections list
 ```groovy
 inspections {
-    errors.inspections = [
-        'org.jetbrains.kotlin.idea.inspections.DataClassPrivateConstructorInspection',
-        'org.jetbrains.kotlin.idea.inspections.UseExpressionBodyInspection'
-    ]
-    warnings.inspections = [
-        'org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection',
-        'org.jetbrains.kotlin.idea.inspections.AddVarianceModifierInspection'
-    ]
-    infos.inspections = ['org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection']
+    errors.inspection('org.jetbrains.kotlin.idea.inspections.DataClassPrivateConstructorInspection')
+    errors.inspection('org.jetbrains.kotlin.idea.inspections.UseExpressionBodyInspection')
+    warnings.inspection('org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection')
+    warnings.inspection('org.jetbrains.kotlin.idea.inspections.AddVarianceModifierInspection')
+    infos.inspection('org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection')
 }
 ```
 In this case inspections from manually defined list will be in use.
@@ -61,15 +57,11 @@ In this case inspections from manually defined list will be in use.
 ```groovy
 inspections {
     inheritFromIdea = true
-    errors.inspections = [
-        'org.jetbrains.kotlin.idea.inspections.DataClassPrivateConstructorInspection',
-        'org.jetbrains.kotlin.idea.inspections.UseExpressionBodyInspection'
-    ]
-    warnings.inspections = [
-        'org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection',
-        'org.jetbrains.kotlin.idea.inspections.AddVarianceModifierInspection'
-    ]
-    infos.inspections = ['org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection']
+    errors.inspection('org.jetbrains.kotlin.idea.inspections.DataClassPrivateConstructorInspection')
+    errors.inspection('org.jetbrains.kotlin.idea.inspections.UseExpressionBodyInspection')
+    warnings.inspection('org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection')
+    warnings.inspection('org.jetbrains.kotlin.idea.inspections.AddVarianceModifierInspection')
+    infos.inspection('org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection')
 }
 ```
 In this case both inspections from manually defined list and inherited from IDEA will be in use.
@@ -104,8 +96,9 @@ inspections {
     infos.max = 10
     ignoreFailures = true
     quiet = true
-    quickFix = true
-    reformat.quiet = true
+    warnigns.inspection('org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection') {
+        quickFix = True
+    }
     reformat.quickFix = true
     plugins.kotlin.version = '1.2.60'
     plugins.kotlin.location = 'https://plugins.jetbrains.com/plugin/download?rel=true&updateId=48409'
@@ -119,7 +112,7 @@ The meaning of the parameters is the following:
 * `infos.max`: after exceeding the given number of inspection diagnostics with "info" severity, inspection task stops and fails.
 * `ignoreFailures`: inspection task never fails (false by default)
 * `quiet`: do not report inspection messages to console, only to XML / HTML files (false by default)
-* `quickFix`: apply quick fixes for fixed inspection errors (false by default). Quick-fix is applied only if it's unique per warning.
+* `quickFix`: apply quick fixes for corresponding inspection (false by default). Quick-fix is applied only if it's unique per warning.
 * `reformat.quiet`: do not report reformat inspection messages to console, only to XML / HTML files (false by default)
 * `reformat.quickFix`: apply quick fixes for fixed code-style errors (true by default)
 * `plugins.kotlin.version`: version of downloading kotlin plugin (by default used bundled to IDEA)
