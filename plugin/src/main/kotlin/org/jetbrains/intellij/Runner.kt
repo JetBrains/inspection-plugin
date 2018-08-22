@@ -13,6 +13,7 @@ interface Runner<in T : Runner.Parameters> {
             projectName: String,
             moduleName: String,
             ideaHomeDirectory: File,
+            ideaSystemDirectory: File,
             plugins: List<File>,
             parameters: T
     ): Boolean

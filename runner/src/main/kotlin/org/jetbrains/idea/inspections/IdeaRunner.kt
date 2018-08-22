@@ -130,6 +130,7 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
             projectName: String,
             moduleName: String,
             ideaHomeDirectory: File,
+            ideaSystemDirectory: File,
             plugins: List<File>,
             parameters: T
     ): Boolean {
@@ -139,7 +140,7 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
         logger.info("InspectionPlugin: Class loader: " + this.javaClass.classLoader)
         try {
             acquireIdeaLockIfNeeded()
-            application = loadApplication(ideaHomeDirectory, plugins)
+            application = loadApplication(ideaHomeDirectory, ideaSystemDirectory, plugins)
             application?.doNotSave()
             application?.configureJdk()
             return analyze(files, projectName, moduleName, parameters)
@@ -170,11 +171,11 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
         }
     }
 
-    private fun loadApplication(ideaHomeDirectory: File, plugins: List<File>): ApplicationEx {
+    private fun loadApplication(ideaHomeDirectory: File, ideaSystemDirectory: File, plugins: List<File>): ApplicationEx {
         val ideaBuildNumberFile = File(ideaHomeDirectory, "build.txt")
         val (buildNumber, usesUltimate) = ideaBuildNumberFile.buildConfiguration
         if (usesUltimate) throw RunnerException("Using of IDEA Ultimate is not yet supported in inspection runner")
-        val systemPath = generateSystemPath(buildNumber, usesUltimate)
+        val systemPath = generateSystemPath(ideaSystemDirectory, buildNumber, usesUltimate)
         val pluginsPath = plugins.joinToString(":") { it.absolutePath }
         val platformPrefix = if (usesUltimate) PlatformUtils.IDEA_PREFIX else PlatformUtils.IDEA_CE_PREFIX
 
@@ -212,15 +213,13 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
         return ApplicationManagerEx.getApplicationEx().apply { load() }
     }
 
-    private fun generateSystemPath(buildNumber: String, usesUltimate: Boolean): String {
-        val homeDir = System.getProperty(USER_HOME).replace("\\", "/")
+    private fun generateSystemPath(ideaSystemDirectory: File, buildNumber: String, usesUltimate: Boolean): String {
         val buildPrefix = (if (usesUltimate) "U_" else "") + buildNumber.replace(".", "_")
-        var path: String
+        var file: File
         var code = 0
         do {
             code++
-            path = "$homeDir/.IntellijIDEAInspections/${buildPrefix}_code$code/system"
-            val file = File(path)
+            file = File(ideaSystemDirectory, "${buildPrefix}_code$code/system")
             if (!file.exists()) {
                 file.mkdirs()
             }
@@ -238,7 +237,7 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
                 throw RunnerException("Cannot create IDEA system directory (all locked)")
             }
         } while (lock == null)
-        return path
+        return file.absolutePath
     }
 
     private fun lockAcquireIfNeeded(lockName: String): Pair<FileLock?, FileChannel?> {

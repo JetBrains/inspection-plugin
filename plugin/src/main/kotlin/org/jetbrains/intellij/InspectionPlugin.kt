@@ -113,6 +113,8 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<AbstractInspectionsTask,
 
         private val DOWNLOAD_DIRECTORY = File(BASE_CACHE_DIRECTORY, "downloads")
 
+        val IDEA_SYSTEM_DIRECTORY = File(BASE_CACHE_DIRECTORY, "system")
+
         private val String.normalizedVersion: String
             get() = replace(':', '_').replace('.', '_')
 

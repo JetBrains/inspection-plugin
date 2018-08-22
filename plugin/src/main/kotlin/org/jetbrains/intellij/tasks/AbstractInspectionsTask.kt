@@ -312,6 +312,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask, Reporti
             val parameters = getInspectionsParameters()
             val ideaVersion = parameters.ideaVersion
             val ideaDirectory = InspectionPlugin.ideaDirectory(ideaVersion)
+            val ideaSystemDirectory = InspectionPlugin.IDEA_SYSTEM_DIRECTORY
             logger.info("InspectionPlugin: Idea directory: $ideaDirectory")
             val ideaClasspath = getIdeaClasspath(ideaDirectory)
             val analyzerClasspath = listOf(tryResolveRunnerJar(project))
@@ -349,6 +350,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask, Reporti
                         projectName = project.rootProject.name,
                         moduleName = project.name,
                         ideaHomeDirectory = ideaDirectory,
+                        ideaSystemDirectory = ideaSystemDirectory,
                         plugins = plugins,
                         parameters = parameters
                 )
