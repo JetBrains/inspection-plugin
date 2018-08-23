@@ -290,7 +290,8 @@ class InspectionTestBench(private val taskName: String) {
                 println("InspectionTestBench: Exception caught in test.")
                 failure.buildResult.task(taskName)?.outcome?.let { Outcome.Simple(it) }
             } catch (ex: Throwable) {
-                println("InspectionTestBench: Test fished with error $ex")
+                System.err.println("InspectionTestBench: Test fished with error ${ex.javaClass}: ${ex.message}")
+                ex.printStackTrace(System.err)
                 Outcome.Error(ex.toString())
             }
             return outputBuffer.readAsString()!! to outcome
@@ -320,7 +321,6 @@ class InspectionTestBench(private val taskName: String) {
                     }
                 }
             }
-
         }
 
         private fun assertInspectionBuildXmlReport() {
