@@ -33,9 +33,9 @@ import java.nio.channels.OverlappingFileLockException
 
 abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
 
-    abstract fun analyze(files: Collection<File>, projectName: String, moduleName: String, parameters: T): Boolean
+    abstract fun analyze(files: Collection<File>, project: Project, parameters: T): Boolean
 
-    fun openProject(projectDir: File, projectName: String, moduleName: String): Project {
+    private fun openProject(projectDir: File, projectName: String, moduleName: String): Project {
         logger.info("InspectionPlugin: Before project creation at '$projectDir'")
         var ideaProject: Project? = null
         val projectFile = File(projectDir, projectName + ProjectFileType.DOT_DEFAULT_EXTENSION)
@@ -132,6 +132,7 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
 
     override fun run(
             files: Collection<File>,
+            projectDir: File,
             projectName: String,
             moduleName: String,
             ideaHomeDirectory: File,
@@ -148,7 +149,8 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
             application = loadApplication(ideaHomeDirectory, ideaSystemDirectory, plugins)
             application?.doNotSave()
             application?.configureJdk()
-            return analyze(files, projectName, moduleName, parameters)
+            val project = openProject(projectDir, projectName, moduleName)
+            return analyze(files, project, parameters)
         } catch (e: Throwable) {
             if (e is RunnerException) throw e
             throw RunnerException("Exception caught in inspection plugin: $e", e)

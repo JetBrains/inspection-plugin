@@ -92,14 +92,6 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask, Reporti
         get() = extension.isQuiet ?: false
 
     /**
-     * Binary sources will not participate in the analysis..
-     * Default value is the <tt>true</tt>.
-     */
-    @get:Input
-    open val skipBinarySources: Boolean
-        get() = extension.skipBinarySources ?: true
-
-    /**
      * If this value is <tt>true</tt> implementation of inspections will be found in IDEA
      * profile with given {@profileName}.
      */
@@ -256,7 +248,6 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask, Reporti
 
     @Internal
     private fun getInspectionsParameters(): InspectionPluginParameters {
-        val projectDir = project.rootProject.projectDir
         val xml: File? = if (reports.xml.isEnabled) reports.xml.destination else null
         val html: File? = if (reports.html.isEnabled) reports.html.destination else null
         val report = ReportParameters(isQuiet, xml, html)
@@ -267,9 +258,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask, Reporti
                 getIgnoreFailures(),
                 ideaVersion,
                 kotlinPluginVersion,
-                projectDir,
                 report,
-                skipBinarySources,
                 inheritFromIdea,
                 profileName,
                 errors,
@@ -347,6 +336,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask, Reporti
                 gradle.addBuildListener(IdeaFinishingListener())
                 success = runner.run(
                         files = getSource().files,
+                        projectDir =project.rootProject.projectDir,
                         projectName = project.rootProject.name,
                         moduleName = project.name,
                         ideaHomeDirectory = ideaDirectory,

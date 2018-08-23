@@ -9,9 +9,7 @@ data class InspectionPluginParameters(
         val ideaVersion: String,
         val kotlinPluginVersion: String?,
 
-        val projectDir: File,
         val reportParameters: ReportParameters,
-        val skipBinarySources: Boolean,
 
         val inheritFromIdea: Boolean,
         val profileName: String?,

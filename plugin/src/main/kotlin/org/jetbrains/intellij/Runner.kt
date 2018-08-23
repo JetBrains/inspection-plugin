@@ -10,6 +10,7 @@ interface Runner<in T : Runner.Parameters> {
     // Returns true if analysis executed successfully
     fun run(
             files: Collection<File>,
+            projectDir: File,
             projectName: String,
             moduleName: String,
             ideaHomeDirectory: File,

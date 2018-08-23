@@ -10,13 +10,9 @@ import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
-import com.intellij.openapi.project.Project as IdeaProject
-import com.intellij.openapi.roots.*
-import com.intellij.openapi.util.io.FileUtilRt
-import com.intellij.openapi.vfs.VirtualFileManager
+import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
-import com.intellij.psi.PsiManager
 import org.jetbrains.intellij.parameters.InspectionsParameters
 import org.jetbrains.intellij.parameters.InspectionPluginParameters
 import java.io.File
@@ -24,10 +20,10 @@ import java.util.*
 
 
 @Suppress("unused")
-class InspectionsRunner : IdeaRunner<InspectionPluginParameters>() {
+class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
 
-    class PluginInspectionWrapper(
-            val tool: InspectionProfileEntry,
+    class PluginInspectionWrapper<out T : InspectionProfileEntry>(
+            val tool: T,
             val extension: InspectionEP?,
             val classFqName: String,
             val language: String?,
@@ -39,7 +35,7 @@ class InspectionsRunner : IdeaRunner<InspectionPluginParameters>() {
             if (this === other) return true
             if (javaClass != other?.javaClass) return false
 
-            other as PluginInspectionWrapper
+            other as PluginInspectionWrapper<*>
 
             if (classFqName != other.classFqName) return false
 
@@ -51,24 +47,24 @@ class InspectionsRunner : IdeaRunner<InspectionPluginParameters>() {
         }
     }
 
-    private fun getInspectionWrappers(parameters: InspectionPluginParameters, ideaProject: IdeaProject): List<PluginInspectionWrapper> {
+    private fun getInspectionWrappers(parameters: InspectionPluginParameters, project: Project): List<PluginInspectionWrapper<*>> {
         logger.info("InspectionPlugin: InheritFromIdea = ${parameters.inheritFromIdea}")
         val registeredInspectionWrappers = getRegisteredInspectionWrappers(parameters.inspections.keys)
         if (parameters.inheritFromIdea) {
-            val inspectionWrappersInheritFromIdea = getInspectionWrappersInheritFromIdea(parameters, ideaProject)
+            val inspectionWrappersInheritFromIdea = getInspectionWrappersInheritFromIdea(parameters, project)
             return inspectionWrappersInheritFromIdea + registeredInspectionWrappers
         }
         return registeredInspectionWrappers
     }
 
-    private fun getInspectionWrappersInheritFromIdea(parameters: InspectionPluginParameters, ideaProject: IdeaProject): List<PluginInspectionWrapper> {
+    private fun getInspectionWrappersInheritFromIdea(parameters: InspectionPluginParameters, project: Project): List<PluginInspectionWrapper<*>> {
         val inspectionProfileManager = ApplicationInspectionProfileManager.getInstanceImpl()
         val profile = parameters.profileName
-                ?.let { File(File(parameters.projectDir, INSPECTION_PROFILES_PATH), it) }
+                ?.let { File(project.basePath, "$INSPECTION_PROFILES_PATH/$it") }
                 ?.let { inspectionProfileManager.loadProfile(it.absolutePath) }
                 ?: inspectionProfileManager.currentProfile
         logger.info("InspectionPlugin: Profile file = ${profile.name}")
-        return profile.getAllEnabledInspectionTools(ideaProject).map {
+        return profile.getAllEnabledInspectionTools(project).map {
             PluginInspectionWrapper(
                     tool = it.tool.tool,
                     extension = it.tool.extension,
@@ -79,7 +75,7 @@ class InspectionsRunner : IdeaRunner<InspectionPluginParameters>() {
         }
     }
 
-    private fun getRegisteredInspectionWrappers(inspections: Set<String>): List<PluginInspectionWrapper> {
+    private fun getRegisteredInspectionWrappers(inspections: Set<String>): List<PluginInspectionWrapper<*>> {
         val tools = InspectionToolRegistrar.getInstance().createTools()
         return inspections.map { inspectionClassName ->
             tools.find { it.tool.javaClass.name == inspectionClassName }
@@ -88,131 +84,114 @@ class InspectionsRunner : IdeaRunner<InspectionPluginParameters>() {
         }
     }
 
-    override fun analyze(
-            files: Collection<File>,
-            projectName: String,
-            moduleName: String,
+    override fun analyzeFileInfo(
+            files: Collection<FileInfo>,
+            project: Project,
             parameters: InspectionPluginParameters
     ): Boolean {
-        val ideaProject = openProject(parameters.projectDir, projectName, moduleName)
-        val (success, results) = analyze(parameters, files, ideaProject)
+        val checker = InspectionChecker()
+        val results = analyze(files, project, parameters, checker)
         reportProblems(parameters, results)
-        quickFixProblems(ideaProject, parameters, results)
-        return success
+        quickFixProblems(project, parameters, results)
+        return checker.isSuccess
     }
 
     private fun analyze(
+            files: Collection<FileInfo>,
+            project: Project,
             parameters: InspectionPluginParameters,
-            files: Collection<File>,
-            ideaProject: IdeaProject
-    ): Pair<Boolean, Map<String, List<PinnedProblemDescriptor>>> {
-        var errors = 0
-        var warnings = 0
-        var infos = 0
-        var success = true
-
-        logger.info("InspectionPlugin: Before psi manager creation")
-        val psiManager = PsiManager.getInstance(ideaProject)
-        logger.info("InspectionPlugin: Before virtual file manager creation")
-        val virtualFileManager = VirtualFileManager.getInstance()
-        val virtualFileSystem = virtualFileManager.getFileSystem("file")
-        val documentManager = FileDocumentManager.getInstance()
-        val fileIndex = ProjectFileIndex.getInstance(ideaProject)
-
-        val results: MutableMap<String, MutableList<PinnedProblemDescriptor>> = mutableMapOf()
+            checker: InspectionChecker
+    ): Map<String, List<PinnedProblemDescriptor>> {
+        val results = HashMap<String, List<PinnedProblemDescriptor>>()
         logger.info("InspectionPlugin: Before inspections launched: total of ${files.size} files to analyze")
-        val inspectionWrappers = getInspectionWrappers(parameters, ideaProject).toList()
+        val inspectionWrappers = getInspectionWrappers(parameters, project).toList()
         logger.info("InspectionPlugin: Inspections: " + inspectionWrappers.map { it.classFqName }.toList())
-        inspectionLoop@ for (inspectionWrapper in inspectionWrappers) {
-            val inspectionClassName = inspectionWrapper.classFqName
+        for (inspectionWrapper in inspectionWrappers) {
+            val inspectionName = inspectionWrapper.classFqName
             val inspectionTool = inspectionWrapper.tool
             when (inspectionTool) {
                 is LocalInspectionTool -> {
+                    @Suppress("UNCHECKED_CAST")
+                    inspectionWrapper as PluginInspectionWrapper<LocalInspectionTool>
+                    results[inspectionName] = inspectionWrapper.apply(files, parameters, checker)
                 }
                 is GlobalInspectionTool -> {
-                    logger.info("InspectionPlugin: Global inspection tools like $inspectionClassName are not yet supported")
-                    continue@inspectionLoop
+                    logger.warn("InspectionPlugin: Global inspection tools like $inspectionName are not yet supported")
                 }
                 else -> {
-                    logger.error("InspectionPlugin: Unexpected $inspectionClassName which is neither local nor global")
-                    continue@inspectionLoop
+                    logger.error("InspectionPlugin: Unexpected $inspectionName which is neither local nor global")
                 }
             }
-            val inspectionExtension = inspectionWrapper.extension
-            val displayName = inspectionExtension?.displayName ?: "<Unknown diagnostic>"
-            val inspectionResults = mutableListOf<PinnedProblemDescriptor>()
-            runReadAction {
-                val task = Runnable {
-                    try {
-                        analysisLoop@ for (sourceFile in files) {
-                            val virtualFile = virtualFileSystem.findFileByPath(sourceFile.absolutePath)
-                            if (virtualFile == null) {
-                                logger.warn("InspectionPlugin: Cannot find virtual file for $sourceFile")
-                                continue
-                            }
-                            if (parameters.skipBinarySources && virtualFile.fileType.isBinary)
-                                continue
-                            if (!fileIndex.isInSource(virtualFile)) {
-                                logger.warn("InspectionPlugin: File $sourceFile is not in sources")
-                                continue
-                            }
-                            val psiFile = psiManager.findFile(virtualFile)
-                            if (psiFile == null) {
-                                logger.warn("InspectionPlugin: Cannot find PSI file for $sourceFile")
-                                continue
-                            }
-                            if (!inspectionEnabledForFile(inspectionWrapper, psiFile)) continue
-                            val document = documentManager.getDocument(virtualFile)
-                            if (document == null) {
-                                val message = when {
-                                    !virtualFile.isValid -> "is invalid"
-                                    virtualFile.isDirectory -> "is directory"
-                                    virtualFile.fileType.isBinary -> "is binary without decompiler"
-                                    FileUtilRt.isTooLarge(virtualFile.length) -> "is too large"
-                                    else -> ""
-                                }
-                                logger.warn("InspectionPlugin: Cannot get document for file $sourceFile $message")
-                                continue
-                            }
-                            val fileName = psiFile.name
-                            val toolName = inspectionTool.displayName
-                            logger.info("InspectionPlugin: Inspection '$toolName' analyzing started for $fileName")
-                            val problems = inspectionTool.analyze(psiFile, document, displayName, inspectionWrapper.level)
-                            inspectionResults += problems
-                            for (problem in problems) {
-                                val level = problem.getLevel(inspectionClassName, parameters)
-                                when (level) {
-                                    ProblemLevel.ERROR -> errors++
-                                    ProblemLevel.WARNING, ProblemLevel.WEAK_WARNING -> warnings++
-                                    ProblemLevel.INFORMATION -> infos++
-                                }
-                                val inspections = listOf(
-                                        Triple("errors", parameters.errors, errors),
-                                        Triple("warnings", parameters.warnings, warnings),
-                                        Triple("infos", parameters.infos, infos)
-                                )
-                                for ((name, parameter, number) in inspections) {
-                                    if (parameter.isTooMany(number)) {
-                                        logger.error("InspectionPlugin: Too many $name found: $number. Analysis stopped")
-                                        success = false
-                                        break@analysisLoop
-                                    }
-                                }
-                            }
-                        }
-                    } catch (exception: InspectionException) {
-                        logger.error("InspectionPlugin: Exception during inspection running ${exception.message}")
-                        logger.error(exception.stackTrace.joinToString(separator = "\n") { "    $it" })
-                        logger.error("Caused by: " + (exception.cause.message ?: exception.cause))
-                        logger.error(exception.cause.stackTrace.joinToString(separator = "\n") { "    $it" })
-                    }
-                }
-                ProgressManager.getInstance().runProcess(task, EmptyProgressIndicator())
-            }
-            results[inspectionClassName] = inspectionResults
-            if (!success) break
+            if (checker.isFail) break
         }
-        return Pair(success, results)
+        return results
+    }
+
+    class InspectionChecker {
+        private var errors: Int = 0
+        private var warnings: Int = 0
+        private var infos: Int = 0
+        private var success: Boolean = true
+
+        val isSuccess: Boolean
+            get() = success
+
+        val isFail: Boolean
+            get() = !success
+
+        fun apply(level: ProblemLevel, parameters: InspectionPluginParameters, errorListener: (String, Int) -> Unit) {
+            when (level) {
+                ProblemLevel.ERROR -> errors++
+                ProblemLevel.WARNING, ProblemLevel.WEAK_WARNING -> warnings++
+                ProblemLevel.INFORMATION -> infos++
+            }
+            when {
+                parameters.errors.isTooMany(errors) -> errorListener("errors", errors)
+                parameters.warnings.isTooMany(warnings) -> errorListener("warnings", warnings)
+                parameters.infos.isTooMany(infos) -> errorListener("infos", infos)
+                else -> return
+            }
+            success = false
+        }
+
+        private fun InspectionsParameters.isTooMany(value: Int) = max?.let { value > it } ?: false
+    }
+
+    private fun PluginInspectionWrapper<LocalInspectionTool>.apply(
+            files: Collection<FileInfo>,
+            parameters: InspectionPluginParameters,
+            checker: InspectionChecker
+    ): List<PinnedProblemDescriptor> {
+        val displayName = extension?.displayName ?: "<Unknown diagnostic>"
+        val inspectionResults = mutableListOf<PinnedProblemDescriptor>()
+        runReadAction {
+            val task = Runnable {
+                try {
+                    for ((psiFile, document) in files) {
+                        if (!inspectionEnabledForFile(psiFile)) continue
+                        val fileName = psiFile.name
+                        val toolName = tool.displayName
+                        logger.info("InspectionPlugin: Inspection '$toolName' analyzing started for $fileName")
+                        val problems = tool.analyze(psiFile, document, displayName, level)
+                        inspectionResults += problems
+                        for (problem in problems) {
+                            val level = problem.getLevel(classFqName, parameters)
+                            checker.apply(level, parameters) { name, number ->
+                                logger.error("InspectionPlugin: Too many $name found: $number. Analysis stopped")
+                            }
+                            if (checker.isFail) return@Runnable
+                        }
+                    }
+                } catch (exception: InspectionException) {
+                    logger.error("InspectionPlugin: Exception during inspection running ${exception.message}")
+                    logger.error(exception.stackTrace.joinToString(separator = "\n") { "    $it" })
+                    logger.error("Caused by: " + (exception.cause.message ?: exception.cause))
+                    logger.error(exception.cause.stackTrace.joinToString(separator = "\n") { "    $it" })
+                }
+            }
+            ProgressManager.getInstance().runProcess(task, EmptyProgressIndicator())
+        }
+        return inspectionResults
     }
 
     private fun reportProblems(parameters: InspectionPluginParameters, results: Map<String, List<PinnedProblemDescriptor>>) {
@@ -241,7 +220,7 @@ class InspectionsRunner : IdeaRunner<InspectionPluginParameters>() {
     }
 
     private fun quickFixProblems(
-            project: IdeaProject,
+            project: Project,
             parameters: InspectionPluginParameters,
             results: Map<String, List<PinnedProblemDescriptor>>
     ) {
@@ -281,7 +260,7 @@ class InspectionsRunner : IdeaRunner<InspectionPluginParameters>() {
             }
         }
         invokeAndWait {
-            flushIdeaProjectChanges(project, files)
+            project.flushChanges(files)
         }
     }
 
@@ -290,7 +269,7 @@ class InspectionsRunner : IdeaRunner<InspectionPluginParameters>() {
 
     private fun FileModificationService.applyFixWithChecks(
             fix: QuickFix<CommonProblemDescriptor>,
-            project: IdeaProject,
+            project: Project,
             problem: PinnedProblemDescriptor
     ): PsiFile? {
         val renderedProblem = problem.renderWithLocation()
@@ -311,9 +290,9 @@ class InspectionsRunner : IdeaRunner<InspectionPluginParameters>() {
         return file
     }
 
-    private fun flushIdeaProjectChanges(project: IdeaProject, files: List<PsiFile>) {
+    private fun Project.flushChanges(files: List<PsiFile>) {
         logger.info("InspectionPlugin: Flush IDEA project")
-        val psiDocumentManager = PsiDocumentManager.getInstance(project)
+        val psiDocumentManager = PsiDocumentManager.getInstance(this)
         val fileDocumentManager = FileDocumentManager.getInstance()
         psiDocumentManager.commitAllDocuments()
         for (file in files) {
@@ -330,7 +309,7 @@ class InspectionsRunner : IdeaRunner<InspectionPluginParameters>() {
 
     private fun FileModificationService.applyFix(
             fix: QuickFix<CommonProblemDescriptor>,
-            project: IdeaProject,
+            project: Project,
             problem: PinnedProblemDescriptor
     ): Boolean {
         val renderedProblem = problem.renderWithLocation()
@@ -353,8 +332,6 @@ class InspectionsRunner : IdeaRunner<InspectionPluginParameters>() {
         }
     }
 
-    private fun InspectionsParameters.isTooMany(value: Int) = max?.let { value > it } ?: false
-
     private fun PinnedProblemDescriptor.getLevel(inspectionClass: String, parameters: InspectionPluginParameters) =
             actualLevel(parameters.getLevel(inspectionClass)) ?: ProblemLevel.INFORMATION
 
@@ -373,10 +350,10 @@ class InspectionsRunner : IdeaRunner<InspectionPluginParameters>() {
         }
     }
 
-    private fun inspectionEnabledForFile(wrapper: PluginInspectionWrapper, psiFile: PsiFile): Boolean =
+    private fun PluginInspectionWrapper<*>.inspectionEnabledForFile(psiFile: PsiFile): Boolean =
             when (psiFile.language.displayName) {
-                "Kotlin" -> wrapper.language in KOTLIN_FILE_APPLICABLE_LANGUAGES
-                "Java" -> wrapper.language in JAVA_FILE_APPLICABLE_LANGUAGES
+                "Kotlin" -> language in KOTLIN_FILE_APPLICABLE_LANGUAGES
+                "Java" -> language in JAVA_FILE_APPLICABLE_LANGUAGES
                 else -> true
             }
 
