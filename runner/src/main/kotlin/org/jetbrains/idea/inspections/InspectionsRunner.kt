@@ -145,17 +145,22 @@ class InspectionsRunner : IdeaRunner<InspectionPluginParameters>() {
                 val task = Runnable {
                     try {
                         analysisLoop@ for (sourceFile in files) {
-                            val filePath = sourceFile.absolutePath
-                            val virtualFile = virtualFileSystem.findFileByPath(filePath)
-                                    ?: throw RunnerException("Cannot find virtual file for $filePath")
+                            val virtualFile = virtualFileSystem.findFileByPath(sourceFile.absolutePath)
+                            if (virtualFile == null) {
+                                logger.warn("InspectionPlugin: Cannot find virtual file for $sourceFile")
+                                continue
+                            }
                             if (parameters.skipBinarySources && virtualFile.fileType.isBinary)
                                 continue
                             if (!fileIndex.isInSource(virtualFile)) {
-                                logger.warn("InspectionPlugin: File $filePath is not in sources")
+                                logger.warn("InspectionPlugin: File $sourceFile is not in sources")
                                 continue
                             }
                             val psiFile = psiManager.findFile(virtualFile)
-                                    ?: throw RunnerException("Cannot find PSI file for $filePath")
+                            if (psiFile == null) {
+                                logger.warn("InspectionPlugin: Cannot find PSI file for $sourceFile")
+                                continue
+                            }
                             if (!inspectionEnabledForFile(inspectionWrapper, psiFile)) continue
                             val document = documentManager.getDocument(virtualFile)
                             if (document == null) {
@@ -166,7 +171,7 @@ class InspectionsRunner : IdeaRunner<InspectionPluginParameters>() {
                                     FileUtilRt.isTooLarge(virtualFile.length) -> "is too large"
                                     else -> ""
                                 }
-                                logger.error("InspectionPlugin: Cannot get document for file $filePath $message")
+                                logger.warn("InspectionPlugin: Cannot get document for file $sourceFile $message")
                                 continue
                             }
                             val fileName = psiFile.name
@@ -205,7 +210,7 @@ class InspectionsRunner : IdeaRunner<InspectionPluginParameters>() {
                 ProgressManager.getInstance().runProcess(task, EmptyProgressIndicator())
             }
             results[inspectionClassName] = inspectionResults
-            if (!success) break@inspectionLoop
+            if (!success) break
         }
         return Pair(success, results)
     }
@@ -288,16 +293,19 @@ class InspectionsRunner : IdeaRunner<InspectionPluginParameters>() {
             project: IdeaProject,
             problem: PinnedProblemDescriptor
     ): PsiFile? {
+        val renderedProblem = problem.renderWithLocation()
         val file = problem.psiElement?.containingFile
+        val fileName = file?.name
         runReadAction {
             val beforeText = file?.text
-            applyFix(fix, project, problem)
+            if (!applyFix(fix, project, problem))
+                logger.info("InspectionPlugin: Inapplicable fix for '$renderedProblem'")
             val afterText = file?.text
             when {
-                beforeText == null -> logger.info("InspectionPlugin: Inapplicable fix")
-                afterText == null -> logger.info("InspectionPlugin: File deleted after fix")
-                afterText == beforeText -> logger.warn("InspectionPlugin: File hasn't changes after fix")
-                else -> logger.info("InspectionPlugin: File has changes after fix")
+                beforeText == null -> logger.info("InspectionPlugin: Inapplicable fix for '$renderedProblem'")
+                afterText == null -> logger.info("InspectionPlugin: File $fileName deleted after fix for '$renderedProblem'")
+                afterText == beforeText -> logger.info("InspectionPlugin: File $fileName hasn't changes after fix '$renderedProblem'")
+                else -> logger.info("InspectionPlugin: File $fileName has changes after fix '$renderedProblem'")
             }
         }
         return file
@@ -324,22 +332,24 @@ class InspectionsRunner : IdeaRunner<InspectionPluginParameters>() {
             fix: QuickFix<CommonProblemDescriptor>,
             project: IdeaProject,
             problem: PinnedProblemDescriptor
-    ) {
+    ): Boolean {
         val renderedProblem = problem.renderWithLocation()
         if (problem.psiElement == null) {
             logger.info("InspectionPlugin: Fix already applied for '$renderedProblem'")
-            return
+            return false
         }
         try {
             if (!preparePsiElementForWrite(problem.psiElement)) {
                 logger.warn("InspectionPlugin: Problem psiElement cannot be prepared for '$renderedProblem'")
-                return
+                return false
             }
             fix.applyFix(project, problem)
             logger.info("InspectionPlugin: Applied fix for '$renderedProblem'")
+            return true
         } catch (exception: Exception) {
             logger.error("InspectionPlugin: Exception during applying quick fix for '$renderedProblem'")
             logger.error("InspectionPlugin: $exception")
+            return false
         }
     }
 

@@ -99,7 +99,12 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
 
     private var application: ApplicationEx? = null
 
+    enum class LockStatus {
+        FREE, USED, SKIP
+    }
+
     private var systemLockChannel: FileChannel? = null
+    private var systemLock: FileLock? = null
 
     private var ideaLockChannel: FileChannel? = null
     private var ideaLock: FileLock? = null
@@ -147,6 +152,8 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
         } catch (e: Throwable) {
             if (e is RunnerException) throw e
             throw RunnerException("Exception caught in inspection plugin: $e", e)
+        } finally {
+            releaseSystemLock()
         }
     }
 
@@ -220,43 +227,40 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
         var file: File
         var code = 0
         do {
-            code++
+            if (code++ == 256) throw RunnerException("Cannot create IDEA system directory (all locked)")
             file = File(ideaSystemDirectory, "${buildPrefix}_code$code/system")
-            if (!file.exists()) {
-                file.mkdirs()
-            }
+            if (!file.exists()) file.mkdirs()
             val systemMarkerFile = File(file, SYSTEM_MARKER_FILE)
-            systemMarkerFile.createNewFile()
             // To prevent usages by multiple processes
-            val lock = try {
-                systemLockChannel = FileChannel.open(systemMarkerFile.toPath(), StandardOpenOption.WRITE)
-                systemLockChannel?.tryLock()
-            } catch (e: IOException) {
-                logger.warn("InspectionPlugin: IO exception while locking: ${e.message}")
-                throw RunnerException("Exception caught in inspection plugin (IDEA system dir lock): $e", e)
-            }
-            if (lock == null && code == 256) {
-                throw RunnerException("Cannot create IDEA system directory (all locked)")
-            }
-        } while (lock == null)
+            val status = acquireSystemLockIfNeeded(systemMarkerFile)
+            if (status == LockStatus.SKIP)
+                logger.warn("InspectionPlugin: IDEA system path already used is current process")
+        } while (status == LockStatus.USED)
         return file.absolutePath
     }
 
-    private fun lockAcquireIfNeeded(lockName: String): Pair<FileLock?, FileChannel?> {
-        if (!LOCKS_DIRECTORY.exists()) LOCKS_DIRECTORY.mkdirs()
-        val lockFile = File(LOCKS_DIRECTORY, lockName)
+    private fun acquireLockIfNeeded(lockType: String, lockFile: File): Triple<LockStatus, FileLock?, FileChannel?> {
+        val lockDirectory: File? = lockFile.parentFile
+        if (lockDirectory != null && !lockDirectory.exists()) lockDirectory.mkdirs()
+        val lockName = lockType + " lock " + lockFile.name
         if (!lockFile.exists()) lockFile.createNewFile()
         val channel = FileChannel.open(lockFile.toPath(), StandardOpenOption.WRITE)
-        val lock = try {
-            channel?.tryLock()
+        val (status, lock) = try {
+            val lock = channel?.tryLock()
+            val status = if (lock == null) LockStatus.USED else LockStatus.FREE
+            Pair(status, lock)
         } catch (ignore: OverlappingFileLockException) {
-            null
+            Pair(LockStatus.SKIP, null)
+        } catch (e: IOException) {
+            logger.warn("InspectionPlugin: IO exception while locking: ${e.message}")
+            throw RunnerException("Exception caught in inspection plugin (IDEA $lockName locking): $e", e)
         }
-        when (lock) {
-            null -> logger.info("InspectionPlugin: lock $lockName acquire skipped")
-            else -> logger.info("InspectionPlugin: lock $lockName acquired")
+        when (status) {
+            LockStatus.SKIP -> logger.info("InspectionPlugin: $lockName used by current process.")
+            LockStatus.USED -> logger.info("InspectionPlugin: $lockName used by another process.")
+            LockStatus.FREE -> logger.info("InspectionPlugin: $lockName acquired")
         }
-        return lock to channel
+        return Triple(status, lock, channel)
     }
 
     private fun lockRelease(name: String, lock: FileLock?, channel: FileChannel?) {
@@ -265,23 +269,31 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
         logger.info("InspectionPlugin: $name lock released")
     }
 
-    private fun acquireIdeaLockIfNeeded() {
-        val lockName = ideaLockFileName()
-        val (lock, channel) = lockAcquireIfNeeded(lockName)
+    private fun acquireIdeaLockIfNeeded(): LockStatus {
+        val lockFile = File(LOCKS_DIRECTORY, ideaLockFileName())
+        val (status, lock, channel) = acquireLockIfNeeded("Idea", lockFile)
         ideaLock = lock
         ideaLockChannel = channel
+        return status
     }
 
     private fun releaseIdeaLock() = lockRelease("Idea", ideaLock, ideaLockChannel)
 
-    private fun releaseSystemLock() = lockRelease("System", null, systemLockChannel)
+    private fun acquireSystemLockIfNeeded(systemLockFile: File): LockStatus {
+        val (status, lock, channel) = acquireLockIfNeeded("System", systemLockFile)
+        systemLock = lock
+        systemLockChannel = channel
+        return status
+    }
 
-    private fun acquireShutdownLockIfNeeded(): Boolean {
-        val lockName = shutdownLockFileName()
-        val (lock, channel) = lockAcquireIfNeeded(lockName)
+    private fun releaseSystemLock() = lockRelease("System", systemLock, systemLockChannel)
+
+    private fun acquireShutdownLockIfNeeded(): LockStatus {
+        val lockFile = File(LOCKS_DIRECTORY, shutdownLockFileName())
+        val (status, lock, channel) = acquireLockIfNeeded("Shutdown", lockFile)
         shutdownLock = lock
         shutdownLockChannel = channel
-        return shutdownLock != null
+        return status
     }
 
     private fun releaseShutdownLock() = lockRelease("Shutdown", shutdownLock, shutdownLockChannel)
@@ -292,8 +304,7 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
     }
 
     override fun finalize() {
-        val shutdownNeeded = acquireShutdownLockIfNeeded()
-        if (!shutdownNeeded) {
+        if (acquireShutdownLockIfNeeded() == LockStatus.SKIP) {
             logger.info("InspectionPlugin: IDEA shutting down skipped.")
             return
         }
