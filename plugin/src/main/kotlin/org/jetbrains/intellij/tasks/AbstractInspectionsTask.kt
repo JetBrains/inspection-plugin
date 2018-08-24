@@ -1,17 +1,11 @@
 package org.jetbrains.intellij.tasks
 
-import groovy.lang.Closure
-import groovy.lang.DelegatesTo
 import org.gradle.BuildListener
 import org.gradle.BuildResult
-import org.gradle.api.Action
 import org.gradle.api.file.FileCollection
 import org.gradle.api.file.FileTree
 import org.gradle.api.initialization.Settings
-import org.gradle.api.internal.ClosureBackedAction
 import org.gradle.api.invocation.Gradle
-import org.gradle.api.plugins.quality.CheckstyleReports
-import org.gradle.api.reporting.Reporting
 import org.gradle.api.tasks.*
 import org.jetbrains.intellij.*
 import org.jetbrains.intellij.extensions.InspectionPluginExtension
@@ -90,6 +84,16 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
     @get:Console
     open val isQuiet: Boolean
         get() = extension.isQuiet ?: false
+
+
+    /**
+     * Whether code changes can be applied.
+     *
+     * @return true if code changes can be applied, false otherwise
+     */
+    @get:Input
+    open val isAvailableCodeChanging: Boolean
+        get() = true
 
     /**
      * If this value is <tt>true</tt> implementation of inspections will be found in IDEA
@@ -205,6 +209,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
                 getIgnoreFailures(),
                 ideaVersion,
                 kotlinPluginVersion,
+                isAvailableCodeChanging,
                 report,
                 inheritFromIdea,
                 profileName,

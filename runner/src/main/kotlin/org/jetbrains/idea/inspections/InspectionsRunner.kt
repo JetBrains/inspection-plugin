@@ -226,6 +226,7 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
             parameters: InspectionPluginParameters,
             results: Map<String, List<PinnedProblemDescriptor>>
     ) {
+        if (!parameters.isAvailableCodeChanging) return
         val writeFixes = ArrayList<Pair<PinnedProblemDescriptor, QuickFix<CommonProblemDescriptor>>>()
         val otherFixes = ArrayList<Pair<PinnedProblemDescriptor, QuickFix<CommonProblemDescriptor>>>()
         @Suppress("UNUSED_VARIABLE")

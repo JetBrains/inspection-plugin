@@ -18,9 +18,10 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<AbstractInspectionsTask,
 
     override val reportName: String = SHORT_NAME
 
-    override val sourceBasedTasks = mapOf(
-            SHORT_NAME to InspectionsTask::class.java,
-            REFORMAT_SHORT_TASK_NAME to ReformatTask::class.java
+    override val sourceBasedTasks = listOf(
+            TaskDescriptor(CHECK_TASK_NAME, CheckInspectionsTask::class.java, false),
+            TaskDescriptor(SHORT_NAME, InspectionsTask::class.java, true),
+            TaskDescriptor(REFORMAT_SHORT_TASK_NAME, ReformatTask::class.java, true)
     )
 
     override fun createExtension(): InspectionPluginExtension {
@@ -90,6 +91,8 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<AbstractInspectionsTask,
         private val logger: Logger = Logging.getLogger(InspectionPlugin::class.java)
 
         internal const val SHORT_NAME = "inspections"
+
+        private const val CHECK_TASK_NAME = "checkInspections"
 
         private const val UNZIP_IDEA_TASK_NAME = "unzip-idea"
 

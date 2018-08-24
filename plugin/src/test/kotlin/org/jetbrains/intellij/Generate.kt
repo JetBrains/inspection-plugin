@@ -8,6 +8,7 @@ fun main(args: Array<String>) {
     val testDataDir = File("testData")
     testsDir.mkdirs()
     val testGenerator = InspectionTestGenerator(testsDir, testDataDir)
+    testGenerator.generate("build", "build")
     testGenerator.generate("inspectionsMain", "inspection")
     testGenerator.generate("reformatMain", "reformat")
 }

@@ -9,6 +9,7 @@ data class InspectionPluginParameters(
         val ideaVersion: String,
         val kotlinPluginVersion: String?,
 
+        val isAvailableCodeChanging: Boolean,
         val reportParameters: ReportParameters,
 
         val inheritFromIdea: Boolean,

@@ -17,11 +17,6 @@ open class InspectionPluginExtension(private val project: Project?) : CodeQualit
     var isQuiet: Boolean? = null
 
     /**
-     * Binary sources will not participate in the analysis.
-     */
-    var skipBinarySources: Boolean? = null
-
-    /**
      * If this value is <tt>true</tt> implementation of inspections will be found in IDEA
      * profile with given {@profileName}.
      */
