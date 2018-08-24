@@ -236,7 +236,7 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
             // To prevent usages by multiple processes
             val status = acquireSystemLockIfNeeded(systemMarkerFile)
             if (status == LockStatus.SKIP)
-                logger.warn("InspectionPlugin: IDEA system path already used is current process")
+                logger.warn("InspectionPlugin: IDEA system path is already used in current process")
         } while (status == LockStatus.USED)
         return file.absolutePath
     }
@@ -323,8 +323,8 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
             releaseIdeaLock()
             releaseShutdownLock()
         }
-        // Release not needed if application dispatch thread is death because
-        // if dispatch is death then gradle daemon must be death. After death
+        // Release not needed if application dispatch thread is dead because
+        // if dispatch is dead then gradle daemon must be dead. After death
         // of gradle daemon operation system automatically released all locks.
         application?.invokeLater(release) ?: run(release)
     }
