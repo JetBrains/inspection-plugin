@@ -24,7 +24,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
 
     companion object {
         // TODO: take the same version as plugin
-        const val runnerVersion = "0.2.0-RC-1-SNAPSHOT"
+        const val runnerVersion = "0.2.0-rc-2"
     }
 
     /**
