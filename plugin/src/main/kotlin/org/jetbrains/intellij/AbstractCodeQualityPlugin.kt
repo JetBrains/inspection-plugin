@@ -18,7 +18,7 @@ import java.util.concurrent.Callable
 
 abstract class AbstractCodeQualityPlugin<T : Task, E : CodeQualityExtension> : Plugin<ProjectInternal> {
 
-    data class TaskDescriptor<T : Task>(val name: String, val type: Class<out T>, val hasBackEffects: Boolean)
+    data class TaskDescriptor<T : Task>(val name: String, val type: Class<out T>, val hasSideEffects: Boolean)
 
     protected lateinit var project: ProjectInternal
 
@@ -125,7 +125,7 @@ abstract class AbstractCodeQualityPlugin<T : Task, E : CodeQualityExtension> : P
     private fun configureCheckTaskDependents() {
         val tasks = Callable {
             sourceBasedTasks.asSequence()
-                    .filterNot { it.hasBackEffects }
+                    .filterNot { it.hasSideEffects }
                     .map { it.name }
                     .map { name -> extension.sourceSets.map { it.getTaskName(name, null) } }
                     .flatten()
