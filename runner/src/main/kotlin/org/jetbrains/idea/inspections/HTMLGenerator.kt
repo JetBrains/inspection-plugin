@@ -1,14 +1,13 @@
 package org.jetbrains.idea.inspections
 
 import com.intellij.codeInspection.ProblemHighlightType
-import com.intellij.openapi.application.Application
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
 import java.io.File
 
-class HTMLGenerator(        override val reportFile: File) : ReportGenerator {
+class HTMLGenerator(override val reportFile: File) : ReportGenerator {
     private val sb = StringBuilder()
 
     private val documentManager = FileDocumentManager.getInstance()

@@ -31,7 +31,7 @@ open class ReformatTask : AbstractInspectionsTask() {
     override val profileName: String?
         get() = null
 
-    @get:Input
+    @get:Internal
     private val reformatQuickFix: Boolean
         get() = extension.reformat.quickFix ?: true
 

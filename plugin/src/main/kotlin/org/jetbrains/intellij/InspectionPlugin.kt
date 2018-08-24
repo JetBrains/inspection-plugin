@@ -47,7 +47,7 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<AbstractInspectionsTask,
 
     override fun configureTaskDefaults(task: AbstractInspectionsTask, baseName: String) {
         configureTaskDependencies(task)
-        configureReportsConventionMapping(task, baseName)
+        if (task is InspectionsTask) configureReportsConventionMapping(task, baseName)
     }
 
     private fun configureTasksDefaults() {
@@ -69,7 +69,7 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<AbstractInspectionsTask,
         }
     }
 
-    private fun configureReportsConventionMapping(task: AbstractInspectionsTask, baseName: String) {
+    private fun configureReportsConventionMapping(task: InspectionsTask, baseName: String) {
         task.reports.all { report ->
             val reportMapping = AbstractCodeQualityPlugin.conventionMappingOf(report)
             reportMapping.map("enabled") { true }

@@ -277,8 +277,7 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
         val fileName = file?.name
         runReadAction {
             val beforeText = file?.text
-            if (!applyFix(fix, project, problem))
-                logger.info("InspectionPlugin: Inapplicable fix for '$renderedProblem'")
+            applyFix(fix, project, problem)
             val afterText = file?.text
             when {
                 beforeText == null -> logger.info("InspectionPlugin: Inapplicable fix for '$renderedProblem'")
@@ -311,24 +310,24 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
             fix: QuickFix<CommonProblemDescriptor>,
             project: Project,
             problem: PinnedProblemDescriptor
-    ): Boolean {
+    ) {
         val renderedProblem = problem.renderWithLocation()
         if (problem.psiElement == null) {
             logger.info("InspectionPlugin: Fix already applied for '$renderedProblem'")
-            return false
+            return
         }
         try {
             if (!preparePsiElementForWrite(problem.psiElement)) {
                 logger.warn("InspectionPlugin: Problem psiElement cannot be prepared for '$renderedProblem'")
-                return false
+                return
             }
             fix.applyFix(project, problem)
             logger.info("InspectionPlugin: Applied fix for '$renderedProblem'")
-            return true
+            return
         } catch (exception: Exception) {
             logger.error("InspectionPlugin: Exception during applying quick fix for '$renderedProblem'")
             logger.error("InspectionPlugin: $exception")
-            return false
+            return
         }
     }
 
