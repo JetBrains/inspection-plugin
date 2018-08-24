@@ -7,6 +7,11 @@ import org.gradle.api.Project
 open class InspectionPluginExtension(private val project: Project?) : CodeQualityExtension() {
 
     /**
+     * Uses for running unit tests
+     */
+    var testMode: Boolean? = null
+
+    /**
      * Configuration of IDEA.
      */
     var idea = IdeaExtension()

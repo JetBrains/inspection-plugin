@@ -16,7 +16,9 @@ data class InspectionPluginParameters(
         val profileName: String?,
         val errors: InspectionsParameters,
         val warnings: InspectionsParameters,
-        val infos: InspectionsParameters
+        val infos: InspectionsParameters,
+
+        val testMode: Boolean
 ) : Runner.Parameters {
 
     val inspections = errors.inspections + warnings.inspections + infos.inspections

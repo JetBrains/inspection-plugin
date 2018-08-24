@@ -16,7 +16,8 @@ interface Runner<in T : Runner.Parameters> {
             ideaHomeDirectory: File,
             ideaSystemDirectory: File,
             plugins: List<File>,
-            parameters: T
+            parameters: T,
+            testMode: Boolean
     ): Boolean
 
     fun setLogger(logger: BiFunction<Int, String, Unit>)
