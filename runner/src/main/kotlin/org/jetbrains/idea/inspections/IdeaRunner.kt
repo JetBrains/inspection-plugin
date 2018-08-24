@@ -24,11 +24,11 @@ import com.intellij.util.PlatformUtils
 import org.jetbrains.intellij.Runner
 import java.io.File
 import java.io.IOException
-import java.nio.channels.FileChannel
-import java.nio.file.StandardOpenOption
 import java.lang.management.ManagementFactory
+import java.nio.channels.FileChannel
 import java.nio.channels.FileLock
 import java.nio.channels.OverlappingFileLockException
+import java.nio.file.StandardOpenOption
 
 
 abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
@@ -181,6 +181,7 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
     }
 
     private fun loadApplication(ideaHomeDirectory: File, ideaSystemDirectory: File, plugins: List<File>): ApplicationEx {
+        val state = initRun()
         val ideaBuildNumberFile = File(ideaHomeDirectory, "build.txt")
         val (buildNumber, usesUltimate) = ideaBuildNumberFile.buildConfiguration
         if (usesUltimate) throw RunnerException("Using of IDEA Ultimate is not yet supported in inspection runner")
@@ -201,8 +202,8 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
         logger.info("InspectionPlugin: IDEA plugin path: ${PathManager.getPluginsPath()}")
         logger.info("InspectionPlugin: IDEA system path: $systemPath")
         if (getCommandLineApplication() != null) {
-            logger.info("InspectionPlugin: IDEA command line application already exists, don't bother to run it again")
-            if (ideaLock != null) throw RunnerException("Uses old IDEA, but previous run not registered")
+            logger.info("InspectionPlugin: IDEA command line application already exists, don't bother to run it again.")
+            if (state == Build.State.INIT) throw RunnerException("Found not registered IDEA.")
             val realIdeaHomeDirectory = File(PathManager.getHomePath())
             val ideaHomePath = ideaHomeDirectory.canonicalPath
             val realIdeaHomePath = realIdeaHomeDirectory.canonicalPath
@@ -211,7 +212,7 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
             return ApplicationManagerEx.getApplicationEx()
         }
         logger.info("InspectionPlugin: IDEA starting in command line mode")
-        if (ideaLock == null) throw RunnerException("New IDEA started with old classpath")
+        if (state != Build.State.INIT) throw RunnerException("IDEA is not running, although it should.")
         createCommandLineApplication(isInternal = false, isUnitTestMode = false, isHeadless = true)
         USELESS_PLUGINS.forEach { PluginManagerCore.disablePlugin(it) }
 
@@ -235,8 +236,9 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
             val systemMarkerFile = File(file, SYSTEM_MARKER_FILE)
             // To prevent usages by multiple processes
             val status = acquireSystemLockIfNeeded(systemMarkerFile)
-            if (status == LockStatus.SKIP)
-                logger.warn("InspectionPlugin: IDEA system path is already used in current process")
+            if (status == LockStatus.SKIP) {
+                throw RunnerException("IDEA system path is already used in current process")
+            }
         } while (status == LockStatus.USED)
         return file.absolutePath
     }
@@ -290,26 +292,35 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
 
     private fun releaseSystemLock() = lockRelease("System", systemLock, systemLockChannel)
 
-    private fun acquireShutdownLockIfNeeded(): LockStatus {
-        val lockFile = File(LOCKS_DIRECTORY, shutdownLockFileName())
-        val (status, lock, channel) = acquireLockIfNeeded("Shutdown", lockFile)
-        shutdownLock = lock
-        shutdownLockChannel = channel
-        return status
-    }
-
-    private fun releaseShutdownLock() = lockRelease("Shutdown", shutdownLock, shutdownLockChannel)
-
     private fun finishGradleDaemon() {
         logger.error("InspectionPlugin: Killed current gradle daemon for classpath resetting")
         System.exit(1)
     }
 
-    override fun finalize() {
-        if (acquireShutdownLockIfNeeded() == LockStatus.SKIP) {
-            logger.info("InspectionPlugin: IDEA shutting down skipped.")
-            return
+    private fun initRun(): Build.State {
+        return build.with {
+            val previous = state
+            if (state == Build.State.SHUTDOWN) {
+                throw RunnerException("Cannot run IDEA during shutdowns.")
+            }
+            state = Build.State.WORKING
+            previous
         }
+    }
+
+    private fun initShutdown(): Boolean {
+        return build.with {
+            if (state == Build.State.SHUTDOWN) {
+                logger.info("InspectionPlugin: IDEA shutting down skipped.")
+                return@with false
+            }
+            state = Build.State.SHUTDOWN
+            return@with true
+        }
+    }
+
+    override fun finalize() {
+        if (!initShutdown()) return
         // NB: exit is actually performed on EDT thread!
         logger.info("InspectionPlugin: IDEA shutting down.")
         val application = application
@@ -321,12 +332,32 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
             finishGradleDaemon()
             releaseSystemLock()
             releaseIdeaLock()
-            releaseShutdownLock()
         }
         // Release not needed if application dispatch thread is dead because
         // if dispatch is dead then gradle daemon must be dead. After death
         // of gradle daemon operation system automatically released all locks.
         application?.invokeLater(release) ?: run(release)
+    }
+
+    class Build {
+        enum class State { INIT, WORKING, SHUTDOWN }
+
+        // Do not create instance of this class
+        inner class MutableBuild {
+            var state: State
+                get() = this@Build.state
+                set(value) {
+                    this@Build.state = value
+                }
+        }
+
+        private var state = State.INIT
+
+        private val mutex = Any()
+
+        fun <R> with(action: MutableBuild.() -> R) = synchronized(mutex) {
+            MutableBuild().action()
+        }
     }
 
     companion object {
@@ -366,6 +397,6 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
 
         private fun ideaLockFileName() = "${getPID()}.$IDEA_LOCK_EXTENSION"
 
-        private fun shutdownLockFileName() = "${getPID()}.$SHUTDOWN_LOCK_EXTENSION"
+        val build = Build()
     }
 }
