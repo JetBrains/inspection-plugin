@@ -13,6 +13,8 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
+import org.jetbrains.idea.inspections.generators.HTMLGenerator
+import org.jetbrains.idea.inspections.generators.XMLGenerator
 import org.jetbrains.intellij.parameters.InspectionsParameters
 import org.jetbrains.intellij.parameters.InspectionPluginParameters
 import java.io.File
@@ -215,8 +217,8 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
                     generators.forEach { it.report(problem, level, inspectionClass) }
                 }
             }
+            generators.forEach { it.generate() }
         }
-        generators.forEach { it.generate() }
     }
 
     private fun quickFixProblems(
