@@ -120,7 +120,6 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
                 val infos = inspections("infos", infos)
                 @Suppress("UNNECESSARY_SAFE_CALL")
                 val settings = listOfNotNull(
-                        "extension.testMode = true",
                         inheritFromIdea?.kotlinCode?.let { "extension.inheritFromIdea = $it" },
                         profileName?.kotlinCode?.let { "extension.profileName = $it" },
                         reportsDir?.kotlinCode(base)?.let { "extension.reportsDir = $it" },

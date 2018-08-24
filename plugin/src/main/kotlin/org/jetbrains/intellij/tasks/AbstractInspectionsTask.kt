@@ -201,7 +201,6 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
 
     @Internal
     private fun getInspectionsParameters(): InspectionPluginParameters {
-        val testMode = extension.testMode ?: false
         val report = ReportParameters(isQuiet, xml, html)
         val errors = InspectionsParameters(errorsInspections, maxErrors)
         val warnings = InspectionsParameters(warningsInspections, maxWarnings)
@@ -216,8 +215,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
                 profileName,
                 errors,
                 warnings,
-                infos,
-                testMode
+                infos
         )
     }
 
@@ -296,8 +294,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
                         ideaHomeDirectory = ideaDirectory,
                         ideaSystemDirectory = ideaSystemDirectory,
                         plugins = plugins,
-                        parameters = parameters,
-                        testMode = parameters.testMode
+                        parameters = parameters
                 )
             }
             inspectionsThread.contextClassLoader = loader

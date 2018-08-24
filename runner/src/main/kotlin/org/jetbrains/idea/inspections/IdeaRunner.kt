@@ -100,11 +100,17 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
     private var application: ApplicationEx? = null
 
     enum class LockStatus {
-        FREE, LOCKED
+        FREE, USED, SKIP
     }
 
     private var systemLockChannel: FileChannel? = null
     private var systemLock: FileLock? = null
+
+    private var ideaLockChannel: FileChannel? = null
+    private var ideaLock: FileLock? = null
+
+    private var shutdownLockChannel: FileChannel? = null
+    private var shutdownLock: FileLock? = null
 
     private val idea: ApplicationEx
         get() = application ?: throw IllegalStateException("Idea not runned")
@@ -132,25 +138,14 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
             ideaHomeDirectory: File,
             ideaSystemDirectory: File,
             plugins: List<File>,
-            parameters: T,
-            testMode: Boolean
+            parameters: T
     ): Boolean {
         // Don't delete, change and downgrade level of log because this
         // information used in unit tests for identification of daemon.
-        logger.info("InspectionPlugin: Daemon PID is $PID")
+        logger.info("InspectionPlugin: Daemon PID is ${getPID()}")
         logger.info("InspectionPlugin: Class loader: " + this.javaClass.classLoader)
         try {
-            if (testMode) {
-                logger.warn("InspectionPlugin: Plugin started in test mode.")
-                val temp = System.getProperty("java.io.tmpdir")
-                val lockFile = File("$temp/inspection-plugin/locks/$PID.idea-lock")
-                val status = try {
-                    acquireLockIfNeeded("Idea", lockFile).first
-                } catch (ignore: OverlappingFileLockException) {
-                    null
-                }
-                logger.info("InspectionPlugin: Idea lock status = $status.")
-            }
+            acquireIdeaLockIfNeeded()
             application = loadApplication(ideaHomeDirectory, ideaSystemDirectory, plugins)
             application?.doNotSave()
             application?.configureJdk()
@@ -241,7 +236,10 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
             val systemMarkerFile = File(file, SYSTEM_MARKER_FILE)
             // To prevent usages by multiple processes
             val status = acquireSystemLockIfNeeded(systemMarkerFile)
-        } while (status == LockStatus.LOCKED)
+            if (status == LockStatus.SKIP) {
+                throw RunnerException("IDEA system path is already used in current process")
+            }
+        } while (status == LockStatus.USED)
         return file.absolutePath
     }
 
@@ -253,11 +251,18 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
         val channel = FileChannel.open(lockFile.toPath(), StandardOpenOption.WRITE)
         val (status, lock) = try {
             val lock = channel?.tryLock()
-            val status = if (lock == null) LockStatus.LOCKED else LockStatus.FREE
+            val status = if (lock == null) LockStatus.USED else LockStatus.FREE
             Pair(status, lock)
+        } catch (ignore: OverlappingFileLockException) {
+            Pair(LockStatus.SKIP, null)
         } catch (e: IOException) {
             logger.warn("InspectionPlugin: IO exception while locking: ${e.message}")
             throw RunnerException("Exception caught in inspection plugin (IDEA $lockName locking): $e", e)
+        }
+        when (status) {
+            LockStatus.SKIP -> logger.info("InspectionPlugin: $lockName used by current process.")
+            LockStatus.USED -> logger.info("InspectionPlugin: $lockName used by another process.")
+            LockStatus.FREE -> logger.info("InspectionPlugin: $lockName acquired")
         }
         return Triple(status, lock, channel)
     }
@@ -267,6 +272,16 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
         channel?.close()
         logger.info("InspectionPlugin: $name lock released")
     }
+
+    private fun acquireIdeaLockIfNeeded(): LockStatus {
+        val lockFile = File(LOCKS_DIRECTORY, ideaLockFileName())
+        val (status, lock, channel) = acquireLockIfNeeded("Idea", lockFile)
+        ideaLock = lock
+        ideaLockChannel = channel
+        return status
+    }
+
+    private fun releaseIdeaLock() = lockRelease("Idea", ideaLock, ideaLockChannel)
 
     private fun acquireSystemLockIfNeeded(systemLockFile: File): LockStatus {
         val (status, lock, channel) = acquireLockIfNeeded("System", systemLockFile)
@@ -316,6 +331,7 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
         val release = {
             finishGradleDaemon()
             releaseSystemLock()
+            releaseIdeaLock()
         }
         // Release not needed if application dispatch thread is dead because
         // if dispatch is dead then gradle daemon must be dead. After death
@@ -371,8 +387,15 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
 
         private const val DEFAULT_BUILD_NUMBER = "172.1"
 
-        private val PID: String
-            get() = ManagementFactory.getRuntimeMXBean().name
+        private val LOCKS_DIRECTORY = File(System.getProperty("java.io.tmpdir"), "inspection-plugin/locks")
+
+        private const val IDEA_LOCK_EXTENSION = "idea-lock"
+
+        private const val SHUTDOWN_LOCK_EXTENSION = "shutdown-lock"
+
+        private fun getPID() = ManagementFactory.getRuntimeMXBean().name
+
+        private fun ideaLockFileName() = "${getPID()}.$IDEA_LOCK_EXTENSION"
 
         val build = Build()
     }

@@ -2,6 +2,7 @@ package org.jetbrains.intellij.inspection
 
 import org.gradle.internal.impldep.org.apache.commons.io.output.TeeOutputStream
 import org.gradle.internal.io.StreamByteBuffer
+import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import org.gradle.testkit.runner.UnexpectedBuildFailure
@@ -45,9 +46,6 @@ class InspectionTestBench(private val taskName: String) {
                     }
                     @Suppress("UNNECESSARY_SAFE_CALL")
                     when (template.value.drop(1).dropLast(1)) {
-                        "testMode" -> testMode?.gradleCode?.let {
-                            appendln("    testMode = $it")
-                        }
                         "kotlinGradleDependency" -> if (kotlinNeeded) {
                             appendln("        classpath \"org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion\"")
                         }
@@ -377,22 +375,17 @@ class InspectionTestBench(private val taskName: String) {
                 .mapNotNull { it.removePrefix("InspectionPlugin: Daemon PID is ") }
                 .firstOrNull()
 
-
-        private fun isAliveDaemon(daemonPid: String): Boolean {
-            val ideaLockDir = File(System.getProperty("java.io.tmpdir"), "inspection-plugin/locks")
-            val lockFile = ideaLockDir.listFiles()?.find { it.name == "$daemonPid.idea-lock" }
-            if (lockFile == null) {
-                System.err.println("InspectionTestBench: idea-lock not found")
-                return false
-            }
-            val ideaLockChannel = FileChannel.open(lockFile.toPath(), StandardOpenOption.WRITE)
-            return ideaLockChannel.tryLock() == null
-        }
-
         private fun waitIdeaRelease(daemonPid: String) {
             val startTime = System.currentTimeMillis()
             println("InspectionTestBench: Start waiting of idea finalize")
-            while (isAliveDaemon(daemonPid)) Thread.yield()
+            val ideaLockDir = File(System.getProperty("java.io.tmpdir"), "inspection-plugin/locks")
+            val lockFile = ideaLockDir.listFiles()?.find { it.name == "$daemonPid.idea-lock" } ?: run {
+                println("InspectionTestBench: lock file not found")
+                return
+            }
+            val ideaLockChannel = FileChannel.open(lockFile.toPath(), StandardOpenOption.WRITE) ?: return
+            while (ideaLockChannel.tryLock() == null) Thread.yield()
+            ideaLockChannel.close()
             val endTime = System.currentTimeMillis()
             val delay = (endTime - startTime).toDouble() / 1000.0
             println("InspectionTestBench: End waiting of idea finalize. Took $delay secs")
