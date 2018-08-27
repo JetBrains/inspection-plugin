@@ -131,5 +131,5 @@ dependencies {
     compileOnly("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
     compileOnly("org.jdom:jdom2:2.0.6")
     compileOnly(fileTree(mapOf("dir" to "$ideaDirectory/lib", "include" to "*.jar")))
-    compileOnly(project(":plugin"))
+    compileOnly(project(":interface"))
 }

@@ -96,6 +96,7 @@ dependencies {
 
     // Version of this library dependent from gradle api version
     compile("org.apache.httpcomponents:httpclient:4.2.2")
+    compile(project(":interface"))
 }
 
 configure<ProcessResources>("processResources") {
