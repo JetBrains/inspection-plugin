@@ -21,7 +21,6 @@ class InspectionTestGenerated {
         testBench.doTest(File("testData/inspection/configurationIdea_Default"), extension)
     }
 
-    @Ignore
     @Test
     fun testConfigurationIdea_IJ2017_2() {
         val extension = InspectionPluginExtension(null)
@@ -30,7 +29,6 @@ class InspectionTestGenerated {
         testBench.doTest(File("testData/inspection/configurationIdea_IJ2017_2"), extension)
     }
 
-    @Ignore
     @Test
     fun testConfigurationIdea_IJ2017_3() {
         val extension = InspectionPluginExtension(null)
@@ -39,7 +37,6 @@ class InspectionTestGenerated {
         testBench.doTest(File("testData/inspection/configurationIdea_IJ2017_3"), extension)
     }
 
-    @Ignore
     @Test
     fun testConfigurationIdea_IJ2018_1() {
         val extension = InspectionPluginExtension(null)
@@ -48,7 +45,6 @@ class InspectionTestGenerated {
         testBench.doTest(File("testData/inspection/configurationIdea_IJ2018_1"), extension)
     }
 
-    @Ignore
     @Test
     fun testConfigurationIdea_IJ2018_2() {
         val extension = InspectionPluginExtension(null)
@@ -57,7 +53,6 @@ class InspectionTestGenerated {
         testBench.doTest(File("testData/inspection/configurationIdea_IJ2018_2"), extension)
     }
 
-    @Ignore
     @Test
     fun testConfigurationIdea_IU2017_3() {
         val extension = InspectionPluginExtension(null)

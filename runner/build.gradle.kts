@@ -106,9 +106,9 @@ configurations {
     }
 }
 
-val ideaDirectory = File(System.getProperty("java.io.tmpdir"), "inspection-plugin/build/r-ideaIC_2017_3")
+val ideaDirectory = File(buildDir, "ideaIC_2017_3")
 
-task<Sync>(name = "r-unzip-idea") {
+task<Sync>(name = "unzip-idea") {
     if (ideaDirectory.exists()) return@task
     with(configurations.getByName("idea")) {
         dependsOn(this)
@@ -119,7 +119,7 @@ task<Sync>(name = "r-unzip-idea") {
 
 tasks {
     withType<KotlinCompile> {
-        dependsOn(tasks.getByName("r-unzip-idea"))
+        dependsOn(tasks.getByName("unzip-idea"))
         kotlinOptions {
             jvmTarget = "1.8"
             languageVersion = "1.0"

@@ -21,6 +21,7 @@ import com.intellij.openapi.roots.OrderRootType
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.util.PlatformUtils
+import org.jetbrains.idea.inspections.control.DisableSystemExit
 import org.jetbrains.intellij.Runner
 import java.io.File
 import java.io.IOException
@@ -106,12 +107,6 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
     private var systemLockChannel: FileChannel? = null
     private var systemLock: FileLock? = null
 
-    private var ideaLockChannel: FileChannel? = null
-    private var ideaLock: FileLock? = null
-
-    private var shutdownLockChannel: FileChannel? = null
-    private var shutdownLock: FileLock? = null
-
     private val idea: ApplicationEx
         get() = application ?: throw IllegalStateException("Idea not runned")
 
@@ -145,7 +140,6 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
         logger.info("InspectionPlugin: Daemon PID is ${getPID()}")
         logger.info("InspectionPlugin: Class loader: " + this.javaClass.classLoader)
         try {
-            acquireIdeaLockIfNeeded()
             application = loadApplication(ideaHomeDirectory, ideaSystemDirectory, plugins)
             application?.doNotSave()
             application?.configureJdk()
@@ -273,16 +267,6 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
         logger.info("InspectionPlugin: $name lock released")
     }
 
-    private fun acquireIdeaLockIfNeeded(): LockStatus {
-        val lockFile = File(LOCKS_DIRECTORY, ideaLockFileName())
-        val (status, lock, channel) = acquireLockIfNeeded("Idea", lockFile)
-        ideaLock = lock
-        ideaLockChannel = channel
-        return status
-    }
-
-    private fun releaseIdeaLock() = lockRelease("Idea", ideaLock, ideaLockChannel)
-
     private fun acquireSystemLockIfNeeded(systemLockFile: File): LockStatus {
         val (status, lock, channel) = acquireLockIfNeeded("System", systemLockFile)
         systemLock = lock
@@ -290,11 +274,10 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
         return status
     }
 
-    private fun releaseSystemLock() = lockRelease("System", systemLock, systemLockChannel)
-
-    private fun finishGradleDaemon() {
-        logger.error("InspectionPlugin: Killed current gradle daemon for classpath resetting")
-        System.exit(1)
+    private fun releaseSystemLock() {
+        lockRelease("System", systemLock, systemLockChannel)
+        systemLock = null
+        systemLockChannel == null
     }
 
     private fun initRun(): Build.State {
@@ -321,22 +304,16 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
 
     override fun finalize() {
         if (!initShutdown()) return
-        // NB: exit is actually performed on EDT thread!
         logger.info("InspectionPlugin: IDEA shutting down.")
         val application = application
-        when (application) {
-            is ApplicationImpl -> application.exit(true, true, false)
-            else -> application?.exit(true, true)
+        DisableSystemExit().use {
+            when (application) {
+                is ApplicationImpl -> application.exit(true, true, false)
+                else -> application?.exit(true, true)
+            }
+            // Wait IDEA shutdown
+            application?.invokeAndWait { }
         }
-        val release = {
-            finishGradleDaemon()
-            releaseSystemLock()
-            releaseIdeaLock()
-        }
-        // Release not needed if application dispatch thread is dead because
-        // if dispatch is dead then gradle daemon must be dead. After death
-        // of gradle daemon operation system automatically released all locks.
-        application?.invokeLater(release) ?: run(release)
     }
 
     class Build {
@@ -387,15 +364,7 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
 
         private const val DEFAULT_BUILD_NUMBER = "172.1"
 
-        private val LOCKS_DIRECTORY = File(System.getProperty("java.io.tmpdir"), "inspection-plugin/locks")
-
-        private const val IDEA_LOCK_EXTENSION = "idea-lock"
-
-        private const val SHUTDOWN_LOCK_EXTENSION = "shutdown-lock"
-
         private fun getPID() = ManagementFactory.getRuntimeMXBean().name
-
-        private fun ideaLockFileName() = "${getPID()}.$IDEA_LOCK_EXTENSION"
 
         val build = Build()
     }

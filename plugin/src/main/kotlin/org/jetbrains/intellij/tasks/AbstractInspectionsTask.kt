@@ -7,6 +7,7 @@ import org.gradle.api.file.FileTree
 import org.gradle.api.initialization.Settings
 import org.gradle.api.invocation.Gradle
 import org.gradle.api.tasks.*
+import org.gradle.api.tasks.Optional
 import org.jetbrains.intellij.*
 import org.jetbrains.intellij.extensions.InspectionPluginExtension
 import org.jetbrains.intellij.extensions.InspectionsExtension
@@ -16,6 +17,7 @@ import org.jetbrains.intellij.parameters.InspectionPluginParameters
 import org.jetbrains.intellij.parameters.ReportParameters
 import java.io.File
 import java.net.URLClassLoader
+import java.util.*
 import java.util.function.BiFunction
 import kotlin.concurrent.thread
 
@@ -262,7 +264,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
             val parentClassLoader = this.javaClass.classLoader
             logger.info("InspectionPlugin: Runner parent class loader: $parentClassLoader")
             if (parentClassLoader is URLClassLoader) {
-                logger.info("InspectionPlugin: Parent classpath: " + parentClassLoader.urLs)
+                logger.info("InspectionPlugin: Parent classpath: " + Arrays.toString(parentClassLoader.urLs))
             }
             val loader = ClassloaderContainer.getOrInit {
                 ChildFirstClassLoader(fullClasspath.toTypedArray(), parentClassLoader)
@@ -308,6 +310,9 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
             if (!success && !parameters.ignoreFailures) {
                 ExceptionHandler.exception(this, "Task execution failure")
             }
+        } catch (e: TaskExecutionException) {
+            runnerFinalize()
+            throw e
         } catch (e: Throwable) {
             ExceptionHandler.exception(this, e, "Process inspection task exception") {
                 runnerFinalize()
@@ -316,8 +321,11 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
     }
 
     private fun runnerFinalize() {
+        logger.info("InspectionPlugin: Finalize")
+        val runner = runner
+        this.runner = null
         runner?.finalize()
-        runner = null
+        ClassloaderContainer.clean()
     }
 
     object ClassloaderContainer {
@@ -328,6 +336,10 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
             return customClassLoader ?: init().apply {
                 customClassLoader = this
             }
+        }
+
+        fun clean() {
+            customClassLoader = null
         }
     }
 
