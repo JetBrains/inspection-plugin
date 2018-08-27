@@ -28,6 +28,12 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
     }
 
     /**
+     * Run inspection Plugin in test mode
+     */
+    val testMode: Boolean
+        get() = extension.testMode ?: false
+
+    /**
      * The class path containing the compiled classes for the source files to be analyzed.
      */
     @get:Classpath
@@ -206,6 +212,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
         val warnings = InspectionsParameters(warningsInspections, maxWarnings)
         val infos = InspectionsParameters(infosInspections, maxInfos)
         return InspectionPluginParameters(
+                testMode,
                 getIgnoreFailures(),
                 ideaVersion,
                 kotlinPluginVersion,
@@ -287,6 +294,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
                 }
                 gradle.addBuildListener(IdeaFinishingListener())
                 success = runner.run(
+                        testMode = parameters.testMode,
                         files = getSource().files,
                         projectDir = project.rootProject.projectDir,
                         projectName = project.rootProject.name,
@@ -308,6 +316,9 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
             if (!success && !parameters.ignoreFailures) {
                 ExceptionHandler.exception(this, "Task execution failure")
             }
+        } catch (e: TaskExecutionException) {
+            runnerFinalize()
+            throw e
         } catch (e: Throwable) {
             ExceptionHandler.exception(this, e, "Process inspection task exception") {
                 runnerFinalize()

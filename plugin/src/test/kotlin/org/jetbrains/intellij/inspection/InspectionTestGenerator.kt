@@ -32,6 +32,7 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
         Parameter<String>(parameters("profileName")) { profileName = it }
         Parameter<Int>(parameters("maxErrors")) { errors.max = it }
         Parameter<Int>(parameters("maxWarnings")) { warnings.max = it }
+        Parameter<Boolean>(parameters("testMode")) { testMode = it }
         errors {
             Parameter<Set<String>>(parameters("errors.inspections"))?.forEach { inspection(it) }
             Parameter<Boolean>(parameters("quickFix")) { inspections.values.applyEach { quickFix = it } }
@@ -109,6 +110,7 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
                 @Test
                 fun test$name() {
                     val extension = InspectionPluginExtension(null)
+                    extension.testMode = true
                     <extension>
                     testBench.doTest(${test.kotlinCode(base)}, extension)
                 }

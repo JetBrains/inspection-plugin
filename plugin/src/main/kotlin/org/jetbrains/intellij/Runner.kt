@@ -9,6 +9,7 @@ interface Runner<in T : Runner.Parameters> {
 
     // Returns true if analysis executed successfully
     fun run(
+            testMode: Boolean,
             files: Collection<File>,
             projectDir: File,
             projectName: String,

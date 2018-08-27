@@ -46,6 +46,9 @@ class InspectionTestBench(private val taskName: String) {
                     }
                     @Suppress("UNNECESSARY_SAFE_CALL")
                     when (template.value.drop(1).dropLast(1)) {
+                        "testMode" -> testMode?.gradleCode?.let {
+                            appendln("    testMode = $it")
+                        }
                         "kotlinGradleDependency" -> if (kotlinNeeded) {
                             appendln("        classpath \"org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion\"")
                         }
@@ -187,22 +190,25 @@ class InspectionTestBench(private val taskName: String) {
     ) {
         fun doTest() {
             testProjectDir.create()
-            testProjectDir.newFolder("build")
-            initTestProjectIdeaProfile()
-            initTestProjectBuildFile()
-            val testFiles = initTestProjectSources()
-            val (log, outcome) = buildTestProject()
             try {
-                assertInspectionBuildLog(log, outcome)
-                assertInspectionBuildXmlReport()
-                assertInspectionBuildHtmlReport()
-                assertInspectionBuildProjectFiles(testFiles)
+                testProjectDir.newFolder("build")
+                initTestProjectIdeaProfile()
+                initTestProjectBuildFile()
+                val testFiles = initTestProjectSources()
+                val (log, outcome) = buildTestProject()
+                try {
+                    assertInspectionBuildLog(log, outcome)
+                    assertInspectionBuildXmlReport()
+                    assertInspectionBuildHtmlReport()
+                    assertInspectionBuildProjectFiles(testFiles)
+                } finally {
+                    val daemonPid = ejectDaemonPid(log)
+                    println("InspectionTestBench: Daemon PID is $daemonPid")
+                    if (daemonPid != null) waitIdeaRelease(daemonPid)
+                }
             } finally {
-                val daemonPid = ejectDaemonPid(log)
-                println("InspectionTestBench: Daemon PID is $daemonPid")
-                if (daemonPid != null) waitIdeaRelease(daemonPid)
+                testProjectDir.delete()
             }
-            testProjectDir.delete()
         }
 
         private fun initTestProjectIdeaProfile() {

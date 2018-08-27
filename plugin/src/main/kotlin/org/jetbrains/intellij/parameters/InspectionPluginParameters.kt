@@ -5,6 +5,7 @@ import java.io.File
 
 
 data class InspectionPluginParameters(
+        val testMode: Boolean,
         val ignoreFailures: Boolean,
         val ideaVersion: String,
         val kotlinPluginVersion: String?,

@@ -109,9 +109,6 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
     private var ideaLockChannel: FileChannel? = null
     private var ideaLock: FileLock? = null
 
-    private var shutdownLockChannel: FileChannel? = null
-    private var shutdownLock: FileLock? = null
-
     private val idea: ApplicationEx
         get() = application ?: throw IllegalStateException("Idea not runned")
 
@@ -131,6 +128,7 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
         }
 
     override fun run(
+            testMode: Boolean,
             files: Collection<File>,
             projectDir: File,
             projectName: String,
@@ -145,7 +143,7 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
         logger.info("InspectionPlugin: Daemon PID is ${getPID()}")
         logger.info("InspectionPlugin: Class loader: " + this.javaClass.classLoader)
         try {
-            acquireIdeaLockIfNeeded()
+            if (testMode) acquireIdeaLockIfNeeded()
             application = loadApplication(ideaHomeDirectory, ideaSystemDirectory, plugins)
             application?.doNotSave()
             application?.configureJdk()
@@ -330,7 +328,6 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
         }
         val release = {
             finishGradleDaemon()
-            releaseSystemLock()
             releaseIdeaLock()
         }
         // Release not needed if application dispatch thread is dead because
