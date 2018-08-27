@@ -32,8 +32,6 @@ val DOWNLOAD_DIRECTORY = File(BASE_CACHE_DIRECTORY, "downloads")
 
 val IDEA_SYSTEM_DIRECTORY = File(BASE_CACHE_DIRECTORY, "system")
 
-val LOCKS_DIRECTORY = File(BASE_CACHE_DIRECTORY, "locks")
-
 private val String.normalizedVersion: String
     get() = replace(':', '_').replace('.', '_')
 
@@ -46,7 +44,7 @@ fun PluginExtension.kotlinPluginLocation(ideaVersion: String): String? {
 }
 
 fun kotlinPluginArchiveDirectory(location: String?): File? {
-    if (location == null)  return null
+    if (location == null) return null
     val hash = HashUtil.createCompactMD5(location)
     val name = "kotlin-plugin-$hash"
     return File(DOWNLOAD_DIRECTORY, name)

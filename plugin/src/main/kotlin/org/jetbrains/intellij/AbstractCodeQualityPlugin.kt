@@ -9,10 +9,10 @@ import org.gradle.api.internal.project.ProjectInternal
 import org.gradle.api.plugins.JavaBasePlugin
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.plugins.ReportingBasePlugin
-import org.gradle.api.plugins.quality.CodeQualityExtension
 import org.gradle.api.reporting.ReportingExtension
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetContainer
+import org.jetbrains.intellij.extensions.CodeQualityExtension
 import java.util.*
 import java.util.concurrent.Callable
 

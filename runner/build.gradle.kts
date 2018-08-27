@@ -43,7 +43,7 @@ val projectName = "inspection-runner"
 val jar: Jar by tasks
 jar.apply {
     manifest {
-        attributes(mapOf("Main-Class" to "org.jetbrains.idea.inspections.InspectionRunner"))
+        attributes(mapOf("Main-Class" to "org.jetbrains.idea.inspections.ProxyRunnerImpl"))
     }
 }
 
@@ -129,7 +129,7 @@ tasks {
 
 dependencies {
     compileOnly("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
-    compileOnly("org.jdom:jdom2:2.0.6")
+    compile("org.jdom:jdom2:2.0.6")
     compileOnly(fileTree(mapOf("dir" to "$ideaDirectory/lib", "include" to "*.jar")))
-    compileOnly(project(":plugin"))
+    compile(project(":interface"))
 }
