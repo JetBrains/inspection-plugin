@@ -47,7 +47,7 @@ class InspectionTestBench(private val taskName: String) {
                     @Suppress("UNNECESSARY_SAFE_CALL")
                     when (template.value.drop(1).dropLast(1)) {
                         "testMode" -> testMode?.gradleCode?.let {
-                            appendln("    testMode = $it")
+                            appendln("    testMode $it")
                         }
                         "kotlinGradleDependency" -> if (kotlinNeeded) {
                             appendln("        classpath \"org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion\"")
@@ -56,58 +56,58 @@ class InspectionTestBench(private val taskName: String) {
                             appendln("    id 'org.jetbrains.kotlin.jvm' version '$kotlinVersion'")
                         }
                         "inheritFromIdea" -> inheritFromIdea?.gradleCode?.let {
-                            appendln("    inheritFromIdea = $it")
+                            appendln("    inheritFromIdea $it")
                         }
                         "profileName" -> profileName?.gradleCode?.let {
-                            appendln("    profileName = $it")
+                            appendln("    profileName $it")
                         }
                         "errors.inspections" -> errors.inspections?.forEach { entry ->
                             val name = entry.key.gradleCode
                             if (inheritFromIdea != true) appendln("    error($name)")
                             entry.value.quickFix?.gradleCode?.let {
-                                appendln("    error($name).quickFix = $it")
+                                appendln("    error($name).quickFix $it")
                             }
                         }
                         "warnings.inspections" -> warnings.inspections?.forEach { entry ->
                             val name = entry.key.gradleCode
                             if (inheritFromIdea != true) appendln("    warning($name)")
                             entry.value.quickFix?.gradleCode?.let {
-                                appendln("    warning($name).quickFix = $it")
+                                appendln("    warning($name).quickFix $it")
                             }
                         }
                         "infos.inspections" -> infos.inspections?.forEach { entry ->
                             val name = entry.key.gradleCode
                             if (inheritFromIdea != true) appendln("    info($name)")
                             entry.value.quickFix?.gradleCode?.let {
-                                appendln("    info($name).quickFix = $it")
+                                appendln("    info($name).quickFix $it")
                             }
                         }
                         "errors.max" -> errors.max?.gradleCode?.let {
-                            appendln("    errors.max = $it")
+                            appendln("    errors.max $it")
                         }
                         "warnings.max" -> warnings.max?.gradleCode?.let {
-                            appendln("    warnings.max = $it")
+                            appendln("    warnings.max $it")
                         }
                         "infos.max" -> infos.max?.gradleCode?.let {
-                            appendln("    infos.max = $it")
+                            appendln("    infos.max $it")
                         }
                         "quiet" -> isQuiet?.gradleCode?.let {
-                            appendln("    quiet = $it")
+                            appendln("    quiet $it")
                         }
                         "reformat.quickFix" -> reformat.quickFix?.gradleCode?.let {
-                            appendln("    reformat.quickFix = $it")
+                            appendln("    reformat.quickFix $it")
                         }
                         "ignoreFailures" -> if (isIgnoreFailures) {
-                            appendln("    ignoreFailures = ${isIgnoreFailures.gradleCode}")
+                            appendln("    ignoreFailures ${isIgnoreFailures.gradleCode}")
                         }
                         "idea.version" -> idea.version?.gradleCode?.let {
-                            appendln("    idea.version = $it")
+                            appendln("    idea.version $it")
                         }
                         "plugins.kotlin.version" -> plugins.kotlin.version?.gradleCode?.let {
-                            appendln("    plugins.kotlin.version = $it")
+                            appendln("    plugins.kotlin.version $it")
                         }
                         "plugins.kotlin.location" -> plugins.kotlin.location?.gradleCode?.let {
-                            appendln("    plugins.kotlin.location = $it")
+                            appendln("    plugins.kotlin.location $it")
                         }
                         "xmlDestination" -> if (xmlReport) {
                             appendln("            destination \"build/report.xml\"")

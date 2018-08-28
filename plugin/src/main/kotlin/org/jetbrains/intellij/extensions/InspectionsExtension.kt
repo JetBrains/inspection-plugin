@@ -15,4 +15,12 @@ class InspectionsExtension {
      * Registered inspections settings
      */
     val inspections: Map<String, InspectionExtension> = HashMap()
+
+    /**
+     * Needed for supporting configurations defined in groovy style
+     */
+    @Suppress("unused")
+    fun max(value: Int) {
+        max = value
+    }
 }
