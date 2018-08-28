@@ -22,7 +22,7 @@ Also you should specify IDEA version to use, e.g.
 
 ```groovy
 inspections {
-    idea.version "ideaIC:2017.2.6"
+    idea.version = "ideaIC:2017.2.6"
 }
 ``` 
 
