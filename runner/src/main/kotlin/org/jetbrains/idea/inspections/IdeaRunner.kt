@@ -22,7 +22,7 @@ import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.util.PlatformUtils
 import org.jetbrains.idea.inspections.control.DisableSystemExit
-import org.jetbrains.intellij.Runner
+import org.jetbrains.intellij.parameters.IdeaRunnerParameters
 import java.io.File
 import java.io.IOException
 import java.lang.management.ManagementFactory
@@ -32,9 +32,9 @@ import java.nio.channels.OverlappingFileLockException
 import java.nio.file.StandardOpenOption
 
 
-abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
+abstract class IdeaRunner<T> : AbstractRunner<IdeaRunnerParameters<T>>() {
 
-    abstract fun analyze(files: Collection<File>, project: Project, parameters: T): Boolean
+    abstract fun analyze(project: Project, parameters: T): Boolean
 
     private fun openProject(projectDir: File, projectName: String, moduleName: String): Project {
         logger.info("InspectionPlugin: Before project creation at '$projectDir'")
@@ -125,26 +125,19 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
             }
         }
 
-    override fun run(
-            files: Collection<File>,
-            projectDir: File,
-            projectName: String,
-            moduleName: String,
-            ideaHomeDirectory: File,
-            ideaSystemDirectory: File,
-            plugins: List<File>,
-            parameters: T
-    ): Boolean {
+    override fun run(parameters: IdeaRunnerParameters<T>): Boolean {
         // Don't delete, change and downgrade level of log because this
         // information used in unit tests for identification of daemon.
         logger.info("InspectionPlugin: Daemon PID is ${getPID()}")
         logger.info("InspectionPlugin: Class loader: " + this.javaClass.classLoader)
         try {
-            application = loadApplication(ideaHomeDirectory, ideaSystemDirectory, plugins)
-            application?.doNotSave()
-            application?.configureJdk()
-            val project = openProject(projectDir, projectName, moduleName)
-            return analyze(files, project, parameters)
+            with(parameters) {
+                application = loadApplication(ideaHomeDirectory, ideaSystemDirectory, plugins)
+                application?.doNotSave()
+                application?.configureJdk()
+                val project = openProject(projectDir, projectName, moduleName)
+                return analyze(project, parameters.childParameters)
+            }
         } catch (e: Throwable) {
             if (e is RunnerException) throw e
             throw RunnerException("Exception caught in inspection plugin: $e", e)
@@ -277,7 +270,7 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
     private fun releaseSystemLock() {
         lockRelease("System", systemLock, systemLockChannel)
         systemLock = null
-        systemLockChannel == null
+        systemLockChannel = null
     }
 
     private fun initRun(): Build.State {

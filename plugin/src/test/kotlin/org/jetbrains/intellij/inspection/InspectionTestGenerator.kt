@@ -123,7 +123,7 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
                         inheritFromIdea?.kotlinCode?.let { "extension.inheritFromIdea = $it" },
                         profileName?.kotlinCode?.let { "extension.profileName = $it" },
                         reportsDir?.kotlinCode(base)?.let { "extension.reportsDir = $it" },
-                        isIgnoreFailures.let { if (it) "extension.isIgnoreFailures = $it" else "" },
+                        isIgnoreFailures?.kotlinCode?.let { "extension.isIgnoreFailures = $it" },
                         idea.version?.kotlinCode?.let { "extension.idea.version = $it" },
                         plugins.kotlin.version?.kotlinCode?.let { "extension.plugins.kotlin.version = $it" },
                         plugins.kotlin.location?.kotlinCode?.let { "extension.plugins.kotlin.location = $it" },

@@ -15,14 +15,13 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
 import org.jetbrains.idea.inspections.generators.HTMLGenerator
 import org.jetbrains.idea.inspections.generators.XMLGenerator
-import org.jetbrains.intellij.parameters.InspectionsParameters
-import org.jetbrains.intellij.parameters.InspectionPluginParameters
+import org.jetbrains.intellij.parameters.InspectionsRunnerParameters
 import java.io.File
 import java.util.*
 
 
 @Suppress("unused")
-class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
+class InspectionsRunner : FileInfoRunner<InspectionsRunnerParameters>() {
 
     class PluginInspectionWrapper<out T : InspectionProfileEntry>(
             val tool: T,
@@ -49,7 +48,7 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
         }
     }
 
-    private fun getInspectionWrappers(parameters: InspectionPluginParameters, project: Project): List<PluginInspectionWrapper<*>> {
+    private fun getInspectionWrappers(parameters: InspectionsRunnerParameters, project: Project): List<PluginInspectionWrapper<*>> {
         logger.info("InspectionPlugin: InheritFromIdea = ${parameters.inheritFromIdea}")
         val registeredInspectionWrappers = getRegisteredInspectionWrappers(parameters.inspections.keys)
         if (parameters.inheritFromIdea) {
@@ -59,7 +58,7 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
         return registeredInspectionWrappers
     }
 
-    private fun getInspectionWrappersInheritFromIdea(parameters: InspectionPluginParameters, project: Project): List<PluginInspectionWrapper<*>> {
+    private fun getInspectionWrappersInheritFromIdea(parameters: InspectionsRunnerParameters, project: Project): List<PluginInspectionWrapper<*>> {
         val inspectionProfileManager = ApplicationInspectionProfileManager.getInstanceImpl()
         val profile = parameters.profileName
                 ?.let { File(project.basePath, "$INSPECTION_PROFILES_PATH/$it") }
@@ -86,10 +85,10 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
         }
     }
 
-    override fun analyzeFileInfo(
+    override fun analyze(
             files: Collection<FileInfo>,
             project: Project,
-            parameters: InspectionPluginParameters
+            parameters: InspectionsRunnerParameters
     ): Boolean {
         val checker = InspectionChecker()
         val results = analyze(files, project, parameters, checker)
@@ -101,7 +100,7 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
     private fun analyze(
             files: Collection<FileInfo>,
             project: Project,
-            parameters: InspectionPluginParameters,
+            parameters: InspectionsRunnerParameters,
             checker: InspectionChecker
     ): Map<String, List<PinnedProblemDescriptor>> {
         val results = HashMap<String, List<PinnedProblemDescriptor>>()
@@ -141,7 +140,7 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
         val isFail: Boolean
             get() = !success
 
-        fun apply(level: ProblemLevel, parameters: InspectionPluginParameters, errorListener: (String, Int) -> Unit) {
+        fun apply(level: ProblemLevel, parameters: InspectionsRunnerParameters, errorListener: (String, Int) -> Unit) {
             when (level) {
                 ProblemLevel.ERROR -> errors++
                 ProblemLevel.WARNING, ProblemLevel.WEAK_WARNING -> warnings++
@@ -156,12 +155,12 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
             success = false
         }
 
-        private fun InspectionsParameters.isTooMany(value: Int) = max?.let { value > it } ?: false
+        private fun InspectionsRunnerParameters.Inspections.isTooMany(value: Int) = max?.let { value > it } ?: false
     }
 
     private fun PluginInspectionWrapper<LocalInspectionTool>.apply(
             files: Collection<FileInfo>,
-            parameters: InspectionPluginParameters,
+            parameters: InspectionsRunnerParameters,
             checker: InspectionChecker
     ): List<PinnedProblemDescriptor> {
         val displayName = extension?.displayName ?: "<Unknown diagnostic>"
@@ -196,7 +195,7 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
         return inspectionResults
     }
 
-    private fun reportProblems(parameters: InspectionPluginParameters, results: Map<String, List<PinnedProblemDescriptor>>) {
+    private fun reportProblems(parameters: InspectionsRunnerParameters, results: Map<String, List<PinnedProblemDescriptor>>) {
         val generators = listOfNotNull(
                 parameters.reportParameters.xml?.let { XMLGenerator(it) },
                 parameters.reportParameters.html?.let { HTMLGenerator(it) }
@@ -223,7 +222,7 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
 
     private fun quickFixProblems(
             project: Project,
-            parameters: InspectionPluginParameters,
+            parameters: InspectionsRunnerParameters,
             results: Map<String, List<PinnedProblemDescriptor>>
     ) {
         if (!parameters.isAvailableCodeChanging) return
@@ -334,10 +333,10 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
         }
     }
 
-    private fun PinnedProblemDescriptor.getLevel(inspectionClass: String, parameters: InspectionPluginParameters) =
+    private fun PinnedProblemDescriptor.getLevel(inspectionClass: String, parameters: InspectionsRunnerParameters) =
             actualLevel(parameters.getLevel(inspectionClass)) ?: ProblemLevel.INFORMATION
 
-    private fun InspectionPluginParameters.getLevel(inspectionClass: String) = when (inspectionClass) {
+    private fun InspectionsRunnerParameters.getLevel(inspectionClass: String) = when (inspectionClass) {
         in errors.inspections -> ProblemLevel.ERROR
         in warnings.inspections -> ProblemLevel.WARNING
         in infos.inspections -> ProblemLevel.INFORMATION

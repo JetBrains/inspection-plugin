@@ -10,16 +10,15 @@ import com.intellij.openapi.util.io.FileUtilRt
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
-import org.jetbrains.intellij.Runner
-import java.io.File
+import org.jetbrains.intellij.parameters.FileInfoRunnerParameters
 import java.util.*
 
-abstract class FileInfoRunner<T : Runner.Parameters> : IdeaRunner<T>() {
+abstract class FileInfoRunner<T> : IdeaRunner<FileInfoRunnerParameters<T>>() {
     data class FileInfo(val psiFile: PsiFile, val document: Document)
 
-    abstract fun analyzeFileInfo(files: Collection<FileInfo>, project: Project, parameters: T): Boolean
+    abstract fun analyze(files: Collection<FileInfo>, project: Project, parameters: T): Boolean
 
-    override fun analyze(files: Collection<File>, project: Project, parameters: T): Boolean {
+    override fun analyze(project: Project, parameters: FileInfoRunnerParameters<T>): Boolean {
         logger.info("InspectionPlugin: Before psi manager creation")
         val psiManager = PsiManager.getInstance(project)
         logger.info("InspectionPlugin: Before virtual file manager creation")
@@ -27,10 +26,10 @@ abstract class FileInfoRunner<T : Runner.Parameters> : IdeaRunner<T>() {
         val virtualFileSystem = virtualFileManager.getFileSystem("file")
         val fileIndex = ProjectFileIndex.getInstance(project)
         val documentManager = FileDocumentManager.getInstance()
-        val psiFiles = ArrayList<FileInfo>()
+        val files = ArrayList<FileInfo>()
         runReadAction {
             val task = Runnable {
-                for (file in files) {
+                for (file in parameters.files) {
                     val virtualFile = virtualFileSystem.findFileByPath(file.absolutePath)
                     if (virtualFile == null) {
                         logger.warn("InspectionPlugin: Cannot find virtual file for $file")
@@ -57,11 +56,11 @@ abstract class FileInfoRunner<T : Runner.Parameters> : IdeaRunner<T>() {
                         logger.warn("InspectionPlugin: Cannot get document for file $file $message")
                         continue
                     }
-                    psiFiles.add(FileInfo(psiFile, document))
+                    files.add(FileInfo(psiFile, document))
                 }
             }
             ProgressManager.getInstance().runProcess(task, EmptyProgressIndicator())
         }
-        return analyzeFileInfo(psiFiles, project, parameters)
+        return analyze(files, project, parameters.childParameters)
     }
 }

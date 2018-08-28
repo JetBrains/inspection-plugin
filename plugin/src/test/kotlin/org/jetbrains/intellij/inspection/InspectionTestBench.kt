@@ -12,8 +12,6 @@ import org.jetbrains.intellij.extensions.InspectionPluginExtension
 import org.junit.Assert
 import org.junit.rules.TemporaryFolder
 import java.io.File
-import java.nio.channels.FileChannel
-import java.nio.file.StandardOpenOption
 import java.util.*
 
 class InspectionTestBench(private val taskName: String) {
@@ -86,8 +84,8 @@ class InspectionTestBench(private val taskName: String) {
                         "reformat.quickFix" -> reformat.quickFix?.gradleCode?.let {
                             appendln("    reformat.quickFix = $it")
                         }
-                        "ignoreFailures" -> if (isIgnoreFailures) {
-                            appendln("    ignoreFailures = ${isIgnoreFailures.gradleCode}")
+                        "ignoreFailures" -> isIgnoreFailures?.gradleCode?.let {
+                            appendln("    ignoreFailures = $it")
                         }
                         "idea.version" -> idea.version?.gradleCode?.let {
                             appendln("    idea.version = $it")

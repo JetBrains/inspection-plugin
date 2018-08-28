@@ -2,14 +2,14 @@ package org.jetbrains.idea.inspections
 
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.openapi.project.Project
-import org.jetbrains.intellij.parameters.InspectionPluginParameters
+import org.jetbrains.intellij.parameters.InspectionsRunnerParameters
 
 @Suppress("unused")
-class ReformatRunner : FileInfoRunner<InspectionPluginParameters>() {
-    override fun analyzeFileInfo(
+class ReformatRunner : FileInfoRunner<InspectionsRunnerParameters>() {
+    override fun analyze(
             files: Collection<FileInfo>,
             project: Project,
-            parameters: InspectionPluginParameters
+            parameters: InspectionsRunnerParameters
     ): Boolean {
         val codeStyleManager = CodeStyleManager.getInstance(project)
         for ((psiFile, document) in files) {

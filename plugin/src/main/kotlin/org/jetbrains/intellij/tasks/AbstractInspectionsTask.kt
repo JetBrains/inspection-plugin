@@ -1,5 +1,6 @@
 package org.jetbrains.intellij.tasks
 
+import com.sun.org.apache.xpath.internal.operations.Bool
 import org.gradle.BuildListener
 import org.gradle.BuildResult
 import org.gradle.api.file.FileCollection
@@ -11,10 +12,10 @@ import org.gradle.api.tasks.Optional
 import org.jetbrains.intellij.*
 import org.jetbrains.intellij.extensions.InspectionPluginExtension
 import org.jetbrains.intellij.extensions.InspectionsExtension
-import org.jetbrains.intellij.parameters.InspectionParameters
-import org.jetbrains.intellij.parameters.InspectionsParameters
-import org.jetbrains.intellij.parameters.InspectionPluginParameters
-import org.jetbrains.intellij.parameters.ReportParameters
+import org.jetbrains.intellij.ChildFirstClassLoader
+import org.jetbrains.intellij.parameters.FileInfoRunnerParameters
+import org.jetbrains.intellij.parameters.IdeaRunnerParameters
+import org.jetbrains.intellij.parameters.InspectionsRunnerParameters
 import java.io.File
 import java.net.URLClassLoader
 import java.util.*
@@ -54,7 +55,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
      * @return true if failures should be ignored
      */
     @Input
-    override fun getIgnoreFailures(): Boolean = ignoreFailures ?: extension.isIgnoreFailures
+    override fun getIgnoreFailures(): Boolean = ignoreFailures ?: extension.isIgnoreFailures ?: false
 
     /**
      * Whether this task will ignore failures and continue running the build.
@@ -117,7 +118,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
      * The inspections with error problem level.
      */
     @get:Input
-    open val errorsInspections: Map<String, InspectionParameters>
+    open val errorsInspections: Map<String, InspectionsRunnerParameters.Inspection>
         get() = getInspections(extension.errors)
 
     /**
@@ -135,7 +136,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
      * The inspections with warning problem level.
      */
     @get:Input
-    open val warningsInspections: Map<String, InspectionParameters>
+    open val warningsInspections: Map<String, InspectionsRunnerParameters.Inspection>
         get() = getInspections(extension.warnings)
 
     /**
@@ -153,7 +154,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
      * The inspections with information problem level.
      */
     @get:Input
-    open val infosInspections: Map<String, InspectionParameters>
+    open val infosInspections: Map<String, InspectionsRunnerParameters.Inspection>
         get() = getInspections(extension.infos)
 
     /**
@@ -168,7 +169,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
         get() = extension.infos.max
 
     @get:Internal
-    private val inspections: Map<String, InspectionParameters>
+    private val inspections: Map<String, InspectionsRunnerParameters.Inspection>
         get() = errorsInspections + warningsInspections + infosInspections
 
     @get:Internal
@@ -182,13 +183,13 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
         get() = project.extensions.findByType(InspectionPluginExtension::class.java)!!
 
     @get:Internal
-    private var runner: Runner<InspectionPluginParameters>? = null
+    private var runner: Runner<IdeaRunnerParameters<FileInfoRunnerParameters<InspectionsRunnerParameters>>>? = null
 
     @Internal
-    private fun getInspections(ex: InspectionsExtension): Map<String, InspectionParameters> {
+    private fun getInspections(ex: InspectionsExtension): Map<String, InspectionsRunnerParameters.Inspection> {
         val inspections = ex.inspections.map {
             val quickFix = it.value.quickFix ?: false
-            InspectionParameters(it.key, quickFix)
+            InspectionsRunnerParameters.Inspection(it.key, quickFix)
         }
         return inspections.map { it.name to it }.toMap()
     }
@@ -202,29 +203,53 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
     open val html: File? = null
 
     @Internal
-    private fun getInspectionsParameters(): InspectionPluginParameters {
-        val report = ReportParameters(isQuiet, xml, html)
-        val errors = InspectionsParameters(errorsInspections, maxErrors)
-        val warnings = InspectionsParameters(warningsInspections, maxWarnings)
-        val infos = InspectionsParameters(infosInspections, maxInfos)
-        return InspectionPluginParameters(
-                getIgnoreFailures(),
-                ideaVersion,
-                kotlinPluginVersion,
-                isAvailableCodeChanging,
-                report,
-                inheritFromIdea,
-                profileName,
-                errors,
-                warnings,
-                infos
+    private fun getIdeaRunnerParameters(): IdeaRunnerParameters<FileInfoRunnerParameters<InspectionsRunnerParameters>> {
+        val ideaDirectory = InspectionPlugin.ideaDirectory(ideaVersion)
+        val ideaSystemDirectory = InspectionPlugin.IDEA_SYSTEM_DIRECTORY
+        val kotlinPluginDirectory = InspectionPlugin.kotlinPluginDirectory(kotlinPluginVersion, ideaVersion)
+        val plugins = listOf(kotlinPluginDirectory)
+        return IdeaRunnerParameters(
+                projectDir = project.rootProject.projectDir,
+                projectName = project.rootProject.name,
+                moduleName = project.name,
+                ideaHomeDirectory = ideaDirectory,
+                ideaSystemDirectory = ideaSystemDirectory,
+                plugins = plugins,
+                childParameters = getFileInfoParameters()
         )
     }
 
-    private fun createRunner(loader: ClassLoader): Runner<InspectionPluginParameters> {
+    @Internal
+    private fun getFileInfoParameters(): FileInfoRunnerParameters<InspectionsRunnerParameters> {
+        return FileInfoRunnerParameters(
+                files = getSource().files,
+                childParameters = getInspectionsRunnerParameters()
+        )
+    }
+
+    @Internal
+    private fun getInspectionsRunnerParameters(): InspectionsRunnerParameters {
+        val reportParameters = InspectionsRunnerParameters.Report(isQuiet, xml, html)
+        val errors = InspectionsRunnerParameters.Inspections(errorsInspections, maxErrors)
+        val warnings = InspectionsRunnerParameters.Inspections(warningsInspections, maxWarnings)
+        val infos = InspectionsRunnerParameters.Inspections(infosInspections, maxInfos)
+        return InspectionsRunnerParameters(
+                ideaVersion = ideaVersion,
+                kotlinPluginVersion = kotlinPluginVersion,
+                isAvailableCodeChanging = isAvailableCodeChanging,
+                reportParameters = reportParameters,
+                inheritFromIdea = inheritFromIdea,
+                profileName = profileName,
+                errors = errors,
+                warnings = warnings,
+                infos = infos
+        )
+    }
+
+    private fun createRunner(loader: ClassLoader): Runner<IdeaRunnerParameters<FileInfoRunnerParameters<InspectionsRunnerParameters>>> {
         val className = "org.jetbrains.idea.inspections.InspectionsRunner"
         @Suppress("UNCHECKED_CAST")
-        val analyzerClass = loader.loadClass(className) as Class<Runner<InspectionPluginParameters>>
+        val analyzerClass = loader.loadClass(className) as Class<Runner<IdeaRunnerParameters<FileInfoRunnerParameters<InspectionsRunnerParameters>>>>
         val analyzer = analyzerClass.constructors.first().newInstance()
         return analyzerClass.cast(analyzer)
     }
@@ -252,14 +277,13 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
     @TaskAction
     fun run() {
         try {
-            val parameters = getInspectionsParameters()
-            val ideaVersion = parameters.ideaVersion
-            val ideaDirectory = InspectionPlugin.ideaDirectory(ideaVersion)
-            val ideaSystemDirectory = InspectionPlugin.IDEA_SYSTEM_DIRECTORY
-            logger.info("InspectionPlugin: Idea directory: $ideaDirectory")
-            val ideaClasspath = getIdeaClasspath(ideaDirectory)
-            val analyzerClasspath = listOf(tryResolveRunnerJar(project))
-            val fullClasspath = (analyzerClasspath + ideaClasspath /*+ pluginsClasspath*/).map { it.toURI().toURL() }
+            val parameters = getIdeaRunnerParameters()
+            val ideaHomeDirectory = parameters.ideaHomeDirectory
+            logger.info("InspectionPlugin: Idea directory: $ideaHomeDirectory")
+            val ideaClasspath = getIdeaClasspath(ideaHomeDirectory)
+            val runnerJar = tryResolveRunnerJar(project)
+            logger.info("InspectionPlugin: Runner jar: $runnerJar")
+            val fullClasspath = (ideaClasspath + runnerJar).map { it.toURI().toURL() }
             logger.info("InspectionPlugin: Runner classpath: $fullClasspath")
             val parentClassLoader = this.javaClass.classLoader
             logger.info("InspectionPlugin: Runner parent class loader: $parentClassLoader")
@@ -269,10 +293,8 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
             val loader = ClassloaderContainer.getOrInit {
                 ChildFirstClassLoader(fullClasspath.toTypedArray(), parentClassLoader)
             }
-            val kotlinPluginVersion = parameters.kotlinPluginVersion
-            val kotlinPluginDirectory = InspectionPlugin.kotlinPluginDirectory(kotlinPluginVersion, ideaVersion)
-            val plugins = listOf(kotlinPluginDirectory)
-            var success = true
+            var taskOutcome = Outcome.SUCCESS
+            var runOutcome = Outcome.SUCCESS
             val inspectionsThread = thread(start = false) {
                 val runner = createRunner(loader)
                 this.runner = runner
@@ -288,26 +310,20 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
                     gradle = gradle.parent ?: break
                 }
                 gradle.addBuildListener(IdeaFinishingListener())
-                success = runner.run(
-                        files = getSource().files,
-                        projectDir = project.rootProject.projectDir,
-                        projectName = project.rootProject.name,
-                        moduleName = project.name,
-                        ideaHomeDirectory = ideaDirectory,
-                        ideaSystemDirectory = ideaSystemDirectory,
-                        plugins = plugins,
-                        parameters = parameters
-                )
+                taskOutcome = Outcome(runner.run(parameters))
             }
             inspectionsThread.contextClassLoader = loader
             inspectionsThread.setUncaughtExceptionHandler { t, e ->
-                success = false
+                runOutcome = Outcome.FAILURE
                 ExceptionHandler.exception(this, e, "Analyzing exception")
             }
             inspectionsThread.start()
             inspectionsThread.join()
 
-            if (!success && !parameters.ignoreFailures) {
+            if (runOutcome == Outcome.FAILURE) {
+                ExceptionHandler.exception(this, "Caused task execution exception")
+            }
+            if (taskOutcome == Outcome.FAILURE && !getIgnoreFailures()) {
                 ExceptionHandler.exception(this, "Task execution failure")
             }
         } catch (e: TaskExecutionException) {
@@ -340,6 +356,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
 
         fun clean() {
             customClassLoader = null
+            System.gc()
         }
     }
 
@@ -353,6 +370,17 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
         override fun projectsEvaluated(gradle: Gradle?) {}
 
         override fun settingsEvaluated(settings: Settings?) {}
+    }
+
+    enum class Outcome {
+        SUCCESS, FAILURE;
+
+        companion object {
+            operator fun invoke(outcome: Boolean) = when (outcome) {
+                true -> SUCCESS
+                false -> FAILURE
+            }
+        }
     }
 
     init {
