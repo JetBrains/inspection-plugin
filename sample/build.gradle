@@ -5,15 +5,15 @@ buildscript {
     ext.kotlin_version = '1.2.60'
 
     repositories {
+        mavenLocal()
         mavenCentral()
         maven {
             url 'https://dl.bintray.com/kotlin/kotlin-dev'
         }
-        mavenLocal()
     }
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath "org.jetbrains.intellij.plugins:inspection-plugin:0.2.0-rc-2-SNAPSHOT"
+        classpath "org.jetbrains.intellij.plugins:inspection-plugin:0.2.0-rc-2"
     }
 }
 
@@ -24,13 +24,14 @@ apply plugin: 'org.jetbrains.intellij.inspections'
 sourceCompatibility = 1.8
 
 inspections {
-    idea.version "ideaIC:2018.1"
     reportsDir file("build")
-    warning('org.jetbrains.kotlin.idea.inspections.DataClassPrivateConstructorInspection')
-    warning('org.jetbrains.kotlin.idea.inspections.UseExpressionBodyInspection')
-    warning('org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection')
-    warning('org.jetbrains.kotlin.idea.inspections.AddVarianceModifierInspection')
-    warning('org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection')
+    // Todo(glukhikh) uncomment after deploy 0.2.0-rc-3
+//    idea.version "ideaIC:2018.1"
+//    warning('org.jetbrains.kotlin.idea.inspections.DataClassPrivateConstructorInspection')
+//    warning('org.jetbrains.kotlin.idea.inspections.UseExpressionBodyInspection')
+//    warning('org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection')
+//    warning('org.jetbrains.kotlin.idea.inspections.AddVarianceModifierInspection')
+//    warning('org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection')
 }
 
 repositories {

@@ -7,6 +7,7 @@ import org.gradle.api.file.FileTree
 import org.gradle.api.initialization.Settings
 import org.gradle.api.invocation.Gradle
 import org.gradle.api.tasks.*
+import org.gradle.api.tasks.Optional
 import org.jetbrains.intellij.*
 import org.jetbrains.intellij.extensions.InspectionPluginExtension
 import org.jetbrains.intellij.extensions.InspectionsExtension
@@ -16,16 +17,12 @@ import org.jetbrains.intellij.parameters.InspectionPluginParameters
 import org.jetbrains.intellij.parameters.ReportParameters
 import java.io.File
 import java.net.URLClassLoader
+import java.util.*
 import java.util.function.BiFunction
 import kotlin.concurrent.thread
 
 @Suppress("MemberVisibilityCanBePrivate")
 abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
-
-    companion object {
-        // TODO: take the same version as plugin
-        const val runnerVersion = "0.2.0-rc-2-SNAPSHOT"
-    }
 
     /**
      * Run inspection Plugin in test mode
@@ -235,7 +232,13 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
     }
 
     private fun tryResolveRunnerJar(project: org.gradle.api.Project): File = try {
+        val propertiesPath = "/META-INF/gradle-plugins/org.jetbrains.intellij.inspections.properties"
+        val resources = InspectionPlugin::class.java.getResourceAsStream(propertiesPath)
+        val properties = Properties()
+        properties.load(resources)
+        val runnerVersion = properties.getProperty("runner-version")
         val runner = "org.jetbrains.intellij.plugins:inspection-runner:$runnerVersion"
+        logger.info("InspectionPlugin: Runner $runner")
         val dependency = project.buildscript.dependencies.create(runner)
         val configuration = project.buildscript.configurations.detachedConfiguration(dependency)
         configuration.description = "Runner main jar"

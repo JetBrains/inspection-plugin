@@ -8,3 +8,7 @@ val Project.projectVersion: String
 
 val Project.projectGroup: String
     get() = this.findProperty("group") as String
+
+inline fun <reified C> Project.configure(name: String, configuration: C.() -> Unit) {
+    (this.tasks.getByName(name) as C).configuration()
+}

@@ -34,15 +34,6 @@ apply {
 
 val projectName = "inspection-plugin"
 
-configure<GradlePluginDevelopmentExtension> {
-    plugins {
-        create(projectName) {
-            id = "org.jetbrains.intellij.inspections"
-            implementationClass = "org.jetbrains.intellij.InspectionPlugin"
-        }
-    }
-}
-
 configure<PublishingExtension> {
     repositories {
         maven {
@@ -107,3 +98,12 @@ dependencies {
     compile("org.apache.httpcomponents:httpclient:4.2.2")
 }
 
+configure<ProcessResources>("processResources") {
+    eachFile {
+        if (name == "org.jetbrains.intellij.inspections.properties") {
+            filter {
+                it.replace("<version>", projectVersion)
+            }
+        }
+    }
+}

@@ -109,7 +109,6 @@ configurations {
 val ideaDirectory = File(buildDir, "ideaIC_2017_3")
 
 task<Sync>(name = "unzip-idea") {
-    if (ideaDirectory.exists()) return@task
     with(configurations.getByName("idea")) {
         dependsOn(this)
         from(zipTree(singleFile))
