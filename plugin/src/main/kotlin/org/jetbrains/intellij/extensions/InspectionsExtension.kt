@@ -1,6 +1,5 @@
 package org.jetbrains.intellij.extensions
 
-import org.gradle.api.Action
 import java.util.*
 
 class InspectionsExtension {
@@ -16,17 +15,4 @@ class InspectionsExtension {
      * Registered inspections settings
      */
     val inspections: Map<String, InspectionExtension> = HashMap()
-
-    @Suppress("unused")
-    fun inspection(name: String): InspectionExtension {
-        return (inspections as MutableMap).getOrPut(name) {
-            InspectionExtension()
-        }
-    }
-
-    @Suppress("unused")
-    fun inspection(name: String, action: Action<InspectionExtension>) {
-        val extension = inspection(name)
-        action.execute(extension)
-    }
 }

@@ -63,23 +63,23 @@ class InspectionTestBench(private val taskName: String) {
                         }
                         "errors.inspections" -> errors.inspections?.forEach { entry ->
                             val name = entry.key.gradleCode
-                            if (inheritFromIdea != true) appendln("    errors.inspection($name)")
+                            if (inheritFromIdea != true) appendln("    error($name)")
                             entry.value.quickFix?.gradleCode?.let {
-                                appendln("    errors.inspection($name).quickFix = $it")
+                                appendln("    error($name).quickFix = $it")
                             }
                         }
                         "warnings.inspections" -> warnings.inspections?.forEach { entry ->
                             val name = entry.key.gradleCode
-                            if (inheritFromIdea != true) appendln("    warnings.inspection($name)")
+                            if (inheritFromIdea != true) appendln("    warning($name)")
                             entry.value.quickFix?.gradleCode?.let {
-                                appendln("    warnings.inspection($name).quickFix = $it")
+                                appendln("    warning($name).quickFix = $it")
                             }
                         }
                         "infos.inspections" -> infos.inspections?.forEach { entry ->
                             val name = entry.key.gradleCode
-                            if (inheritFromIdea != true) appendln("    infos.inspection($name)")
+                            if (inheritFromIdea != true) appendln("    info($name)")
                             entry.value.quickFix?.gradleCode?.let {
-                                appendln("    infos.inspection($name).quickFix = $it")
+                                appendln("    info($name).quickFix = $it")
                             }
                         }
                         "errors.max" -> errors.max?.gradleCode?.let {

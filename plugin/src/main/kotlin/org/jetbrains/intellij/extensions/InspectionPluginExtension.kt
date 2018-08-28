@@ -97,6 +97,45 @@ open class InspectionPluginExtension(private val project: Project?) : CodeQualit
     }
 
     @Suppress("unused")
+    fun error(name: String): InspectionExtension {
+        return (errors.inspections as MutableMap).getOrPut(name) {
+            InspectionExtension()
+        }
+    }
+
+    @Suppress("unused")
+    fun error(name: String, action: Action<InspectionExtension>) {
+        val extension = error(name)
+        action.execute(extension)
+    }
+
+    @Suppress("unused")
+    fun warning(name: String): InspectionExtension {
+        return (warnings.inspections as MutableMap).getOrPut(name) {
+            InspectionExtension()
+        }
+    }
+
+    @Suppress("unused")
+    fun warning(name: String, action: Action<InspectionExtension>) {
+        val extension = warning(name)
+        action.execute(extension)
+    }
+
+    @Suppress("unused")
+    fun info(name: String): InspectionExtension {
+        return (infos.inspections as MutableMap).getOrPut(name) {
+            InspectionExtension()
+        }
+    }
+
+    @Suppress("unused")
+    fun info(name: String, action: Action<InspectionExtension>) {
+        val extension = info(name)
+        action.execute(extension)
+    }
+
+    @Suppress("unused")
     fun errors(action: Action<InspectionsExtension>) {
         action.execute(errors)
     }

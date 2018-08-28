@@ -33,18 +33,18 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
         Parameter<Int>(parameters("maxErrors")) { errors.max = it }
         Parameter<Int>(parameters("maxWarnings")) { warnings.max = it }
         Parameter<Boolean>(parameters("testMode")) { testMode = it }
+        Parameter<Set<String>>(parameters("errors.inspections"))?.forEach { error(it) }
+        Parameter<Set<String>>(parameters("warnings.inspections"))?.forEach { warning(it) }
+        Parameter<Set<String>>(parameters("infos.inspections"))?.forEach { info(it) }
         errors {
-            Parameter<Set<String>>(parameters("errors.inspections"))?.forEach { inspection(it) }
             Parameter<Boolean>(parameters("quickFix")) { inspections.values.applyEach { quickFix = it } }
             Parameter<Int>(parameters("errors.max")) { max = it }
         }
         warnings {
-            Parameter<Set<String>>(parameters("warnings.inspections"))?.forEach { inspection(it) }
             Parameter<Boolean>(parameters("quickFix")) { inspections.values.applyEach { quickFix = it } }
             Parameter<Int>(parameters("warnings.max")) { max = it }
         }
         infos {
-            Parameter<Set<String>>(parameters("infos.inspections"))?.forEach { inspection(it) }
             Parameter<Boolean>(parameters("quickFix")) { inspections.values.applyEach { quickFix = it } }
             Parameter<Int>(parameters("infos.max")) { max = it }
         }
@@ -62,13 +62,13 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
     }
 
     private fun inspections(type: String, extension: InspectionsExtension): List<String> {
-        val settings = extension.max?.kotlinCode?.let { "extension.$type.max = $it" }
+        val settings = extension.max?.kotlinCode?.let { "extension.${type}s.max = $it" }
         val inspections = extension.inspections.map { entry ->
             val inspectionName = entry.key
             val inspectionExtension = entry.value
-            val inspection = """extension.$type.inspection("$inspectionName")"""
+            val inspection = """extension.$type("$inspectionName")"""
             val quickFix = inspectionExtension.quickFix?.kotlinCode?.let {
-                """extension.$type.inspection("$inspectionName").quickFix = $it"""
+                """extension.$type("$inspectionName").quickFix = $it"""
             }
             listOf(inspection, quickFix)
         }
@@ -117,9 +117,9 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
             """.replaceIndent("    ")
 
             val methodExtension = with(extension) {
-                val errors = inspections("errors", errors)
-                val warnings = inspections("warnings", warnings)
-                val infos = inspections("infos", infos)
+                val errors = inspections("error", errors)
+                val warnings = inspections("warning", warnings)
+                val infos = inspections("info", infos)
                 @Suppress("UNNECESSARY_SAFE_CALL")
                 val settings = listOfNotNull(
                         inheritFromIdea?.kotlinCode?.let { "extension.inheritFromIdea = $it" },
