@@ -6,7 +6,7 @@
 
 This plugin is intended to run IDEA inspections during Gradle build.
 
-Current status: beta-candidate version 0.2.0-rc-2 is available.
+Current status: beta-candidate version 0.2.0-rc-3 is available.
 
 ## Usage
 
@@ -18,17 +18,18 @@ This adds one inspection plugin task per source root, normally its name is `insp
 `inspectionsTest` for `test` root respectively. Also plugin adds reformat task per source root. 
 They have the same usage (`reformatMain`, `refeomatTest` and etc.)
 
-Also you should specify IDEA version to use, e.g.
+Also you should specify IDEA version to use and (optionally) kotlin plugin version to use, e.g.
 
 ```groovy
 inspections {
-    idea.version = "ideaIC:2017.2.6"
+    idea.version "ideaIC:2017.3"
+    plugins.kotlin.version "1.2.60" 
 }
 ``` 
 
-In this example inspections will be taken from IDEA CE version 2017.2.6. 
-Plugin works at least with IDEA CE versions 2017.2, 2017.2.x, 2017.3, 2017.3.x, 2018.1, 2018.2.
-If you have multi-platform project, it's recommended to use IDEA CE 2018.2.
+In this example inspections will be taken from IDEA CE version 2017.3. 
+Plugin works at least with IDEA CE versions 2017.2, 2017.2.x, 2017.3, 2017.3.x, 2018.1, 2018.1.x, 2018.2, 2018.2.x.
+If you have multi-platform project, it's recommended to use IDEA CE 2018.2 or later.
 
 There are three ways to specify inspections for code analysis:
 
@@ -44,11 +45,11 @@ If `profileName` is not given, `Project_Default.xml` will be used by default.
 ###### Manual inspections list
 ```groovy
 inspections {
-    errors.inspection('org.jetbrains.kotlin.idea.inspections.DataClassPrivateConstructorInspection')
-    errors.inspection('org.jetbrains.kotlin.idea.inspections.UseExpressionBodyInspection')
-    warnings.inspection('org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection')
-    warnings.inspection('org.jetbrains.kotlin.idea.inspections.AddVarianceModifierInspection')
-    infos.inspection('org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection')
+    error('org.jetbrains.kotlin.idea.inspections.DataClassPrivateConstructorInspection')
+    error('org.jetbrains.kotlin.idea.inspections.UseExpressionBodyInspection')
+    warning('org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection')
+    warning('org.jetbrains.kotlin.idea.inspections.AddVarianceModifierInspection')
+    info('org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection')
 }
 ```
 In this case inspections from manually defined list will be in use.
@@ -57,11 +58,11 @@ In this case inspections from manually defined list will be in use.
 ```groovy
 inspections {
     inheritFromIdea = true
-    errors.inspection('org.jetbrains.kotlin.idea.inspections.DataClassPrivateConstructorInspection')
-    errors.inspection('org.jetbrains.kotlin.idea.inspections.UseExpressionBodyInspection')
-    warnings.inspection('org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection')
-    warnings.inspection('org.jetbrains.kotlin.idea.inspections.AddVarianceModifierInspection')
-    infos.inspection('org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection')
+    error('org.jetbrains.kotlin.idea.inspections.DataClassPrivateConstructorInspection')
+    error('org.jetbrains.kotlin.idea.inspections.UseExpressionBodyInspection')
+    warning('org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection')
+    warning('org.jetbrains.kotlin.idea.inspections.AddVarianceModifierInspection')
+    info('org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection')
 }
 ```
 In this case both inspections from manually defined list and inherited from IDEA will be in use.
@@ -96,7 +97,7 @@ inspections {
     infos.max = 10
     ignoreFailures = true
     quiet = true
-    warnigns.inspection('org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection') {
+    warning('org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection') {
         quickFix = True
     }
     reformat.quickFix = true
@@ -150,7 +151,7 @@ and attach `inspections.log` to the issue.
 Also it's very helpful to specify Gradle version, OS and 
 IDEA version used in inspection plugin (which is set in `idea.version` parameter).
 
-Known bugs / problems at this moment (version 0.2.0-rc-2):
+Known bugs / problems at this moment (version 0.2.0-rc-3):
 
 * plugin does not work yet with Ultimate IDEA versions, like ideaIU:2017.3
 * analysis of Kotlin JS and common modules is only partially supported
