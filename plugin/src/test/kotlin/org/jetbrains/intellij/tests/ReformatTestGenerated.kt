@@ -9,6 +9,56 @@ class ReformatTestGenerated {
 
     @Ignore
     @Test
+    fun testConfigurationKotlin_1_2_40_IJ2017_1() {
+        val extension = InspectionPluginExtension(null)
+        extension.testMode = true
+        extension.idea.version = "ideaIC:2017.1"
+        extension.plugins.kotlin.version = "1.2.40"
+        testBench.doTest(File("testData/reformat/configurationKotlin_1-2-40_IJ2017-1"), extension)
+    }
+
+    @Ignore
+    @Test
+    fun testConfigurationKotlin_1_2_40_IJ2017_2() {
+        val extension = InspectionPluginExtension(null)
+        extension.testMode = true
+        extension.idea.version = "ideaIC:2017.2"
+        extension.plugins.kotlin.version = "1.2.40"
+        testBench.doTest(File("testData/reformat/configurationKotlin_1-2-40_IJ2017-2"), extension)
+    }
+
+    @Ignore
+    @Test
+    fun testConfigurationKotlin_1_2_40_IJ2017_3() {
+        val extension = InspectionPluginExtension(null)
+        extension.testMode = true
+        extension.idea.version = "ideaIC:2017.3"
+        extension.plugins.kotlin.version = "1.2.40"
+        testBench.doTest(File("testData/reformat/configurationKotlin_1-2-40_IJ2017-3"), extension)
+    }
+
+    @Ignore
+    @Test
+    fun testConfigurationKotlin_1_2_40_IJ2018_1() {
+        val extension = InspectionPluginExtension(null)
+        extension.testMode = true
+        extension.idea.version = "ideaIC:2018.1"
+        extension.plugins.kotlin.version = "1.2.40"
+        testBench.doTest(File("testData/reformat/configurationKotlin_1-2-40_IJ2018-1"), extension)
+    }
+
+    @Ignore
+    @Test
+    fun testConfigurationKotlin_1_2_40_IJ2018_2() {
+        val extension = InspectionPluginExtension(null)
+        extension.testMode = true
+        extension.idea.version = "ideaIC:2018.2"
+        extension.plugins.kotlin.version = "1.2.40"
+        testBench.doTest(File("testData/reformat/configurationKotlin_1-2-40_IJ2018-2"), extension)
+    }
+
+    @Ignore
+    @Test
     fun testConfigurationKotlin_1_2_51_IJ2017_2() {
         val extension = InspectionPluginExtension(null)
         extension.testMode = true
