@@ -16,6 +16,7 @@ class BuildTestGenerated {
         testBench.doTest(File("testData/build/redundantVisibility"), extension)
     }
 
+    @Ignore
     @Test
     fun testSpaces() {
         val extension = InspectionPluginExtension(null)
