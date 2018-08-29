@@ -108,7 +108,7 @@ open class InspectionPlugin : AbstractCodeQualityPlugin<AbstractInspectionsTask,
 
         private val TEMP_DIRECTORY = File(System.getProperty("java.io.tmpdir"))
 
-        internal val BASE_CACHE_DIRECTORY = File(TEMP_DIRECTORY, "inspection-plugin")
+        private val BASE_CACHE_DIRECTORY = File(TEMP_DIRECTORY, "inspection-plugin")
 
         internal val MARKERS_DIRECTORY = File(BASE_CACHE_DIRECTORY, "markers")
 

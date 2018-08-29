@@ -2,7 +2,6 @@ package org.jetbrains.intellij.inspection
 
 import org.gradle.internal.impldep.org.apache.commons.io.output.TeeOutputStream
 import org.gradle.internal.io.StreamByteBuffer
-import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import org.gradle.testkit.runner.UnexpectedBuildFailure

@@ -388,8 +388,6 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
 
         private const val IDEA_LOCK_EXTENSION = "idea-lock"
 
-        private const val SHUTDOWN_LOCK_EXTENSION = "shutdown-lock"
-
         private fun getPID() = ManagementFactory.getRuntimeMXBean().name
 
         private fun ideaLockFileName() = "${getPID()}.$IDEA_LOCK_EXTENSION"

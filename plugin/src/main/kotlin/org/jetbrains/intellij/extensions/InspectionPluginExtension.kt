@@ -83,13 +83,13 @@ open class InspectionPluginExtension(private val project: Project?) : CodeQualit
         }
 
     /**
-     * @see InspectionPluginExtension.idea.version
+     * @see InspectionPluginExtension.idea
      */
     @Deprecated("To be replaced with idea.version", ReplaceWith("idea.version"))
     override fun getToolVersion() = idea.version
 
     /**
-     * @see InspectionPluginExtension.idea.version
+     * @see InspectionPluginExtension.idea
      */
     @Deprecated("To be replaced with idea.version = n", ReplaceWith("idea.version"))
     override fun setToolVersion(value: String?) {

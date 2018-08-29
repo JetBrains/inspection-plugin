@@ -1,7 +1,6 @@
 package org.jetbrains.intellij.parameters
 
 import org.jetbrains.intellij.Runner
-import java.io.File
 
 
 data class InspectionPluginParameters(
