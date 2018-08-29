@@ -349,7 +349,7 @@ class InspectionTestBench(private val taskName: String) {
 
         private fun assertInspectionBuildProjectFiles(actualFiles: List<File>) {
             val actualPathFiles = actualFiles.map { it.relativeTo(testProjectDir.root) }
-            val expectedPathFiles = expectedSources
+            val expectedPathFiles = expectedSources.asSequence()
                     .map { it.relativeTo(testDir) }
                     .map {
                         when {
@@ -358,6 +358,7 @@ class InspectionTestBench(private val taskName: String) {
                             else -> throw IllegalArgumentException("Undefined language of source file $it")
                         }
                     }
+                    .toList()
             @Suppress("UNUSED_VARIABLE")
             for ((expectedPathFile, expectedFile) in expectedPathFiles.zip(expectedSources)) {
                 val (actualPathFile, actualFile) = actualPathFiles.zip(actualFiles)
@@ -408,7 +409,7 @@ class InspectionTestBench(private val taskName: String) {
         val lines = sources.map { it.readLines() }.flatten()
 
         val expectedDiagnostics = sources.map { source ->
-            source.readLines()
+            source.readLines().asSequence()
                     .filter { it.startsWith("//") }
                     .map { it.drop(2).trim() }
                     .mapNotNull {
@@ -421,6 +422,7 @@ class InspectionTestBench(private val taskName: String) {
                             else -> null
                         }
                     }
+                    .toList()
         }.flatten()
 
         fun getParameterValue(parameterName: String, defaultValue: String): String {

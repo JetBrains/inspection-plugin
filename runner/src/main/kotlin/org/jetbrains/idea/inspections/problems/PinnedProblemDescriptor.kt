@@ -10,7 +10,7 @@ import org.jetbrains.idea.inspections.relativeFilePath
 import com.intellij.openapi.util.text.StringUtil.replace
 
 class PinnedProblemDescriptor private constructor(
-        val descriptor: ProblemDescriptor,
+        private val descriptor: ProblemDescriptor,
         val fileName: String,
         val line: Int,
         val row: Int,
