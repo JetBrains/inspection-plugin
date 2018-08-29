@@ -11,5 +11,5 @@
             <description>Private data class constructor is exposed via the generated 'copy' method.</description>
         </problem>
     </warnings>
-    <infos />
+    <info />
 </report>

@@ -23,10 +23,10 @@ inspections {
     <inheritFromIdea>
     <errors.inspections>
     <warnings.inspections>
-    <infos.inspections>
+    <info.inspections>
     <errors.max>
     <warnings.max>
-    <infos.max>
+    <info.max>
     <quiet>
     <quickFix>
     <reformat.quiet>

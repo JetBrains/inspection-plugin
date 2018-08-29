@@ -5,4 +5,4 @@ public val x = 42
 
 public val y = 13
 
-// ERROR: Using of IDEA Ultimate is not yet supported in inspection runner
+// EXCEPTION: Using of IDEA Ultimate is not yet supported in inspection runner
