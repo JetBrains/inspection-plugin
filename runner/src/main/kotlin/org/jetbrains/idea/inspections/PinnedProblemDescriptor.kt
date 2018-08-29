@@ -7,7 +7,7 @@ import com.intellij.openapi.editor.Document
 import com.intellij.openapi.util.text.StringUtil.replace
 
 class PinnedProblemDescriptor(
-        val descriptor: ProblemDescriptor,
+        private val descriptor: ProblemDescriptor,
         val fileName: String,
         val line: Int,
         val row: Int,

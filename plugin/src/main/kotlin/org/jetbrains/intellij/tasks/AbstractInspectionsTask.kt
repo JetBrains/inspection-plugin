@@ -176,17 +176,14 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
     private val inspections: Map<String, InspectionParameters>
         get() = errorsInspections + warningsInspections + infoInspections
 
-    @get:Internal
-    override lateinit var sourceSetType: SourceSetType
-
-    @get:Internal
+    @Internal
     private var ignoreFailures: Boolean? = null
 
     @get:Internal
     protected val extension: InspectionPluginExtension
         get() = project.extensions.findByType(InspectionPluginExtension::class.java)!!
 
-    @get:Internal
+    @Internal
     private var runner: Runner<InspectionPluginParameters>? = null
 
     @Internal
@@ -271,7 +268,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
             logger.info("InspectionPlugin: Idea directory: $ideaDirectory")
             val ideaClasspath = getIdeaClasspath(ideaDirectory)
             val analyzerClasspath = listOf(tryResolveRunnerJar(project))
-            val fullClasspath = (analyzerClasspath + ideaClasspath /*+ pluginsClasspath*/).map { it.toURI().toURL() }
+            val fullClasspath = (analyzerClasspath + ideaClasspath).map { it.toURI().toURL() }
             logger.info("InspectionPlugin: Runner classpath: $fullClasspath")
             val parentClassLoader = this.javaClass.classLoader
             logger.info("InspectionPlugin: Runner parent class loader: $parentClassLoader")

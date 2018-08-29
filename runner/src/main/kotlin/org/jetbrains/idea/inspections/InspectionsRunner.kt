@@ -216,6 +216,7 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
         val sortedResults = results.entries
                 .map { entry -> entry.value.map { entry.key to it } }
                 .flatten()
+                .asSequence()
                 .sortedBy { (it.second.line shl 16) + it.second.row }
                 .groupBy { it.second.fileName }
         runReadAction {
