@@ -37,6 +37,7 @@ object KotlinPlugin {
     }
 
     private fun getUnifiedPlatformVersion(platformVersion: String) = when (platformVersion) {
+        "IJ2017.1-1" -> "IJ2017.1"
         "IJ2017.2-1" -> "IJ2017.2"
         "IJ2017.3-1" -> "IJ2017.3"
         "IJ2018.1-1" -> "IJ2018.1"
@@ -45,6 +46,7 @@ object KotlinPlugin {
     }
 
     private fun getPlatformVersion(ideaVersion: String): String? = when (ideaVersion) {
+        "ideaIC:2017.1" -> "IJ2017.1"
         "ideaIC:2017.2" -> "IJ2017.2"
         "ideaIC:2017.3" -> "IJ2017.3"
         "ideaIC:2018.1" -> "IJ2018.1"
@@ -68,28 +70,57 @@ object KotlinPlugin {
             }
 
     private fun getId(shortVersion: String, platformVersion: String) = when (platformVersion) {
+        "IJ2017.1" -> when (shortVersion) {
+            "1.2.41" -> 45420
+            "1.2.40" -> 45188
+            "1.2.31" -> 44359
+            "1.2.30" -> 43771
+            "1.2.21" -> 42499
+            else -> null
+        }
         "IJ2017.2" -> when (shortVersion) {
+            "1.2.61" -> 49052
             "1.2.60" -> 48408
             "1.2.51" -> 47476
             "1.2.50" -> 46830
+            "1.2.41" -> 45421
+            "1.2.40" -> 45189
+            "1.2.31" -> 44360
+            "1.2.30" -> 43773
+            "1.2.21" -> 42500
             else -> null
         }
         "IJ2017.3" -> when (shortVersion) {
+            "1.2.61" -> 49053
             "1.2.60" -> 48409
             "1.2.51" -> 47477
             "1.2.50" -> 46831
+            "1.2.41" -> 45422
+            "1.2.40" -> 45190
+            "1.2.31" -> 44361
+            "1.2.30" -> 43774
+            "1.2.21" -> 42501
             else -> null
         }
         "IJ2018.1" -> when (shortVersion) {
+            "1.2.61" -> 49054
             "1.2.60" -> 48410
             "1.2.51" -> 47478
             "1.2.50" -> 46832
+            "1.2.41" -> 45423
+            "1.2.40" -> 45191
+            "1.2.31" -> 44362
+            "1.2.30" -> 43775
+            "1.2.21" -> 42502
             else -> null
         }
         "IJ2018.2" -> when (shortVersion) {
+            "1.2.61" -> 49055
             "1.2.60" -> 48411
             "1.2.51" -> 47479
             "1.2.50" -> 46833
+            "1.2.41" -> 45424
+            "1.2.40" -> 45192
             else -> null
         }
         else -> null
