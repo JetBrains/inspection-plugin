@@ -405,15 +405,15 @@ class InspectionTestBench(private val taskName: String) {
 
         val expectedDiagnostics = sources.map { source ->
             source.readLines()
-                    .filter { it.startsWith("// :") || it.startsWith("///") }
-                    .map { it.drop(3) }
-                    .map {
+                    .filter { it.startsWith("//") }
+                    .map { it.drop(2).trim() }
+                    .mapNotNull {
                         when {
                             it.startsWith(':') -> source.name + it
                             it.startsWith("ERROR: :") -> "ERROR: " + source.name + it.removePrefix("ERROR: ")
                             it.startsWith("WARNING: :") -> "WARNING: " + source.name + it.removePrefix("WARNING: ")
                             it.startsWith("INFO: :") -> "INFO: " + source.name + it.removePrefix("INFO: ")
-                            else -> it
+                            else -> null
                         }
                     }
         }.flatten()
