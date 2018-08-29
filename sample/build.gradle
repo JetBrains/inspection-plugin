@@ -13,7 +13,7 @@ buildscript {
     }
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath "org.jetbrains.intellij.plugins:inspection-plugin:0.2.0-rc-2"
+        classpath "org.jetbrains.intellij.plugins:inspection-plugin:0.2.0-rc-3"
     }
 }
 
@@ -25,13 +25,12 @@ sourceCompatibility = 1.8
 
 inspections {
     reportsDir file("build")
-    // Todo(glukhikh) uncomment after deploy 0.2.0-rc-3
-//    idea.version "ideaIC:2018.1"
-//    warning('org.jetbrains.kotlin.idea.inspections.DataClassPrivateConstructorInspection')
-//    warning('org.jetbrains.kotlin.idea.inspections.UseExpressionBodyInspection')
-//    warning('org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection')
-//    warning('org.jetbrains.kotlin.idea.inspections.AddVarianceModifierInspection')
-//    warning('org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection')
+    idea.version "ideaIC:2018.1"
+    warning('org.jetbrains.kotlin.idea.inspections.DataClassPrivateConstructorInspection')
+    warning('org.jetbrains.kotlin.idea.inspections.UseExpressionBodyInspection')
+    warning('org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection')
+    warning('org.jetbrains.kotlin.idea.inspections.AddVarianceModifierInspection')
+    warning('org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection')
 }
 
 repositories {
