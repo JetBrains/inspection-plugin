@@ -4,10 +4,10 @@ import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemDescriptorUtil
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.openapi.editor.Document
-import com.intellij.openapi.util.text.StringUtil
 import org.jetbrains.idea.inspections.getLine
 import org.jetbrains.idea.inspections.getRow
 import org.jetbrains.idea.inspections.relativeFilePath
+import com.intellij.openapi.util.text.StringUtil.replace
 
 class PinnedProblemDescriptor private constructor(
         val descriptor: ProblemDescriptor,
@@ -15,56 +15,54 @@ class PinnedProblemDescriptor private constructor(
         val line: Int,
         val row: Int,
         val displayName: String?,
-        val ideaLevel: ProblemLevel?
+        val level: ProblemLevel
 ) : ProblemDescriptor by descriptor {
+
     private val highlightedText = psiElement?.let {
         ProblemDescriptorUtil.extractHighlightedText(this, it)
     } ?: ""
 
-    fun renderLocation(): String = StringBuilder().apply {
-        append(fileName)
-        append(":")
-        append(line + 1)
-        append(":")
-        append(row + 1)
-    }.toString()
+    fun renderLocation() = "$fileName:${line + 1}:${row + 1}"
 
     fun renderWithLocation(): String = renderLocation() + ": " + render()
 
-    fun render(): String = StringUtil.replace(
-            StringUtil.replace(
-                    descriptionTemplate,
-                    "#ref",
-                    highlightedText
-            ),
-            " #loc",
-            ""
-    )
+    private fun String.intellijReplace(oldS: String, newS: String) = replace(this, oldS, newS)
 
-    constructor(descriptor: ProblemDescriptor, document: Document, displayName: String?,
-                problemLevel: ProblemLevel?,
-                lineNumber: Int = descriptor.psiElement.getLine(document)):
-            this(descriptor, descriptor.psiElement.relativeFilePath, lineNumber,
-                 descriptor.psiElement.getRow(document, lineNumber),
-                 displayName, problemLevel)
+    fun render(): String = descriptionTemplate.intellijReplace("#ref", highlightedText).intellijReplace(" #loc", "")
 
-    fun actualLevel(default: ProblemLevel?): ProblemLevel? = when (highlightType) {
-        // Default (use level either from IDEA configuration or plugin configuration)
-        ProblemHighlightType.GENERIC_ERROR_OR_WARNING,
-        ProblemHighlightType.LIKE_UNKNOWN_SYMBOL,
-        ProblemHighlightType.LIKE_DEPRECATED,
-        ProblemHighlightType.LIKE_UNUSED_SYMBOL ->
-            default ?: this.ideaLevel
-        // If inspection forces error, report it
-        ProblemHighlightType.ERROR, ProblemHighlightType.GENERIC_ERROR ->
-            ProblemLevel.ERROR
-        // If inspection forces weak warning, never report error
-        ProblemHighlightType.WEAK_WARNING ->
-            if (default == ProblemLevel.ERROR || default == null) ProblemLevel.WEAK_WARNING else default
-        // If inspection forces "do not show", it's really not a problem at all
-        ProblemHighlightType.INFORMATION ->
-            null
-        else /* INFO only */ ->
-            ProblemLevel.INFORMATION
+    companion object {
+        fun createIfProblem(
+                descriptor: ProblemDescriptor,
+                document: Document,
+                displayName: String?,
+                problemLevel: ProblemLevel?
+        ): PinnedProblemDescriptor? {
+            val level = actualLevel(problemLevel, descriptor.highlightType) ?: return null
+            val lineNumber = descriptor.psiElement.getLine(document)
+            val fileName = descriptor.psiElement.relativeFilePath
+            val rowNumber = descriptor.psiElement.getRow(document, lineNumber)
+            return PinnedProblemDescriptor(descriptor, fileName, lineNumber, rowNumber, displayName, level)
+        }
+
+        private fun actualLevel(ideaLevel: ProblemLevel?, highlightType: ProblemHighlightType): ProblemLevel? {
+            return when (highlightType) {
+                // Default (use level either from IDEA configuration or plugin configuration)
+                ProblemHighlightType.GENERIC_ERROR_OR_WARNING -> ideaLevel
+                ProblemHighlightType.LIKE_UNKNOWN_SYMBOL -> ideaLevel
+                ProblemHighlightType.LIKE_DEPRECATED -> ideaLevel
+                ProblemHighlightType.LIKE_UNUSED_SYMBOL -> ideaLevel
+                // If inspection forces error, report it
+                ProblemHighlightType.ERROR -> ProblemLevel.ERROR
+                ProblemHighlightType.GENERIC_ERROR -> ProblemLevel.ERROR
+                // If inspection forces weak warning, never report error
+                ProblemHighlightType.WEAK_WARNING -> when (ideaLevel) {
+                    ProblemLevel.ERROR -> ProblemLevel.WEAK_WARNING
+                    else -> ideaLevel
+                }
+                // If inspection forces "do not show", it's really not a problem at all
+                ProblemHighlightType.INFORMATION -> null
+                else -> ProblemLevel.INFO
+            }
+        }
     }
 }

@@ -202,6 +202,39 @@ class InspectionTestGenerated {
     }
 
     @Test
+    fun testUnusedSymbolError() {
+        val extension = InspectionPluginExtension(null)
+        extension.testMode = true
+        extension.error("org.jetbrains.kotlin.idea.inspections.UnusedSymbolInspection")
+        testBench.doTest(File("testData/inspection/unusedSymbolError"), extension)
+    }
+
+    @Test
+    fun testUnusedSymbolIdeaError() {
+        val extension = InspectionPluginExtension(null)
+        extension.testMode = true
+        extension.inheritFromIdea = true
+        extension.error("org.jetbrains.kotlin.idea.inspections.UnusedSymbolInspection")
+        testBench.doTest(File("testData/inspection/unusedSymbolIdeaError"), extension)
+    }
+
+    @Test
+    fun testUnusedSymbolIdeaWarning() {
+        val extension = InspectionPluginExtension(null)
+        extension.testMode = true
+        extension.inheritFromIdea = true
+        testBench.doTest(File("testData/inspection/unusedSymbolIdeaWarning"), extension)
+    }
+
+    @Test
+    fun testUnusedSymbolWarning() {
+        val extension = InspectionPluginExtension(null)
+        extension.testMode = true
+        extension.warning("org.jetbrains.kotlin.idea.inspections.UnusedSymbolInspection")
+        testBench.doTest(File("testData/inspection/unusedSymbolWarning"), extension)
+    }
+
+    @Test
     fun testWeakWarningNeverBecomesError() {
         val extension = InspectionPluginExtension(null)
         extension.testMode = true

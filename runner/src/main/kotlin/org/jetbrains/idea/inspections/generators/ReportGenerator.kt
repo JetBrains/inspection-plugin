@@ -7,7 +7,7 @@ import java.io.File
 interface ReportGenerator {
     val reportFile: File
 
-    fun report(problem: PinnedProblemDescriptor, level: ProblemLevel, inspectionClass: String)
+    fun report(problem: PinnedProblemDescriptor, inspectionClass: String)
 
     fun generate()
 }

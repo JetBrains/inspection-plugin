@@ -154,23 +154,23 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
      * The inspections with information problem level.
      */
     @get:Input
-    open val infosInspections: Map<String, InspectionParameters>
-        get() = getInspections(extension.infos)
+    open val infoInspections: Map<String, InspectionParameters>
+        get() = getInspections(extension.info)
 
     /**
-     * The maximum number of infos that are tolerated before stopping the build
+     * The maximum number of information inspections that are tolerated before stopping the build
      * and setting the failure property (the last if ignoreFailures = false only)
      *
-     * @return the maximum number of infos allowed
+     * @return the maximum number of information inspections allowed
      */
     @get:Input
     @get:Optional
-    open val maxInfos: Int?
-        get() = extension.infos.max
+    open val maxInfo: Int?
+        get() = extension.info.max
 
     @get:Internal
     private val inspections: Map<String, InspectionParameters>
-        get() = errorsInspections + warningsInspections + infosInspections
+        get() = errorsInspections + warningsInspections + infoInspections
 
     @get:Internal
     override lateinit var sourceSetType: SourceSetType
@@ -207,7 +207,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
         val report = ReportParameters(isQuiet, xml, html)
         val errors = InspectionsParameters(errorsInspections, maxErrors)
         val warnings = InspectionsParameters(warningsInspections, maxWarnings)
-        val infos = InspectionsParameters(infosInspections, maxInfos)
+        val info = InspectionsParameters(infoInspections, maxInfo)
         return InspectionPluginParameters(
                 testMode,
                 getIgnoreFailures(),
@@ -219,7 +219,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
                 profileName,
                 errors,
                 warnings,
-                infos
+                info
         )
     }
 

@@ -74,7 +74,7 @@ class InspectionTestBench(private val taskName: String) {
                                 appendln("    warning($name).quickFix $it")
                             }
                         }
-                        "infos.inspections" -> infos.inspections?.forEach { entry ->
+                        "info.inspections" -> info.inspections?.forEach { entry ->
                             val name = entry.key.gradleCode
                             if (inheritFromIdea != true) appendln("    info($name)")
                             entry.value.quickFix?.gradleCode?.let {
@@ -87,8 +87,8 @@ class InspectionTestBench(private val taskName: String) {
                         "warnings.max" -> warnings.max?.gradleCode?.let {
                             appendln("    warnings.max $it")
                         }
-                        "infos.max" -> infos.max?.gradleCode?.let {
-                            appendln("    infos.max $it")
+                        "info.max" -> info.max?.gradleCode?.let {
+                            appendln("    info.max $it")
                         }
                         "quiet" -> isQuiet?.gradleCode?.let {
                             appendln("    quiet $it")
@@ -157,14 +157,14 @@ class InspectionTestBench(private val taskName: String) {
 
     }
 
-    private fun generateInspectionProfileFile(errors: List<String>, warnings: List<String>, infos: List<String>): String {
+    private fun generateInspectionProfileFile(errors: List<String>, warnings: List<String>, info: List<String>): String {
         return StringBuilder().apply {
             appendln("<component name=\"InspectionProjectProfileManager\">")
             appendln("    <profile version=\"1.0\">\n")
             appendln("        <option name=\"myName\" value=\"Project Default\" /> \n")
             appendln(generateInspectionToolTags("ERROR", errors))
             appendln(generateInspectionToolTags("WARNING", warnings))
-            appendln(generateInspectionToolTags("INFO", infos))
+            appendln(generateInspectionToolTags("INFO", info))
             appendln("    </profile>")
             appendln("</component>")
         }.toString()
@@ -214,14 +214,14 @@ class InspectionTestBench(private val taskName: String) {
             with(extension) {
                 val errors = errors.inspections.keys.toList()
                 val warnings = warnings.inspections.keys.toList()
-                val infos = infos.inspections.keys.toList()
-                if (inheritFromIdea == true && (errors + warnings + infos).isNotEmpty()) {
+                val info = info.inspections.keys.toList()
+                if (inheritFromIdea == true && (errors + warnings + info).isNotEmpty()) {
                     if (profileName != null)
                         throw IllegalArgumentException("Idea profile in inspection test has auto generating")
                     testProjectDir.newFolder(".idea", "inspectionProfiles")
                     profileName = "Project_Default.xml"
                     val inspectionProfileFile = testProjectDir.newFile(".idea/inspectionProfiles/$profileName")
-                    val inspectionProfileContent = generateInspectionProfileFile(errors, warnings, infos)
+                    val inspectionProfileContent = generateInspectionProfileFile(errors, warnings, info)
                     println(inspectionProfileContent)
                     writeFile(inspectionProfileFile, inspectionProfileContent)
                     val profilesSettingFile = testProjectDir.newFile(".idea/inspectionProfiles/profiles_settings.xml")
@@ -258,11 +258,7 @@ class InspectionTestBench(private val taskName: String) {
             val testFiles = ArrayList<File>()
             for (source in sources) {
                 val file = source.relativeTo(testDir)
-                val file2 = when {
-                    file.isKotlinSource -> File("src/main/kotlin", file.path)
-                    file.isJavaSource -> File("src/main/java", file.path)
-                    else -> throw IllegalArgumentException("Undefined language of source file $file")
-                }
+                val file2 = file.toMavenLayout()
                 val dir2 = File(testProjectDir.root, file2.parentFile.path)
                 if (!dir2.exists()) dir2.mkdirs()
                 val file3 = testProjectDir.newFile(file2.path)
@@ -397,6 +393,14 @@ class InspectionTestBench(private val taskName: String) {
         }
     }
 
+    private fun File.toMavenLayout(): File {
+        return when {
+            isKotlinSource -> File("src/main/kotlin", path)
+            isJavaSource -> File("src/main/java", path)
+            else -> throw IllegalArgumentException("Undefined language of source file ${this}")
+        }
+    }
+
     fun doTest(testDir: File, extension: InspectionPluginExtension) {
         val sources = testDir.allSourceFiles.toList()
         if (sources.isEmpty()) throw IllegalArgumentException("Test directory in $testDir not found.")
@@ -405,9 +409,18 @@ class InspectionTestBench(private val taskName: String) {
 
         val expectedDiagnostics = sources.map { source ->
             source.readLines()
-                    .filter { it.startsWith("// :") || it.startsWith("///") }
-                    .map { it.drop(3) }
-                    .map { if (it.startsWith(':')) source.name + it else it }
+                    .filter { it.startsWith("//") }
+                    .map { it.drop(2).trim() }
+                    .mapNotNull {
+                        val relativeFileName = source.relativeTo(testDir).toMavenLayout().path.replace("\\", "/")
+                        when {
+                            it.startsWith(':') -> relativeFileName + it
+                            it.startsWith("ERROR: :") -> "ERROR: " + relativeFileName + it.removePrefix("ERROR: ")
+                            it.startsWith("WARNING: :") -> "WARNING: " + relativeFileName + it.removePrefix("WARNING: ")
+                            it.startsWith("INFO: :") -> "INFO: " + relativeFileName + it.removePrefix("INFO: ")
+                            else -> null
+                        }
+                    }
         }.flatten()
 
         fun getParameterValue(parameterName: String, defaultValue: String): String {
@@ -421,14 +434,14 @@ class InspectionTestBench(private val taskName: String) {
 
         val expectedDiagnosticStatus = lines.asSequence().map { it.trim() }.find { it == "// SHOULD_BE_ABSENT" }
         val expectedFail = lines.asSequence().map { it.trim() }.find { it == "// FAIL" }
-        val expectedError = lines.asSequence().map { it.trim() }.find { it.startsWith("// ERROR: ") }
+        val expectedException = lines.asSequence().map { it.trim() }.find { it.startsWith("// EXCEPTION: ") }
         val expectedDiagnosticsStatus = when {
             expectedDiagnosticStatus != null -> DiagnosticsStatus.SHOULD_BE_ABSENT
             else -> DiagnosticsStatus.SHOULD_PRESENT
         }
         val expectedOutcome = when {
             expectedFail != null -> Outcome.Simple(TaskOutcome.FAILED)
-            expectedError != null -> Outcome.Error(expectedError.removePrefix("// ERROR: "))
+            expectedException != null -> Outcome.Error(expectedException.removePrefix("// EXCEPTION: "))
             else -> Outcome.Simple(TaskOutcome.SUCCESS)
         }
 

@@ -13,9 +13,7 @@ import java.io.File
 import java.util.*
 
 class HTMLGenerator(override val reportFile: File) : ReportGenerator {
-    data class Report(val problem: PinnedProblemDescriptor, val level: ProblemLevel)
-
-    private val reports = ArrayList<Report>()
+    private val problems = ArrayList<PinnedProblemDescriptor>()
 
     private fun HTML.generateHead() {
         tag("style") {
@@ -109,7 +107,7 @@ class HTMLGenerator(override val reportFile: File) : ReportGenerator {
 
     private fun HTML.generateBody() {
         val documentManager = FileDocumentManager.getInstance()
-        for ((problem, level) in reports) {
+        for (problem in problems) {
             tag("p") {
                 line {
                     text("In file ")
@@ -123,10 +121,10 @@ class HTMLGenerator(override val reportFile: File) : ReportGenerator {
             val psiElement = problem.psiElement
             val problemTag = when (problem.highlightType) {
                 ProblemHighlightType.LIKE_UNUSED_SYMBOL -> "unused"
-                else -> when (level) {
+                else -> when (problem.level) {
                     ProblemLevel.ERROR -> "error"
                     ProblemLevel.WARNING -> "warning"
-                    ProblemLevel.WEAK_WARNING, ProblemLevel.INFORMATION -> "info"
+                    ProblemLevel.WEAK_WARNING, ProblemLevel.INFO -> "info"
                 }
             }
             val document = psiElement?.containingFile?.virtualFile?.let { documentManager.getDocument(it) }
@@ -144,9 +142,8 @@ class HTMLGenerator(override val reportFile: File) : ReportGenerator {
         }
     }
 
-    override fun report(problem: PinnedProblemDescriptor, level: ProblemLevel, inspectionClass: String) {
-        val report = Report(problem, level)
-        reports.add(report)
+    override fun report(problem: PinnedProblemDescriptor, inspectionClass: String) {
+        problems.add(problem)
     }
 
     override fun generate() {
