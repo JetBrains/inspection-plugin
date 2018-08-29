@@ -19,6 +19,7 @@ object KotlinPlugin {
         return Pair(shortVersion, unifiedPlatformVersion)
     }
 
+    @Suppress("UNUSED_VARIABLE")
     private fun isCompatible(version: String, ideaVersion: String): Boolean {
         val (shortVersion, platformVersion) = destructVersion(version) ?: return true
         val ideaPlatformVersion = getPlatformVersion(ideaVersion)

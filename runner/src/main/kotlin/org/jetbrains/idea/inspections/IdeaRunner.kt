@@ -292,7 +292,7 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
 
     private fun finishGradleDaemon() {
         logger.error("InspectionPlugin: Killed current gradle daemon for classpath resetting")
-        System.exit(1)
+        System.exit(0)
     }
 
     private fun initRun(): Build.State {
