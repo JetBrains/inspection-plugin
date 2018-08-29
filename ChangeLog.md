@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.2.0-rc-3
+
+Make gradle configuration a bit nicer
+
 ## 0.2.0-rc-2
 
 Bug fixes:
