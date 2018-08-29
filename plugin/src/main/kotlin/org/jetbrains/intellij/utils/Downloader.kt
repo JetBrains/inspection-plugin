@@ -4,7 +4,7 @@ import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.DefaultHttpClient
 import org.gradle.api.logging.Logger
 import org.gradle.internal.hash.HashUtil
-import org.jetbrains.intellij.InspectionPlugin
+import org.jetbrains.intellij.configurations.MARKERS_DIRECTORY
 import java.io.File
 
 class Downloader(private val logger: Logger) {
@@ -33,6 +33,6 @@ class Downloader(private val logger: Logger) {
 
     private fun getMarkerFile(url: String): File {
         val hash = HashUtil.createCompactMD5(url)
-        return File(InspectionPlugin.MARKERS_DIRECTORY, "download-$hash.marker")
+        return File(MARKERS_DIRECTORY, "download-$hash.marker")
     }
 }

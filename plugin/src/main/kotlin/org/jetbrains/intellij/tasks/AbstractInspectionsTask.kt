@@ -9,6 +9,10 @@ import org.gradle.api.invocation.Gradle
 import org.gradle.api.tasks.*
 import org.gradle.api.tasks.Optional
 import org.jetbrains.intellij.*
+import org.jetbrains.intellij.configurations.IDEA_SYSTEM_DIRECTORY
+import org.jetbrains.intellij.configurations.ideaDirectory
+import org.jetbrains.intellij.configurations.ideaVersion
+import org.jetbrains.intellij.configurations.kotlinPluginDirectory
 import org.jetbrains.intellij.extensions.InspectionPluginExtension
 import org.jetbrains.intellij.extensions.InspectionsExtension
 import org.jetbrains.intellij.parameters.InspectionParameters
@@ -69,7 +73,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
      */
     @get:Input
     open val ideaVersion: String
-        get() = InspectionPlugin.ideaVersion(extension.idea.version)
+        get() = ideaVersion(extension.idea.version)
 
     /**
      * Version of IDEA Kotlin Plugin.
@@ -262,8 +266,8 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
         try {
             val parameters = getInspectionsParameters()
             val ideaVersion = parameters.ideaVersion
-            val ideaDirectory = InspectionPlugin.ideaDirectory(ideaVersion)
-            val ideaSystemDirectory = InspectionPlugin.IDEA_SYSTEM_DIRECTORY
+            val ideaDirectory = ideaDirectory(ideaVersion)
+            val ideaSystemDirectory = IDEA_SYSTEM_DIRECTORY
             logger.info("InspectionPlugin: Idea directory: $ideaDirectory")
             val ideaClasspath = getIdeaClasspath(ideaDirectory)
             val analyzerClasspath = listOf(tryResolveRunnerJar(project))
@@ -278,7 +282,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
                 ChildFirstClassLoader(fullClasspath.toTypedArray(), parentClassLoader)
             }
             val kotlinPluginVersion = parameters.kotlinPluginVersion
-            val kotlinPluginDirectory = InspectionPlugin.kotlinPluginDirectory(kotlinPluginVersion, ideaVersion)
+            val kotlinPluginDirectory = kotlinPluginDirectory(kotlinPluginVersion, ideaVersion)
             val plugins = listOf(kotlinPluginDirectory)
             var success = true
             val inspectionsThread = thread(start = false) {
@@ -311,19 +315,19 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
             inspectionsThread.contextClassLoader = loader
             inspectionsThread.setUncaughtExceptionHandler { t, e ->
                 success = false
-                ExceptionHandler.exception(this, e, "Analyzing exception")
+                exception(this, e, "Analyzing exception")
             }
             inspectionsThread.start()
             inspectionsThread.join()
 
             if (!success && !parameters.ignoreFailures) {
-                ExceptionHandler.exception(this, "Task execution failure")
+                exception(this, "Task execution failure")
             }
         } catch (e: TaskExecutionException) {
             runnerFinalize()
             throw e
         } catch (e: Throwable) {
-            ExceptionHandler.exception(this, e, "Process inspection task exception") {
+            exception(this, e, "Process inspection task exception") {
                 runnerFinalize()
             }
         }

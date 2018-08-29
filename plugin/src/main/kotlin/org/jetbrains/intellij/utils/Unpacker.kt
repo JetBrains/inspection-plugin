@@ -2,7 +2,7 @@ package org.jetbrains.intellij.utils
 
 import org.gradle.api.logging.Logger
 import org.gradle.internal.hash.HashUtil
-import org.jetbrains.intellij.InspectionPlugin
+import org.jetbrains.intellij.configurations.MARKERS_DIRECTORY
 import java.io.File
 
 class Unpacker(private val logger: Logger, private val unpack: Unpack, private val copy: Copy) {
@@ -25,6 +25,6 @@ class Unpacker(private val logger: Logger, private val unpack: Unpack, private v
 
     private fun getMarkerFile(archive: File): File {
         val hash = HashUtil.sha256(archive).asHexString()
-        return File(InspectionPlugin.MARKERS_DIRECTORY, "unpack-$hash.marker")
+        return File(MARKERS_DIRECTORY, "unpack-$hash.marker")
     }
 }
