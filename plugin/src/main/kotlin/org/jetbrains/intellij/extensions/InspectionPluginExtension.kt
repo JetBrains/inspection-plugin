@@ -4,7 +4,9 @@ import org.gradle.api.Action
 import org.gradle.api.plugins.quality.CodeQualityExtension
 import org.gradle.api.Project
 
-open class InspectionPluginExtension(private val project: Project?) : CodeQualityExtension() {
+open class InspectionPluginExtension(
+        @Suppress("unused") private val project: Project?
+) : CodeQualityExtension() {
 
     /**
      * Run inspection Plugin in test mode
@@ -65,6 +67,7 @@ open class InspectionPluginExtension(private val project: Project?) : CodeQualit
     /**
      * @see InspectionsExtension.max
      */
+    @Suppress("unused")
     @Deprecated("To be replaced with errors.max = n", ReplaceWith("errors.max"))
     var maxErrors: Int?
         get() = errors.max
@@ -75,6 +78,7 @@ open class InspectionPluginExtension(private val project: Project?) : CodeQualit
     /**
      * @see InspectionsExtension.max
      */
+    @Suppress("unused")
     @Deprecated("To be replaced with warnings.max = n", ReplaceWith("warnings.max"))
     var maxWarnings: Int?
         get() = warnings.max
