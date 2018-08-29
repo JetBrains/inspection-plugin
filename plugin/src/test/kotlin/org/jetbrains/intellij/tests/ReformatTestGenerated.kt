@@ -137,6 +137,7 @@ class ReformatTestGenerated {
         testBench.doTest(File("testData/reformat/configurationKotlin_1-2-60_IJ2018-2"), extension)
     }
 
+    @Ignore
     @Test
     fun testMultiFile() {
         val extension = InspectionPluginExtension(null)
@@ -144,6 +145,7 @@ class ReformatTestGenerated {
         testBench.doTest(File("testData/reformat/multiFile"), extension)
     }
 
+    @Ignore
     @Test
     fun testSpaces() {
         val extension = InspectionPluginExtension(null)
