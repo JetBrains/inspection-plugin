@@ -207,18 +207,17 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
     }
 
     private fun reportProblems(parameters: InspectionPluginParameters, results: Map<String, List<PinnedProblemDescriptor>>) {
+        val numProblems = results.values.flatten().count()
+        logger.info("InspectionPlugin: Total of $numProblems problem(s) found")
         val generators = listOfNotNull(
                 parameters.reportParameters.xml?.let { XMLGenerator(it) },
                 parameters.reportParameters.html?.let { HTMLGenerator(it) }
         )
-        if (generators.isEmpty()) return
         val sortedResults = results.entries
                 .map { entry -> entry.value.map { entry.key to it } }
                 .flatten()
                 .sortedBy { (it.second.line shl 16) + it.second.row }
                 .groupBy { it.second.fileName }
-        val numProblems = sortedResults.values.flatten().count()
-        logger.info("InspectionPlugin: Total of $numProblems problem(s) found")
         runReadAction {
             for (fileInspectionAndProblems in sortedResults.values) {
                 for ((inspectionClass, problem) in fileInspectionAndProblems) {
@@ -284,18 +283,17 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
             project: Project,
             problem: PinnedProblemDescriptor
     ): PsiFile? {
-        val renderedProblem = problem.renderWithLocation()
+        val renderedFix = fix.name
+        val renderedProblem = problem.renderLocation()
+        val identificator = "fix '$renderedFix' for '$renderedProblem'"
         val file = problem.psiElement?.containingFile
-        val fileName = file?.name
         runReadAction {
             val beforeText = file?.text
             applyFix(fix, project, problem)
             val afterText = file?.text
-            when {
-                beforeText == null -> logger.info("InspectionPlugin: Inapplicable fix for '$renderedProblem'")
-                afterText == null -> logger.info("InspectionPlugin: File $fileName deleted after fix for '$renderedProblem'")
-                afterText == beforeText -> logger.info("InspectionPlugin: File $fileName hasn't changes after fix '$renderedProblem'")
-                else -> logger.info("InspectionPlugin: File $fileName has changes after fix '$renderedProblem'")
+            when (afterText) {
+                beforeText -> logger.info("InspectionPlugin: File hasn't changes after $identificator")
+                else -> logger.info("InspectionPlugin: File has changes after $identificator")
             }
         }
         return file
@@ -323,21 +321,23 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
             project: Project,
             problem: PinnedProblemDescriptor
     ) {
-        val renderedProblem = problem.renderWithLocation()
+        val renderedFix = fix.name
+        val renderedProblem = problem.renderLocation()
+        val identificator = "fix '$renderedFix' for '$renderedProblem'"
         if (problem.psiElement == null) {
-            logger.info("InspectionPlugin: Fix already applied for '$renderedProblem'")
+            logger.info("InspectionPlugin: Already applied $identificator")
             return
         }
         try {
             if (!preparePsiElementForWrite(problem.psiElement)) {
-                logger.warn("InspectionPlugin: Problem psiElement cannot be prepared for '$renderedProblem'")
+                logger.warn("InspectionPlugin: Problem psiElement cannot be prepared $identificator")
                 return
             }
             fix.applyFix(project, problem)
-            logger.info("InspectionPlugin: Applied fix for '$renderedProblem'")
+            logger.info("InspectionPlugin: Applied $identificator")
             return
         } catch (exception: Exception) {
-            logger.error("InspectionPlugin: Exception during applying quick fix for '$renderedProblem'")
+            logger.error("InspectionPlugin: Exception during applying quick $identificator")
             logger.error("InspectionPlugin: $exception")
             return
         }
