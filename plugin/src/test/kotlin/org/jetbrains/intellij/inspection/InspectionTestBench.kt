@@ -74,7 +74,7 @@ class InspectionTestBench(private val taskName: String) {
                                 appendln("    warning($name).quickFix $it")
                             }
                         }
-                        "infos.inspections" -> infos.inspections?.forEach { entry ->
+                        "info.inspections" -> info.inspections?.forEach { entry ->
                             val name = entry.key.gradleCode
                             if (inheritFromIdea != true) appendln("    info($name)")
                             entry.value.quickFix?.gradleCode?.let {
@@ -87,8 +87,8 @@ class InspectionTestBench(private val taskName: String) {
                         "warnings.max" -> warnings.max?.gradleCode?.let {
                             appendln("    warnings.max $it")
                         }
-                        "infos.max" -> infos.max?.gradleCode?.let {
-                            appendln("    infos.max $it")
+                        "info.max" -> info.max?.gradleCode?.let {
+                            appendln("    info.max $it")
                         }
                         "quiet" -> isQuiet?.gradleCode?.let {
                             appendln("    quiet $it")
@@ -157,14 +157,14 @@ class InspectionTestBench(private val taskName: String) {
 
     }
 
-    private fun generateInspectionProfileFile(errors: List<String>, warnings: List<String>, infos: List<String>): String {
+    private fun generateInspectionProfileFile(errors: List<String>, warnings: List<String>, info: List<String>): String {
         return StringBuilder().apply {
             appendln("<component name=\"InspectionProjectProfileManager\">")
             appendln("    <profile version=\"1.0\">\n")
             appendln("        <option name=\"myName\" value=\"Project Default\" /> \n")
             appendln(generateInspectionToolTags("ERROR", errors))
             appendln(generateInspectionToolTags("WARNING", warnings))
-            appendln(generateInspectionToolTags("INFO", infos))
+            appendln(generateInspectionToolTags("INFO", info))
             appendln("    </profile>")
             appendln("</component>")
         }.toString()
@@ -214,14 +214,14 @@ class InspectionTestBench(private val taskName: String) {
             with(extension) {
                 val errors = errors.inspections.keys.toList()
                 val warnings = warnings.inspections.keys.toList()
-                val infos = infos.inspections.keys.toList()
-                if (inheritFromIdea == true && (errors + warnings + infos).isNotEmpty()) {
+                val info = info.inspections.keys.toList()
+                if (inheritFromIdea == true && (errors + warnings + info).isNotEmpty()) {
                     if (profileName != null)
                         throw IllegalArgumentException("Idea profile in inspection test has auto generating")
                     testProjectDir.newFolder(".idea", "inspectionProfiles")
                     profileName = "Project_Default.xml"
                     val inspectionProfileFile = testProjectDir.newFile(".idea/inspectionProfiles/$profileName")
-                    val inspectionProfileContent = generateInspectionProfileFile(errors, warnings, infos)
+                    val inspectionProfileContent = generateInspectionProfileFile(errors, warnings, info)
                     println(inspectionProfileContent)
                     writeFile(inspectionProfileFile, inspectionProfileContent)
                     val profilesSettingFile = testProjectDir.newFile(".idea/inspectionProfiles/profiles_settings.xml")
@@ -407,7 +407,15 @@ class InspectionTestBench(private val taskName: String) {
             source.readLines()
                     .filter { it.startsWith("// :") || it.startsWith("///") }
                     .map { it.drop(3) }
-                    .map { if (it.startsWith(':')) source.name + it else it }
+                    .map {
+                        when {
+                            it.startsWith(':') -> source.name + it
+                            it.startsWith("ERROR: :") -> "ERROR: " + source.name + it.removePrefix("ERROR: ")
+                            it.startsWith("WARNING: :") -> "WARNING: " + source.name + it.removePrefix("WARNING: ")
+                            it.startsWith("INFO: :") -> "INFO: " + source.name + it.removePrefix("INFO: ")
+                            else -> it
+                        }
+                    }
         }.flatten()
 
         fun getParameterValue(parameterName: String, defaultValue: String): String {
@@ -421,14 +429,14 @@ class InspectionTestBench(private val taskName: String) {
 
         val expectedDiagnosticStatus = lines.asSequence().map { it.trim() }.find { it == "// SHOULD_BE_ABSENT" }
         val expectedFail = lines.asSequence().map { it.trim() }.find { it == "// FAIL" }
-        val expectedError = lines.asSequence().map { it.trim() }.find { it.startsWith("// ERROR: ") }
+        val expectedException = lines.asSequence().map { it.trim() }.find { it.startsWith("// EXCEPTION: ") }
         val expectedDiagnosticsStatus = when {
             expectedDiagnosticStatus != null -> DiagnosticsStatus.SHOULD_BE_ABSENT
             else -> DiagnosticsStatus.SHOULD_PRESENT
         }
         val expectedOutcome = when {
             expectedFail != null -> Outcome.Simple(TaskOutcome.FAILED)
-            expectedError != null -> Outcome.Error(expectedError.removePrefix("// ERROR: "))
+            expectedException != null -> Outcome.Error(expectedException.removePrefix("// EXCEPTION: "))
             else -> Outcome.Simple(TaskOutcome.SUCCESS)
         }
 

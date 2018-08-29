@@ -13,34 +13,34 @@ class XMLGenerator(override val reportFile: File) : ReportGenerator {
     private val errorElements = mutableListOf<Element>()
     private val warningsRoot = Element("warnings")
     private val warningElements = mutableListOf<Element>()
-    private val infosRoot = Element("infos")
+    private val infoRoot = Element("info")
     private val infoElements = mutableListOf<Element>()
 
-    override fun report(problem: PinnedProblemDescriptor, level: ProblemLevel, inspectionClass: String) {
+    override fun report(problem: PinnedProblemDescriptor, inspectionClass: String) {
         val element = Element("problem")
         element.addContent(Element("file").addContent(problem.fileName))
         element.addContent(Element("line").addContent((problem.line + 1).toString()))
         element.addContent(Element("row").addContent((problem.row + 1).toString()))
         element.addContent(Element("java_class").addContent(inspectionClass))
         element.addContent(Element("problem_class")
-                .setAttribute("severity", level.name)
+                .setAttribute("severity", problem.level.name)
                 .addContent(problem.displayName ?: "<ANONYMOUS>"))
         element.addContent(Element("description").addContent(problem.render()))
-        when (level) {
+        when (problem.level) {
             ProblemLevel.ERROR -> errorElements += element
             ProblemLevel.WARNING, ProblemLevel.WEAK_WARNING -> warningElements += element
-            ProblemLevel.INFORMATION -> infoElements += element
+            ProblemLevel.INFO -> infoElements += element
         }
     }
 
     override fun generate() {
         errorsRoot.setContent(errorElements)
         warningsRoot.setContent(warningElements)
-        infosRoot.setContent(infoElements)
+        infoRoot.setContent(infoElements)
         val root = Element("report")
         root.addContent(errorsRoot)
         root.addContent(warningsRoot)
-        root.addContent(infosRoot)
+        root.addContent(infoRoot)
         val document = Document(root)
         XMLOutputter().output(document, reportFile.outputStream())
     }

@@ -29,9 +29,8 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
             val extension: InspectionEP?,
             val classFqName: String,
             val language: String?,
-            level: String? = null
+            val level: ProblemLevel?
     ) {
-        val level: ProblemLevel? = level?.let { ProblemLevel.fromInspectionEPLevel(it) }
 
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
@@ -51,12 +50,17 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
 
     private fun getInspectionWrappers(parameters: InspectionPluginParameters, project: Project): List<PluginInspectionWrapper<*>> {
         logger.info("InspectionPlugin: InheritFromIdea = ${parameters.inheritFromIdea}")
-        val registeredInspectionWrappers = getRegisteredInspectionWrappers(parameters.inspections.keys)
-        if (parameters.inheritFromIdea) {
-            val inspectionWrappersInheritFromIdea = getInspectionWrappersInheritFromIdea(parameters, project)
-            return inspectionWrappersInheritFromIdea + registeredInspectionWrappers
+        val registeredInspectionWrappers = getRegisteredInspectionWrappers(parameters)
+        val inspectionWrappersFromIdea = when (parameters.inheritFromIdea) {
+            true -> getInspectionWrappersInheritFromIdea(parameters, project)
+            false -> emptyList()
         }
-        return registeredInspectionWrappers
+        logger.info("InspectionPlugin: Registered inspections: " + registeredInspectionWrappers.map { it.classFqName to it.level }.toMap())
+        logger.info("InspectionPlugin: Inspections from idea: " + inspectionWrappersFromIdea.map { it.classFqName to it.level }.toMap())
+        val mapOfRegisteredInspectionWrappers = registeredInspectionWrappers.map { it.classFqName to it }.toMap()
+        val mapOfInspectionWrappersFromIdea = inspectionWrappersFromIdea.map { it.classFqName to it }.toMap()
+        val inspections = mapOfInspectionWrappersFromIdea + mapOfRegisteredInspectionWrappers
+        return inspections.values.toList()
     }
 
     private fun getInspectionWrappersInheritFromIdea(parameters: InspectionPluginParameters, project: Project): List<PluginInspectionWrapper<*>> {
@@ -67,21 +71,29 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
                 ?: inspectionProfileManager.currentProfile
         logger.info("InspectionPlugin: Profile file = ${profile.name}")
         return profile.getAllEnabledInspectionTools(project).map {
-            PluginInspectionWrapper(
-                    tool = it.tool.tool,
-                    extension = it.tool.extension,
-                    classFqName = it.tool.tool.javaClass.name,
-                    language = it.tool.language,
-                    level = it.defaultState.level.name
-            )
+            val tool = it.tool
+            val classFqName = tool.tool.javaClass.name
+            val level = ProblemLevel.fromInspectionEPLevel(it.defaultState.level.name)
+            PluginInspectionWrapper(tool.tool, tool.extension, classFqName, tool.language, level)
         }
     }
 
-    private fun getRegisteredInspectionWrappers(inspections: Set<String>): List<PluginInspectionWrapper<*>> {
+    private fun InspectionPluginParameters.inspectionsWithLevel(): Map<String, ProblemLevel> {
+        return errors.inspections.keys.map { it to ProblemLevel.ERROR }.toMap() +
+                warnings.inspections.keys.map { it to ProblemLevel.WARNING }.toMap() +
+                info.inspections.keys.map { it to ProblemLevel.INFO }.toMap()
+    }
+
+    private fun getRegisteredInspectionWrappers(parameters: InspectionPluginParameters): List<PluginInspectionWrapper<*>> {
+        logger.info("InspectionPlugin: Error inspections: " + parameters.errors.inspections.map { it.key })
+        logger.info("InspectionPlugin: Warning inspections: " + parameters.warnings.inspections.map { it.key })
+        logger.info("InspectionPlugin: Info inspections: " + parameters.info.inspections.map { it.key })
         val tools = InspectionToolRegistrar.getInstance().createTools()
-        return inspections.map { inspectionClassName ->
+        return parameters.inspectionsWithLevel().map { entry ->
+            val inspectionClassName = entry.key
+            val level = entry.value
             tools.find { it.tool.javaClass.name == inspectionClassName }
-                    ?.let { PluginInspectionWrapper(it.tool, it.extension, inspectionClassName, it.language) }
+                    ?.let { PluginInspectionWrapper(it.tool, it.extension, inspectionClassName, it.language, level) }
                     ?: throw IllegalArgumentException("$inspectionClassName is not found in registrar")
         }
     }
@@ -106,8 +118,8 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
     ): Map<String, List<PinnedProblemDescriptor>> {
         val results = HashMap<String, List<PinnedProblemDescriptor>>()
         logger.info("InspectionPlugin: Before inspections launched: total of ${files.size} files to analyze")
-        val inspectionWrappers = getInspectionWrappers(parameters, project).toList()
-        logger.info("InspectionPlugin: Inspections: " + inspectionWrappers.map { it.classFqName }.toList())
+        val inspectionWrappers = getInspectionWrappers(parameters, project)
+        logger.info("InspectionPlugin: Inspections: " + inspectionWrappers.map { it.classFqName to it.level }.toMap())
         for (inspectionWrapper in inspectionWrappers) {
             val inspectionName = inspectionWrapper.classFqName
             val inspectionTool = inspectionWrapper.tool
@@ -132,7 +144,7 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
     class InspectionChecker {
         private var errors: Int = 0
         private var warnings: Int = 0
-        private var infos: Int = 0
+        private var info: Int = 0
         private var success: Boolean = true
 
         val isSuccess: Boolean
@@ -145,12 +157,12 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
             when (level) {
                 ProblemLevel.ERROR -> errors++
                 ProblemLevel.WARNING, ProblemLevel.WEAK_WARNING -> warnings++
-                ProblemLevel.INFORMATION -> infos++
+                ProblemLevel.INFO -> info++
             }
             when {
                 parameters.errors.isTooMany(errors) -> errorListener("errors", errors)
                 parameters.warnings.isTooMany(warnings) -> errorListener("warnings", warnings)
-                parameters.infos.isTooMany(infos) -> errorListener("infos", infos)
+                parameters.info.isTooMany(info) -> errorListener("info", info)
                 else -> return
             }
             success = false
@@ -172,13 +184,11 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
                     for ((psiFile, document) in files) {
                         if (!inspectionEnabledForFile(psiFile)) continue
                         val fileName = psiFile.name
-                        val toolName = tool.displayName
-                        logger.info("InspectionPlugin: Inspection '$toolName' analyzing started for $fileName")
+                        logger.info("InspectionPlugin: ($level) Inspection '$classFqName' analyzing started for $fileName")
                         val problems = tool.analyze(psiFile, document, displayName, level)
                         inspectionResults += problems
                         for (problem in problems) {
-                            val level = problem.getLevel(classFqName, parameters)
-                            checker.apply(level, parameters) { name, number ->
+                            checker.apply(problem.level, parameters) { name, number ->
                                 logger.error("InspectionPlugin: Too many $name found: $number. Analysis stopped")
                             }
                             if (checker.isFail) return@Runnable
@@ -212,9 +222,8 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
         runReadAction {
             for (fileInspectionAndProblems in sortedResults.values) {
                 for ((inspectionClass, problem) in fileInspectionAndProblems) {
-                    val level = problem.getLevel(inspectionClass, parameters)
-                    if (!parameters.reportParameters.isQuiet) log(level, problem)
-                    generators.forEach { it.report(problem, level, inspectionClass) }
+                    if (!parameters.reportParameters.isQuiet) log(problem)
+                    generators.forEach { it.report(problem, inspectionClass) }
                 }
             }
             generators.forEach { it.generate() }
@@ -334,21 +343,13 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
         }
     }
 
-    private fun PinnedProblemDescriptor.getLevel(inspectionClass: String, parameters: InspectionPluginParameters) =
-            actualLevel(parameters.getLevel(inspectionClass)) ?: ProblemLevel.INFORMATION
-
-    private fun InspectionPluginParameters.getLevel(inspectionClass: String) = when (inspectionClass) {
-        in errors.inspections -> ProblemLevel.ERROR
-        in warnings.inspections -> ProblemLevel.WARNING
-        in infos.inspections -> ProblemLevel.INFORMATION
-        else -> null
-    }
-
-    private fun log(level: ProblemLevel, problem: PinnedProblemDescriptor) = problem.renderWithLocation().let {
+    private fun log(problem: PinnedProblemDescriptor) {
+        val level = problem.level
+        val problemWithLocation = "$level: " + problem.renderWithLocation()
         when (level) {
-            ProblemLevel.INFORMATION -> logger.info(it)
-            ProblemLevel.WARNING, ProblemLevel.WEAK_WARNING -> logger.warn(it)
-            ProblemLevel.ERROR -> logger.error(it)
+            ProblemLevel.INFO -> logger.info(problemWithLocation)
+            ProblemLevel.WARNING, ProblemLevel.WEAK_WARNING -> logger.warn(problemWithLocation)
+            ProblemLevel.ERROR -> logger.error(problemWithLocation)
         }
     }
 
@@ -379,9 +380,7 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
         } catch (t: Throwable) {
             throw InspectionException(this, file, t)
         }
-        return holder.results.map {
-            PinnedProblemDescriptor(it, document, displayName, problemLevel)
-        }
+        return holder.results.mapNotNull { PinnedProblemDescriptor(it, document, displayName, problemLevel) }
     }
 
     companion object {

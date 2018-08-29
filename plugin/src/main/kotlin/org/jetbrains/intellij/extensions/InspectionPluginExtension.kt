@@ -48,7 +48,7 @@ open class InspectionPluginExtension(private val project: Project?) : CodeQualit
      * Info inspections configurations.
      * @see InspectionsExtension
      */
-    val infos = InspectionsExtension()
+    val info = InspectionsExtension()
 
     /**
      * Reformat task configurations.
@@ -83,13 +83,13 @@ open class InspectionPluginExtension(private val project: Project?) : CodeQualit
         }
 
     /**
-     * @see InspectionPluginExtension.idea
+     * @see IdeaExtension.version
      */
     @Deprecated("To be replaced with idea.version", ReplaceWith("idea.version"))
     override fun getToolVersion() = idea.version
 
     /**
-     * @see InspectionPluginExtension.idea
+     * @see IdeaExtension.version
      */
     @Deprecated("To be replaced with idea.version = n", ReplaceWith("idea.version"))
     override fun setToolVersion(value: String?) {
@@ -124,7 +124,7 @@ open class InspectionPluginExtension(private val project: Project?) : CodeQualit
 
     @Suppress("unused")
     fun info(name: String): InspectionExtension {
-        return (infos.inspections as MutableMap).getOrPut(name) {
+        return (info.inspections as MutableMap).getOrPut(name) {
             InspectionExtension()
         }
     }
@@ -146,8 +146,8 @@ open class InspectionPluginExtension(private val project: Project?) : CodeQualit
     }
 
     @Suppress("unused")
-    fun infos(action: Action<InspectionsExtension>) {
-        action.execute(infos)
+    fun info(action: Action<InspectionsExtension>) {
+        action.execute(info)
     }
 
     @Suppress("unused")

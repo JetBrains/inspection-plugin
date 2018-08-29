@@ -19,10 +19,10 @@ open class ReformatTask : AbstractInspectionsTask() {
     override val maxWarnings: Int?
         get() = null
 
-    override val infosInspections: Map<String, InspectionParameters>
+    override val infoInspections: Map<String, InspectionParameters>
         get() = emptyMap()
 
-    override val maxInfos: Int?
+    override val maxInfo: Int?
         get() = null
 
     override val inheritFromIdea: Boolean
