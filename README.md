@@ -100,7 +100,7 @@ You can specify additional options in `inspections` closure, e.g.:
 inspections {
     errors.max = 5
     warnings.max = 20
-    infos.max = 10
+    info.max = 10
     ignoreFailures = true
     quiet = true
     warning('org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection') {
@@ -116,7 +116,7 @@ The meaning of the parameters is the following:
 
 * `errors.max`: after exceeding the given number of inspection diagnostics with "error" severity, inspection task stops and fails.
 * `warnings.max`: after exceeding the given number of inspection diagnostics with "warning" severity, inspection task stops and fails.
-* `infos.max`: after exceeding the given number of inspection diagnostics with "info" severity, inspection task stops and fails.
+* `info.max`: after exceeding the given number of inspection diagnostics with "info" severity, inspection task stops and fails.
 * `ignoreFailures`: inspection task never fails (false by default)
 * `quiet`: do not report inspection messages to console, only to XML / HTML files (false by default)
 * `quickFix`: apply quick fixes for corresponding inspection (false by default). Quick-fix is applied only if it's unique per warning.
