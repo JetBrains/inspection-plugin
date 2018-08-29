@@ -64,6 +64,7 @@ class HTML private constructor(private val builder: StringBuilder, private val i
         builder.appendln("$prefix</$name>")
     }
 
+    @Suppress("unused")
     fun tagIf(condition: Boolean, name: String, generate: HTML.() -> Unit) {
         when (condition) {
             true -> tag(name, generate)

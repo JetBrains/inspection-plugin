@@ -12,8 +12,10 @@ val Boolean.gradleCode: String
 val String.gradleCode: String
     get() = "'${replace("\\", "\\\\").replace("\'", "\\\'")}'"
 
+@Suppress("unused")
 val File.gradleCode: String
     get() = "file(${absolutePath.gradleCode})"
 
+@Suppress("unused")
 val Set<String>.gradleCode: String
     get() = "[${joinToString(", ") { it.gradleCode }}]"

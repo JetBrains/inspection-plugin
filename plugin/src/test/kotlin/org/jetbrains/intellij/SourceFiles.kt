@@ -5,14 +5,8 @@ import java.io.File
 val File.allSourceFiles: Sequence<File>
     get() = walk().asSequence().filter { it.isSource }
 
-val File.singleSourceFile: File?
-    get() = listFiles()?.find { it.isSource }
-
 val File.allExpectedSourceFiles: Sequence<File>
     get() = walk().asSequence().filter { it.isExpectedSource }
-
-val File.singleExpectedSourceFile: File?
-    get() = listFiles()?.find { it.isExpectedSource }
 
 val File.isSource: Boolean
     get() = isKotlinSource || isJavaSource

@@ -22,7 +22,7 @@ object Parameter {
     fun parseSetOfStrings(value: String): Set<String> {
         val internal = value.removeSurroundingOrNull("setOf(", ")")
                 ?: throw IllegalArgumentException("'$value' is not a set")
-        return internal.split(",").map { parseString(it.trim()) }.toSet()
+        return internal.split(",").asSequence().map { parseString(it.trim()) }.toSet()
     }
 
     inline operator fun <reified T> invoke(value: String?): T? = value?.let { Parameter.invoke<T>(it) }

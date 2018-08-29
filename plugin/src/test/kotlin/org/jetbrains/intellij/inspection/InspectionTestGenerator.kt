@@ -83,15 +83,19 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
             val ignore = test.listFiles().find { it.name == "ignore" }
             val sources = test.allSourceFiles.toList()
             if (sources.isEmpty()) throw IllegalArgumentException("Test file in $test not found")
-            val sourceCommentLines = fun File.() = readLines()
+            val sourceCommentLines = fun File.() = readLines().asSequence()
                     .map { it.trim() }
                     .filter { it.startsWith("//") }
+                    .toList()
             val sourcesCommentLines = sources.map { it.sourceCommentLines() }.flatten()
             val sourceParameters = { name: String ->
                 sourcesCommentLines.singleOrNull { it.startsWith("// $name =") }?.drop("// $name =".length)?.trim()
             }
             val diagnosticSet = { kind: String ->
-                sourcesCommentLines.filter { it.startsWith("// $kind:") }.map { it.drop("// $kind:".length).trim() }.toSet()
+                sourcesCommentLines.asSequence()
+                        .filter { it.startsWith("// $kind:") }
+                        .map { it.drop("// $kind:".length).trim() }
+                        .toSet()
             }
             val diagnosticParameters = HashMap<String, String>()
             diagnosticSet("error").let { if (it.isNotEmpty()) diagnosticParameters["errors.inspections"] = it.kotlinCode }
@@ -139,6 +143,7 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
                     .replace("<ignore>", ignoreAnnotation)
                     .replace("<extension>", methodExtension.joinToString("\n        "))
                     .split('\n')
+                    .asSequence()
                     .filter { it.trim().isNotEmpty() }
                     .joinToString("\n")
             methods.add(method)
