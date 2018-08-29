@@ -22,6 +22,7 @@ import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.util.PlatformUtils
 import org.jetbrains.intellij.Runner
+import org.jetbrains.intellij.configurations.LOCKS_DIRECTORY
 import java.io.File
 import java.io.IOException
 import java.lang.management.ManagementFactory
@@ -383,8 +384,6 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
         private const val KT_LIB = "kotlin-stdlib"
 
         private const val DEFAULT_BUILD_NUMBER = "172.1"
-
-        private val LOCKS_DIRECTORY = File(System.getProperty("java.io.tmpdir"), "inspection-plugin/locks")
 
         private const val IDEA_LOCK_EXTENSION = "idea-lock"
 

@@ -10,6 +10,7 @@ import org.jdom2.input.SAXBuilder
 import org.jdom2.output.Format
 import org.jdom2.output.XMLOutputter
 import org.jetbrains.intellij.*
+import org.jetbrains.intellij.configurations.LOCKS_DIRECTORY
 import org.jetbrains.intellij.extensions.InspectionPluginExtension
 import org.junit.Assert
 import org.junit.rules.TemporaryFolder
@@ -379,8 +380,7 @@ class InspectionTestBench(private val taskName: String) {
         private fun waitIdeaRelease(daemonPid: String) {
             val startTime = System.currentTimeMillis()
             println("InspectionTestBench: Start waiting of idea finalize")
-            val ideaLockDir = File(System.getProperty("java.io.tmpdir"), "inspection-plugin/locks")
-            val lockFile = ideaLockDir.listFiles()?.find { it.name == "$daemonPid.idea-lock" } ?: run {
+            val lockFile = LOCKS_DIRECTORY.listFiles()?.find { it.name == "$daemonPid.idea-lock" } ?: run {
                 println("InspectionTestBench: lock file not found")
                 return
             }

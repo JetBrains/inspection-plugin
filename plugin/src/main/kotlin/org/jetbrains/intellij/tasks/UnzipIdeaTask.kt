@@ -2,7 +2,7 @@ package org.jetbrains.intellij.tasks
 
 import org.gradle.api.internal.ConventionTask
 import org.gradle.api.tasks.*
-import org.jetbrains.intellij.InspectionPlugin
+import org.jetbrains.intellij.configurations.*
 import org.jetbrains.intellij.extensions.InspectionPluginExtension
 import org.jetbrains.intellij.utils.Copy
 import org.jetbrains.intellij.utils.Unpacker
@@ -13,19 +13,19 @@ import java.io.File
 open class UnzipIdeaTask : ConventionTask() {
     @get:Input
     val ideaVersion: String
-        get() = InspectionPlugin.ideaVersion(extension.idea.version)
+        get() = ideaVersion(extension.idea.version)
 
     @get:InputFile
     val archive: File
-        get() = project.configurations.getByName(InspectionPlugin.SHORT_NAME).singleFile
+        get() = project.configurations.getByName(SHORT_NAME).singleFile
 
     @get:OutputDirectory
     val idea: File
-        get() = InspectionPlugin.ideaDirectory(ideaVersion)
+        get() = ideaDirectory(ideaVersion)
 
     @get:OutputDirectory
     val kotlinPlugin: File
-        get() = InspectionPlugin.kotlinPluginDirectory(null, ideaVersion)
+        get() = kotlinPluginDirectory(null, ideaVersion)
 
     @Suppress("unused")
     @TaskAction
