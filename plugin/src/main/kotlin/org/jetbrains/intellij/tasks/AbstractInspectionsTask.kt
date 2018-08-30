@@ -9,10 +9,7 @@ import org.gradle.api.invocation.Gradle
 import org.gradle.api.tasks.*
 import org.gradle.api.tasks.Optional
 import org.jetbrains.intellij.*
-import org.jetbrains.intellij.configurations.IDEA_SYSTEM_DIRECTORY
-import org.jetbrains.intellij.configurations.ideaDirectory
-import org.jetbrains.intellij.configurations.ideaVersion
-import org.jetbrains.intellij.configurations.kotlinPluginDirectory
+import org.jetbrains.intellij.configurations.*
 import org.jetbrains.intellij.extensions.InspectionPluginExtension
 import org.jetbrains.intellij.extensions.InspectionsExtension
 import org.jetbrains.intellij.parameters.InspectionParameters
@@ -279,7 +276,8 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
                 ChildFirstClassLoader(fullClasspath.toTypedArray(), parentClassLoader)
             }
             val kotlinPluginVersion = parameters.kotlinPluginVersion
-            val kotlinPluginDirectory = kotlinPluginDirectory(kotlinPluginVersion, ideaVersion)
+            if (kotlinPluginVersion != null) checkCompatibility(this, kotlinPluginVersion, ideaVersion)
+            val kotlinPluginDirectory = extension.plugins.kotlin.kotlinPluginDirectory(ideaVersion)
             val plugins = listOf(kotlinPluginDirectory)
             var success = true
             val inspectionsThread = thread(start = false) {
