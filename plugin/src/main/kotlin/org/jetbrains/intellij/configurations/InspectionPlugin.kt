@@ -1,6 +1,7 @@
 package org.jetbrains.intellij.configurations
 
 import org.gradle.internal.hash.HashUtil
+import org.jetbrains.intellij.extensions.PluginExtension
 import java.io.File
 
 const val SHORT_NAME = "inspections"
@@ -37,24 +38,23 @@ private val String.normalizedVersion: String
 
 fun ideaVersion(ideaVersion: String?) = ideaVersion ?: DEFAULT_IDEA_VERSION
 
-fun kotlinPluginLocation(version: String?, ideaVersion: String) =
-        version?.let { getUrl(it, ideaVersion) }
+fun PluginExtension.kotlinPluginLocation(ideaVersion: String): String? {
+    if (location != null) return location
+    return version?.let { getUrl(it, ideaVersion) }
+}
 
 // Used to download plugins
 private fun pluginDownloadDirectory(inHome: Boolean) = File(baseCacheDirectory(inHome), "downloads")
 
-fun kotlinPluginDownloadDirectory(location: String, tempInHome: Boolean): File {
+fun kotlinPluginArchiveDirectory(location: String?, tempInHome: Boolean): File? {
+    if (location == null) return null
     val hash = HashUtil.createCompactMD5(location)
     val name = "kotlin-plugin-$hash"
     return File(pluginDownloadDirectory(tempInHome), name)
 }
 
-// Used to store unzipped Kotlin plugin. Both plugin & IDEA version-dependent.
-fun kotlinPluginDirectory(kotlinPluginVersion: String?, ideaVersion: String, inHome: Boolean): File {
-    val normIdeaVersion = ideaVersion.normalizedVersion
-    val normKotlinPluginVersion = kotlinPluginVersion.toString().normalizedVersion
-    val name = "Kotlin-$normKotlinPluginVersion-$normIdeaVersion"
-    return File(baseUnzippedDependenciesDirectory(inHome), "$name/Kotlin")
+fun kotlinPluginArchive(location: String?, tempInHome: Boolean): File? {
+    return kotlinPluginArchiveDirectory(location, tempInHome)?.listFiles()?.firstOrNull()
 }
 
 // Used to store unzipped IDEA. Version-dependent.
@@ -66,6 +66,24 @@ fun ideaDirectory(version: String, inHome: Boolean): File {
 // NB: this directory is always located in home directory, as regular IDEA launch does
 fun ideaSystemDirectory(version: String): File {
     return File(baseCacheDirectory(inHome = true), "system_" + version.normalizedVersion)
+}
+
+fun bundledKotlinPluginDirectory(ideaVersion: String, inHome: Boolean): File {
+    val normIdeaVersion = ideaVersion.normalizedVersion
+    val name = "kotlin-plugin-bundled-$normIdeaVersion"
+    return File(baseUnzippedDependenciesDirectory(inHome), "$name/Kotlin")
+}
+
+fun PluginExtension.kotlinPluginDirectory(ideaVersion: String, inHome: Boolean): File {
+    val name = if (location != null) {
+        val hash = HashUtil.createCompactMD5(location)
+        "kotlin-plugin-$hash"
+    } else {
+        val normIdeaVersion = ideaVersion.normalizedVersion
+        val normKotlinPluginVersion = version?.normalizedVersion ?: "bundled"
+        "kotlin-plugin-$normKotlinPluginVersion-$normIdeaVersion"
+    }
+    return File(baseUnzippedDependenciesDirectory(inHome), "$name/Kotlin")
 }
 
 // Used to store locks.

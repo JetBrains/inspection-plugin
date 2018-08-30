@@ -28,16 +28,16 @@ open class UnzipKotlinPluginTask : ConventionTask() {
     @get:Input
     @get:Optional
     val location: String?
-        get() = extension.plugins.kotlin.location ?: kotlinPluginLocation(version, ideaVersion)
+        get() = extension.plugins.kotlin.kotlinPluginLocation(ideaVersion)
 
     @get:InputFile
     @get:Optional
     val archive: File?
-        get() = location?.let { kotlinPluginDownloadDirectory(it, isTempDirInHome).listFiles()?.firstOrNull() }
+        get() = kotlinPluginArchive(location, isTempDirInHome)
 
     @get:OutputDirectory
     val plugin: File
-        get() = kotlinPluginDirectory(version, ideaVersion, isTempDirInHome)
+        get() = extension.plugins.kotlin.kotlinPluginDirectory(ideaVersion, isTempDirInHome)
 
     @Suppress("unused")
     @TaskAction

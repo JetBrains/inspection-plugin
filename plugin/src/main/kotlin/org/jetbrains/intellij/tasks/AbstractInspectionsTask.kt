@@ -283,7 +283,10 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
                 ChildFirstClassLoader(fullClasspath.toTypedArray(), parentClassLoader)
             }
             val kotlinPluginVersion = parameters.kotlinPluginVersion
-            val kotlinPluginDirectory = kotlinPluginDirectory(kotlinPluginVersion, ideaVersion, isTempDirInHome)
+            if (kotlinPluginVersion != null) {
+                checkCompatibility(this, kotlinPluginVersion, ideaVersion)
+            }
+            val kotlinPluginDirectory = extension.plugins.kotlin.kotlinPluginDirectory(ideaVersion, isTempDirInHome)
             val plugins = listOf(kotlinPluginDirectory)
             var success = true
             val inspectionsThread = thread(start = false) {
