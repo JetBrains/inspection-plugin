@@ -1,6 +1,7 @@
 package org.jetbrains.intellij.configurations
 
 import org.gradle.internal.hash.HashUtil
+import org.jetbrains.intellij.extensions.PluginExtension
 import java.io.File
 
 const val SHORT_NAME = "inspections"
@@ -38,19 +39,38 @@ private val String.normalizedVersion: String
 
 fun ideaVersion(ideaVersion: String?) = ideaVersion ?: DEFAULT_IDEA_VERSION
 
-fun kotlinPluginLocation(version: String?, ideaVersion: String) =
-        version?.let { getUrl(it, ideaVersion) }
+fun PluginExtension.kotlinPluginLocation(ideaVersion: String): String? {
+    if (location != null) return location
+    if (version == null) return null
+    return getUrl(version!!, ideaVersion)
+}
 
-fun kotlinPluginArchiveDirectory(location: String): File {
+fun kotlinPluginArchiveDirectory(location: String?): File? {
+    if (location == null)  return null
     val hash = HashUtil.createCompactMD5(location)
     val name = "kotlin-plugin-$hash"
     return File(DOWNLOAD_DIRECTORY, name)
 }
 
-fun kotlinPluginDirectory(kotlinPluginVersion: String?, ideaVersion: String): File {
+fun kotlinPluginArchive(location: String?): File? {
+    return kotlinPluginArchiveDirectory(location)?.listFiles()?.firstOrNull()
+}
+
+fun bundledKotlinPluginDirectory(ideaVersion: String): File {
     val normIdeaVersion = ideaVersion.normalizedVersion
-    val normKotlinPluginVersion = kotlinPluginVersion.toString().normalizedVersion
-    val name = "Kotlin-$normKotlinPluginVersion-$normIdeaVersion"
+    val name = "kotlin-plugin-bundled-$normIdeaVersion"
+    return File(DEPENDENCY_SOURCE_DIRECTORY, "$name/Kotlin")
+}
+
+fun PluginExtension.kotlinPluginDirectory(ideaVersion: String): File {
+    val name = if (location != null) {
+        val hash = HashUtil.createCompactMD5(location)
+        "kotlin-plugin-$hash"
+    } else {
+        val normIdeaVersion = ideaVersion.normalizedVersion
+        val normKotlinPluginVersion = version?.normalizedVersion ?: "bundled"
+        "kotlin-plugin-$normKotlinPluginVersion-$normIdeaVersion"
+    }
     return File(DEPENDENCY_SOURCE_DIRECTORY, "$name/Kotlin")
 }
 

@@ -25,7 +25,7 @@ open class UnzipIdeaTask : ConventionTask() {
 
     @get:OutputDirectory
     val kotlinPlugin: File
-        get() = kotlinPluginDirectory(null, ideaVersion)
+        get() = bundledKotlinPluginDirectory(ideaVersion)
 
     @Suppress("unused")
     @TaskAction
