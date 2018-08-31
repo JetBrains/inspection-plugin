@@ -23,7 +23,7 @@ Also you should specify IDEA version to use and (optionally) kotlin plugin versi
 ```groovy
 inspections {
     idea.version "ideaIC:2017.3"
-    plugins.kotlin.version "1.2.60" 
+    plugins.kotlin.version "1.2.61" 
 }
 ``` 
 
@@ -98,7 +98,7 @@ inspections {
     ignoreFailures = true
     quiet = true
     warning('org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection') {
-        quickFix = True
+        quickFix = true
     }
     reformat.quickFix = true
     plugins.kotlin.version = '1.2.60'
