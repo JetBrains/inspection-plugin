@@ -1,4 +1,4 @@
-package org.jetbrains.idea.inspections
+package org.jetbrains.idea.inspections.generators
 
 private val keywords = setOf(
         "package",

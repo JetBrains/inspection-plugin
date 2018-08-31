@@ -1,4 +1,4 @@
-package org.jetbrains.idea.inspections
+package org.jetbrains.idea.inspections.runners
 
 import com.intellij.codeInsight.FileModificationService
 import com.intellij.codeInspection.*
@@ -13,6 +13,9 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
+import org.jetbrains.idea.inspections.PinnedProblemDescriptor
+import org.jetbrains.idea.inspections.ProblemLevel
+import org.jetbrains.idea.inspections.acceptRecursively
 import org.jetbrains.idea.inspections.generators.HTMLGenerator
 import org.jetbrains.idea.inspections.generators.XMLGenerator
 import org.jetbrains.intellij.parameters.InspectionsRunnerParameters

@@ -2,6 +2,7 @@ package org.jetbrains.intellij.tasks
 
 import org.gradle.BuildListener
 import org.gradle.BuildResult
+import org.gradle.api.Project
 import org.gradle.api.file.FileCollection
 import org.gradle.api.file.FileTree
 import org.gradle.api.initialization.Settings
@@ -214,7 +215,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
     @Internal
     private fun getFileInfoParameters(): FileInfoRunnerParameters<InspectionsRunnerParameters> {
         return FileInfoRunnerParameters(
-                files = getSource().files,
+                files = getSource().files.toList(),
                 childParameters = getInspectionsRunnerParameters()
         )
     }
@@ -246,20 +247,21 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
         return analyzerClass.cast(analyzer)
     }
 
-    private fun tryResolveRunnerJar(project: org.gradle.api.Project): File = try {
+    private fun getPluginVersion(): String {
         val propertiesPath = "/META-INF/gradle-plugins/org.jetbrains.intellij.inspections.properties"
         val resources = InspectionPlugin::class.java.getResourceAsStream(propertiesPath)
         val properties = Properties()
         properties.load(resources)
-        val runnerVersion = properties.getProperty("runner-version")
-        val runner = "org.jetbrains.intellij.plugins:inspection-runner:$runnerVersion"
-        logger.info("InspectionPlugin: Runner $runner")
-        val dependency = project.buildscript.dependencies.create(runner)
+        return properties.getProperty("version")
+    }
+
+    private fun Project.tryResolveDependencyJar(dependencyIdentifier: String): File = try {
+        val dependency = project.buildscript.dependencies.create(dependencyIdentifier)
         val configuration = project.buildscript.configurations.detachedConfiguration(dependency)
         configuration.description = "Runner main jar"
         configuration.resolve().first()
     } catch (e: Exception) {
-        project.parent?.let { tryResolveRunnerJar(it) } ?: throw e
+        project.parent?.tryResolveDependencyJar(dependencyIdentifier) ?: throw e
     }
 
     private val File.classpath: List<File>
@@ -275,13 +277,17 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
     @TaskAction
     fun run() {
         try {
-            val parameters = getIdeaRunnerParameters()
-            val ideaHomeDirectory = parameters.ideaHomeDirectory
+            val ideaHomeDirectory = ideaDirectory(ideaVersion)
             logger.info("InspectionPlugin: Idea directory: $ideaHomeDirectory")
             val ideaClasspath = getIdeaClasspath(ideaHomeDirectory)
-            val runnerJar = tryResolveRunnerJar(project)
+            val pluginVersion = getPluginVersion()
+            val inspectionsIdentifier = "org.jetbrains.intellij.plugins:inspection-runner:$pluginVersion"
+            val runnerIdentifier = "org.jetbrains.intellij.plugins:inspection-runner:$pluginVersion"
+            val inspectionsJar = project.tryResolveDependencyJar(inspectionsIdentifier)
+            val runnerJar = project.tryResolveDependencyJar(runnerIdentifier)
             logger.info("InspectionPlugin: Runner jar: $runnerJar")
-            val fullClasspath = (ideaClasspath + runnerJar).map { it.toURI().toURL() }
+            logger.info("InspectionPlugin: Inspection jar: $inspectionsJar")
+            val fullClasspath = (ideaClasspath + runnerJar + inspectionsJar).map { it.toURI().toURL() }
             logger.info("InspectionPlugin: Runner classpath: $fullClasspath")
             val parentClassLoader = this.javaClass.classLoader
             logger.info("InspectionPlugin: Runner parent class loader: $parentClassLoader")
@@ -293,16 +299,10 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
             }
             var taskOutcome = Outcome.SUCCESS
             var runOutcome = Outcome.SUCCESS
+            val parameters = getIdeaRunnerParameters()
             val inspectionsThread = thread(start = false) {
                 val runner = createRunner(loader)
                 this.runner = runner
-                runner.setLogger(BiFunction { level, message ->
-                    when (level) {
-                        0 -> logger.error(message)
-                        1 -> logger.warn(message)
-                        2 -> logger.info(message)
-                    }
-                })
                 var gradle: Gradle = project.gradle
                 while (true) {
                     gradle = gradle.parent ?: break

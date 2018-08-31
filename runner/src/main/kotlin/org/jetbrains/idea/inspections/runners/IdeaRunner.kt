@@ -1,4 +1,4 @@
-package org.jetbrains.idea.inspections
+package org.jetbrains.idea.inspections.runners
 
 import com.intellij.ide.highlighter.ProjectFileType
 import com.intellij.ide.impl.ProjectUtil

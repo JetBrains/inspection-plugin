@@ -1,25 +1,33 @@
 package org.jetbrains.intellij
 
-import java.util.function.BiFunction
+open class Logger() {
 
-open class Logger(private val logger: BiFunction<Int, String, Unit>) {
+    enum class LoggingLevel {
+        ERROR, WARNING, INFO;
 
-    private enum class LoggingLevel(val level: Int) {
-        ERROR(0),
-        WARNING(1),
-        INFO(2),
-        DEBUG(3)
+        val prefix by lazy {
+            "($name): "
+        }
+
+        companion object {
+            fun ejectLevel(message: String) = when {
+                message.startsWith(ERROR.prefix) -> Pair(ERROR, message.removePrefix(ERROR.prefix))
+                message.startsWith(WARNING.prefix) -> Pair(WARNING, message.removePrefix(WARNING.prefix))
+                message.startsWith(INFO.prefix) -> Pair(INFO, message.removePrefix(INFO.prefix))
+                else -> Pair(null, message)
+            }
+        }
     }
 
-    fun info(s: Any? = "") {
-        logger.apply(LoggingLevel.INFO.level, s.toString())
+    fun info(message: Any? = "") {
+        println(LoggingLevel.INFO.prefix + message)
     }
 
-    fun warn(s: Any? = "") {
-        logger.apply(LoggingLevel.WARNING.level, s.toString())
+    fun warn(message: Any? = "") {
+        println(LoggingLevel.WARNING.prefix + message)
     }
 
-    fun error(s: Any? = "") {
-        logger.apply(LoggingLevel.ERROR.level, s.toString())
+    fun error(message: Any? = "") {
+        println(LoggingLevel.ERROR.prefix + message)
     }
 }

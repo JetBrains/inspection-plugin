@@ -1,4 +1,4 @@
-package org.jetbrains.idea.inspections
+package org.jetbrains.idea.inspections.runners
 
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager

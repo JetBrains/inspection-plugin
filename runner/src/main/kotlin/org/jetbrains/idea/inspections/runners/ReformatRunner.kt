@@ -1,4 +1,4 @@
-package org.jetbrains.idea.inspections
+package org.jetbrains.idea.inspections.runners
 
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.openapi.project.Project

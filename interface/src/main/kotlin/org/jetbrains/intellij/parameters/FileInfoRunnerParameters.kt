@@ -4,6 +4,6 @@ import java.io.File
 import java.io.Serializable
 
 data class FileInfoRunnerParameters<T>(
-        val files: Collection<File>,
+        val files: List<File>,
         val childParameters: T
 ) : Serializable
