@@ -76,15 +76,7 @@ You can find example usage in `sample` project subdirectory.
 
 ### Auto-formatting
 
-Auto formatting of a source code is an experimental feature. To use it, you should specify the following:
-
-```groovy
-inspections {
-    idea.version "ideaIC:2017.3" // or other version you like
-    plugins.kotlin.version "1.2.61" // or other version you like
-    reformat.quickFix = true
-}
-``` 
+Auto formatting of a source code is an experimental feature. To run auto-formatting, execute from terminal: `gradlew reformatMain`. This will reformat all files from the `main` source root, if the current code style is violated for them. The current code style is read from IDEA project configuration.
 
 ## JDK configuration
 
