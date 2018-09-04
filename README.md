@@ -33,7 +33,7 @@ If you have multi-platform project, it's recommended to use IDEA CE 2018.2 or la
 
 There are three ways to specify inspections for code analysis:
 
-###### Inherit from IDEA
+### Inherit from IDEA
 ```groovy
 inspections {
     inheritFromIdea = true
@@ -42,7 +42,7 @@ inspections {
 In this case inspection configuration will be read from file `.idea/inspectionProfiles/Project_Default.xml`.
 If `profileName` is not given, `Project_Default.xml` will be used by default.
 
-###### Manual inspections list
+### Manual inspections list
 ```groovy
 inspections {
     error('org.jetbrains.kotlin.idea.inspections.DataClassPrivateConstructorInspection')
@@ -54,7 +54,7 @@ inspections {
 ```
 In this case inspections from manually defined list will be in use.
 
-###### Mixing definition
+### Mixing definition
 ```groovy
 inspections {
     inheritFromIdea = true
@@ -73,6 +73,18 @@ unzip it to cached temporary dir and launch all inspections.
 You will see inspection messages in console as well as in report XML / HTML located in `build/reports/inspections`.
 
 You can find example usage in `sample` project subdirectory.
+
+### Auto-formatting
+
+Auto formatting of a source code is an experimental feature. To use it, you should specify the following:
+
+```groovy
+inspections {
+    idea.version "ideaIC:2017.3" // or other version you like
+    plugins.kotlin.version "1.2.61" // or other version you like
+    reformat.quickFix = true
+}
+``` 
 
 ## JDK configuration
 
