@@ -217,10 +217,12 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
 
         // Do not remove the call of PluginManagerCore.getPlugins(), it prevents NPE in IDEA
         // NB: IdeaApplication.getStarter() from IJ community contains the same call
-        val enabledPlugins = PluginManagerCore.getPlugins().map { it.name to it.pluginId }.toMap()
-        val disabledPlugins = PluginManagerCore.getDisabledPlugins().toList()
-        logger.info("InspectionPlugin: Enabled plugins: $enabledPlugins")
-        logger.info("InspectionPlugin: Disabled plugins $disabledPlugins")
+        val enabledPlugins = PluginManagerCore.getPlugins()
+        val disabledPlugins = PluginManagerCore.getDisabledPlugins()
+        logger.info("InspectionPlugin: Enabled plugins: ${enabledPlugins.map { it.name to it.pluginId }.toMap()}")
+        logger.info("InspectionPlugin: Disabled plugins ${disabledPlugins.toList()}")
+        val skippedPlugins = enabledPlugins.asSequence().filter { PluginManagerCore.isIncompatible(it) }.map { it.name }.toList()
+        if (skippedPlugins.isNotEmpty()) throw RunnerException(skippedPlugins.joinToString(", ") + " can not loaded")
         return ApplicationManagerEx.getApplicationEx().apply { load() }
     }
 

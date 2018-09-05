@@ -12,10 +12,7 @@ import org.jetbrains.intellij.*
 import org.jetbrains.intellij.configurations.*
 import org.jetbrains.intellij.extensions.InspectionPluginExtension
 import org.jetbrains.intellij.extensions.InspectionsExtension
-import org.jetbrains.intellij.parameters.InspectionParameters
-import org.jetbrains.intellij.parameters.InspectionsParameters
-import org.jetbrains.intellij.parameters.InspectionPluginParameters
-import org.jetbrains.intellij.parameters.ReportParameters
+import org.jetbrains.intellij.parameters.*
 import java.io.File
 import java.net.URLClassLoader
 import java.util.*
