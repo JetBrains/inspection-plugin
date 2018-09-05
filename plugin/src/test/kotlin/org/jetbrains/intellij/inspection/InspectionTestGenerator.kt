@@ -105,7 +105,7 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
                 diagnosticParameters[name] ?: sourceParameters(name)
             }
             val extension = parseInspectionParameters(parameters)
-            val name = test.name.capitalize().replace('-', '_')
+            val name = test.name.capitalize().replace('-', '_').replace('.', '_').replace(':', '_')
             val base = System.getProperty("user.dir")
 
             val ignoreAnnotation = ignore?.let { "@Ignore" } ?: ""
