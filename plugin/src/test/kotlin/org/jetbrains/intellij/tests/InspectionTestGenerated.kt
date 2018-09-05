@@ -74,6 +74,46 @@ class InspectionTestGenerated {
     }
 
     @Test
+    fun testConfigurationKotlin_1_2_61_IJ2017_3_with_idea_IJ2018_2() {
+        val extension = InspectionPluginExtension(null)
+        extension.testMode = true
+        extension.idea.version = "ideaIC:2018.2"
+        extension.plugins.kotlin.location = "https://plugins.jetbrains.com/plugin/download?rel=true&updateId=49053"
+        extension.warning("org.jetbrains.kotlin.idea.inspections.ReplaceStringFormatWithLiteralInspection")
+        testBench.doTest(File("testData/inspection/configurationKotlin_1-2-61_IJ2017-3_with_idea_IJ2018-2"), extension)
+    }
+
+    @Test
+    fun testConfigurationKotlin_1_2_61_IJ2018_2_with_idea_IJ2017_3() {
+        val extension = InspectionPluginExtension(null)
+        extension.testMode = true
+        extension.idea.version = "ideaIC:2017.3"
+        extension.plugins.kotlin.location = "https://plugins.jetbrains.com/plugin/download?rel=true&updateId=49055"
+        extension.warning("org.jetbrains.kotlin.idea.inspections.ReplaceStringFormatWithLiteralInspection")
+        testBench.doTest(File("testData/inspection/configurationKotlin_1-2-61_IJ2018-2_with_idea_IJ2017-3"), extension)
+    }
+
+    @Test
+    fun testConfigurationKotlin_1_2_61_Studio_with_idea_IJ2017_3() {
+        val extension = InspectionPluginExtension(null)
+        extension.testMode = true
+        extension.idea.version = "ideaIC:2017.3"
+        extension.plugins.kotlin.location = "https://plugins.jetbrains.com/plugin/download?rel=true&updateId=49186"
+        extension.warning("org.jetbrains.kotlin.idea.inspections.ReplaceStringFormatWithLiteralInspection")
+        testBench.doTest(File("testData/inspection/configurationKotlin_1-2-61_Studio_with_idea_IJ2017-3"), extension)
+    }
+
+    @Test
+    fun testConfigurationKotlin_1_2_61_Studio_with_idea_IJ2018_2() {
+        val extension = InspectionPluginExtension(null)
+        extension.testMode = true
+        extension.idea.version = "ideaIC:2018.2"
+        extension.plugins.kotlin.location = "https://plugins.jetbrains.com/plugin/download?rel=true&updateId=49186"
+        extension.warning("org.jetbrains.kotlin.idea.inspections.ReplaceStringFormatWithLiteralInspection")
+        testBench.doTest(File("testData/inspection/configurationKotlin_1-2-61_Studio_with_idea_IJ2018-2"), extension)
+    }
+
+    @Test
     fun testConvertToStringTemplate() {
         val extension = InspectionPluginExtension(null)
         extension.testMode = true

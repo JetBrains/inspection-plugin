@@ -12,10 +12,7 @@ import org.jetbrains.intellij.*
 import org.jetbrains.intellij.configurations.*
 import org.jetbrains.intellij.extensions.InspectionPluginExtension
 import org.jetbrains.intellij.extensions.InspectionsExtension
-import org.jetbrains.intellij.parameters.InspectionParameters
-import org.jetbrains.intellij.parameters.InspectionsParameters
-import org.jetbrains.intellij.parameters.InspectionPluginParameters
-import org.jetbrains.intellij.parameters.ReportParameters
+import org.jetbrains.intellij.parameters.*
 import java.io.File
 import java.net.URLClassLoader
 import java.util.*
@@ -280,7 +277,14 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
                 checkCompatibility(this, kotlinPluginVersion, ideaVersion)
             }
             val kotlinPluginDirectory = extension.plugins.kotlin.kotlinPluginDirectory(ideaVersion)
-            val plugins = listOf(kotlinPluginDirectory)
+            val kotlinPlugin = object : Plugin("Kotlin", kotlinPluginDirectory) {
+                override fun isIncompatible(plugin: PluginDescriptor, idea: IdeaDescriptor): Boolean {
+                    if ("IJ" in plugin.version) return false
+                    logger.error("InspectionPlugin: Unsupported (non for IJ) kotlin plugins: ${plugin.version}")
+                    return true
+                }
+            }
+            val plugins = listOf(kotlinPlugin)
             var success = true
             val inspectionsThread = thread(start = false) {
                 val runner = createRunner(loader)
@@ -303,6 +307,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
                         projectDir = project.rootProject.projectDir,
                         projectName = project.rootProject.name,
                         moduleName = project.name,
+                        ideaVersion = ideaVersion,
                         ideaHomeDirectory = ideaDirectory,
                         ideaSystemDirectory = ideaSystemDirectory,
                         plugins = plugins,
