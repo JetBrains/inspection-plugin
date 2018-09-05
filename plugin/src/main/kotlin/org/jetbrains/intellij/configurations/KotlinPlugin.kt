@@ -1,8 +1,5 @@
 package org.jetbrains.intellij.configurations
 
-import org.gradle.api.Task
-import org.jetbrains.intellij.exception
-
 private val LONG_VERSION_PATTERN = """(\d{1,2}\.\d{1,2}\.\d{1,2})-release-(.+)""".toRegex()
 
 private val SHORT_VERSION_PATTERN = """(\d{1,2}\.\d{1,2}\.\d{1,2})""".toRegex()
@@ -16,18 +13,6 @@ private fun destructVersion(version: String): Pair<String, String>? {
     val (shortVersion, platformVersion) = entire.destructured
     val unifiedPlatformVersion = getUnifiedPlatformVersion(platformVersion)
     return Pair(shortVersion, unifiedPlatformVersion)
-}
-
-@Suppress("UNUSED_VARIABLE")
-private fun isCompatible(version: String, ideaVersion: String): Boolean {
-    val (shortVersion, platformVersion) = destructVersion(version) ?: return true
-    val ideaPlatformVersion = getPlatformVersion(ideaVersion)
-    return ideaPlatformVersion == null || ideaPlatformVersion == platformVersion
-}
-
-fun checkCompatibility(task: Task, version: String, ideaVersion: String) {
-    if (isCompatible(version, ideaVersion)) return
-    exception(task, "Incompatible idea $ideaVersion and kotlin plugin $version")
 }
 
 fun getUrl(version: String, ideaVersion: String): String? = when {

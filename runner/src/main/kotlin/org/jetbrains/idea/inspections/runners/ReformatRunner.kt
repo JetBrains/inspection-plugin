@@ -5,6 +5,7 @@ import com.intellij.openapi.project.Project
 import org.jetbrains.intellij.Logger
 import org.jetbrains.intellij.parameters.InspectionsRunnerParameters
 
+@Suppress("unused")
 class ReformatRunner(logger: Logger) : FileInfoRunner<InspectionsRunnerParameters>(logger) {
     override fun analyze(
             files: Collection<FileInfo>,

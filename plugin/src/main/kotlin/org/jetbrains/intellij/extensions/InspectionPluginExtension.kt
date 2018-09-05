@@ -91,6 +91,7 @@ open class InspectionPluginExtension(
     /**
      * @see IdeaExtension.version
      */
+    @Suppress("unused")
     @Deprecated("To be replaced with idea.version = n", ReplaceWith("idea.version"))
     var toolVersion: String?
         get() = idea.version

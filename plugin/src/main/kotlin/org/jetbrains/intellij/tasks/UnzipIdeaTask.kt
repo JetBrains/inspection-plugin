@@ -4,9 +4,8 @@ import org.gradle.api.internal.ConventionTask
 import org.gradle.api.tasks.*
 import org.jetbrains.intellij.configurations.*
 import org.jetbrains.intellij.extensions.InspectionPluginExtension
+import org.jetbrains.intellij.utils.*
 import org.jetbrains.intellij.utils.Copy
-import org.jetbrains.intellij.utils.Unpacker
-import org.jetbrains.intellij.utils.Unzip
 import java.io.File
 
 @Suppress("MemberVisibilityCanBePrivate")
@@ -34,14 +33,21 @@ open class UnzipIdeaTask : ConventionTask() {
     @Suppress("unused")
     @TaskAction
     fun apply() {
-        val unzip = Unzip(project)
-        val copy = Copy(project)
-        val unpacker = Unpacker(logger, unzip, copy)
-        if (!unpacker.unpack(archive, isTempDirInHome, idea)) return
-        val ideaKotlinPlugin = File(idea, "plugins/Kotlin")
-        if (ideaKotlinPlugin.exists()) {
-            copy(ideaKotlinPlugin, kotlinPlugin)
-            ideaKotlinPlugin.deleteRecursively()
+        UpToDateChecker(ideaVersion, isTempDirInHome).apply {
+            onUpToDate {
+                logger.info("InspectionPlugin: No unzipping needed.")
+            }
+            onNonActual {
+                val unzip = Unzip(project)
+                val copy = Copy(project)
+                val unpacker = Unpacker(logger, unzip, copy)
+                unpacker.unpack(archive, idea)
+                val ideaKotlinPlugin = File(idea, "plugins/Kotlin")
+                if (ideaKotlinPlugin.exists()) {
+                    copy(ideaKotlinPlugin, kotlinPlugin)
+                    ideaKotlinPlugin.deleteRecursively()
+                }
+            }
         }
     }
 
