@@ -14,7 +14,7 @@ import org.gradle.api.Project as GradleProject
 @CacheableTask
 open class InspectionsTask : AbstractInspectionsTask(), Reporting<CheckstyleReports> {
     @Suppress("LeakingThis")
-    @get:Internal
+    @Internal
     private val reports = IdeaCheckstyleReports(this)
 
     /**
