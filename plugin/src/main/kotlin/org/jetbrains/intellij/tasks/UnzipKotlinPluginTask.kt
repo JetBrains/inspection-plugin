@@ -2,11 +2,11 @@ package org.jetbrains.intellij.tasks
 
 import org.gradle.api.internal.ConventionTask
 import org.gradle.api.tasks.*
+import org.gradle.internal.hash.HashUtil
 import org.jetbrains.intellij.configurations.*
 import org.jetbrains.intellij.extensions.InspectionPluginExtension
+import org.jetbrains.intellij.utils.*
 import org.jetbrains.intellij.utils.Copy
-import org.jetbrains.intellij.utils.Unpacker
-import org.jetbrains.intellij.utils.Unzip
 import java.io.File
 
 @Suppress("MemberVisibilityCanBePrivate")
@@ -38,16 +38,21 @@ open class UnzipKotlinPluginTask : ConventionTask() {
     @Suppress("unused")
     @TaskAction
     fun apply() {
-        val version = version
-        val location = location
         if (version == null && location == null) {
-            logger.info("InspectionPlugin: Using kotlin plugin inherit from idea. No unzipping needed.")
+            logger.info("InspectionPlugin: Using kotlin plugin inherit from idea.")
             return
         }
-        val unzip = Unzip(project)
-        val copy = Copy(project)
-        val unpacker = Unpacker(logger, unzip, copy)
-        unpacker.unpack(archive!!, plugin.parentFile)
+        UpToDateChecker(HashUtil.sha256(archive).asHexString()).apply {
+            onUpToDate {
+                logger.info("InspectionPlugin: No unzipping needed.")
+            }
+            onNonActual {
+                val unzip = Unzip(project)
+                val copy = Copy(project)
+                val unpacker = Unpacker(logger, unzip, copy)
+                unpacker.unpack(archive!!, plugin.parentFile)
+            }
+        }
     }
 
     @get:Internal
