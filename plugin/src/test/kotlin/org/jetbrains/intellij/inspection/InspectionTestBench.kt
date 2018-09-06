@@ -260,7 +260,7 @@ class InspectionTestBench(private val taskName: String) {
                     .withProjectDir(testProjectDir.root)
                     .withArguments("--no-daemon")
                     .withArguments("--info", "--stacktrace", taskName)
-                    .withDebug(true)
+//                    .withDebug(true)
                     // This applies classpath from pluginUnderTestMetadata
                     .withPluginClasspath()
                     // NB: this is necessary to apply actual plugin

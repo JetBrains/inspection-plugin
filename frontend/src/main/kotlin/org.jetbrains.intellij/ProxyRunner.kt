@@ -32,6 +32,7 @@ class ProxyRunner(jar: File, ideaClasspath: List<File>, private val logger: (Log
         val tools = File(System.getProperty("java.home"), "../lib/tools.jar").canonicalFile
         val classpath = (listOf(jar, tools) + ideaClasspath).joinToString(separator) { it.absolutePath }
         val command = listOf("java", "-cp", classpath, "org.jetbrains.idea.inspections.ProxyRunnerImpl")
+//        val command = listOf("java", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005", "-cp", classpath, "org.jetbrains.idea.inspections.ProxyRunnerImpl")
         val process = ProcessBuilder(command).redirectErrorStream(true).start()
         logger(Logger.Level.INFO, "Process started: ${command.joinToString(" ")}")
         connection = Connection.Master(process.outputStream, process.inputStream)
