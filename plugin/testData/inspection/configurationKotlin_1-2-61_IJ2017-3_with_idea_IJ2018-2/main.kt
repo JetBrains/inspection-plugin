@@ -1,5 +1,5 @@
-// idea.version = ideaIC:2017.3
-// plugins.kotlin.location = https://plugins.jetbrains.com/plugin/download?rel=true&updateId=49186
+// idea.version = ideaIC:2018.2
+// plugins.kotlin.location = https://plugins.jetbrains.com/plugin/download?rel=true&updateId=49053
 // warning: org.jetbrains.kotlin.idea.inspections.ReplaceStringFormatWithLiteralInspection
 
 val a = ""

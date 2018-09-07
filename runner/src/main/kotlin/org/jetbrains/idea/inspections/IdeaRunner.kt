@@ -2,6 +2,7 @@ package org.jetbrains.idea.inspections
 
 import com.intellij.ide.highlighter.ProjectFileType
 import com.intellij.ide.impl.ProjectUtil
+import com.intellij.ide.plugins.IdeaPluginDescriptor
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.idea.createCommandLineApplication
 import com.intellij.idea.getCommandLineApplication
@@ -23,6 +24,7 @@ import com.intellij.openapi.util.io.FileUtil
 import com.intellij.util.PlatformUtils
 import org.jetbrains.intellij.Runner
 import org.jetbrains.intellij.configurations.LOCKS_DIRECTORY
+import org.jetbrains.intellij.parameters.Plugin
 import java.io.File
 import java.io.IOException
 import java.lang.management.ManagementFactory
@@ -134,9 +136,10 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
             projectDir: File,
             projectName: String,
             moduleName: String,
+            ideaVersion: String,
             ideaHomeDirectory: File,
             ideaSystemDirectory: File,
-            plugins: List<File>,
+            plugins: List<Plugin>,
             parameters: T
     ): Boolean {
         // Don't delete, change and downgrade level of log because this
@@ -145,7 +148,7 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
         logger.info("InspectionPlugin: Class loader: " + this.javaClass.classLoader)
         try {
             if (testMode) acquireIdeaLockIfNeeded()
-            application = loadApplication(ideaHomeDirectory, ideaSystemDirectory, plugins)
+            application = loadApplication(ideaVersion, ideaHomeDirectory, ideaSystemDirectory, plugins)
             application?.doNotSave()
             application?.configureJdk()
             val project = openProject(projectDir, projectName, moduleName)
@@ -179,13 +182,21 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
         }
     }
 
-    private fun loadApplication(ideaHomeDirectory: File, ideaSystemDirectory: File, plugins: List<File>): ApplicationEx {
+    private fun checkCompatibility(plugin: Plugin, plugins: List<IdeaPluginDescriptor>, buildNumber: String, ideaVersion: String) {
+        val descriptor = plugins.find { it.name == plugin.name } ?: throw RunnerException("${plugin.name} not loaded")
+        if (PluginManagerCore.isIncompatible(descriptor)) throw RunnerException("${plugin.name} not loaded")
+        val pluginDescriptor = Plugin.PluginDescriptor(descriptor.version, descriptor.sinceBuild, descriptor.untilBuild)
+        val ideaDescriptor = Plugin.IdeaDescriptor(ideaVersion, buildNumber)
+        if (plugin.isIncompatible(pluginDescriptor, ideaDescriptor)) throw RunnerException("${plugin.name} not loaded")
+    }
+
+    private fun loadApplication(ideaVersion: String, ideaHomeDirectory: File, ideaSystemDirectory: File, plugins: List<Plugin>): ApplicationEx {
         val state = initRun()
         val ideaBuildNumberFile = File(ideaHomeDirectory, "build.txt")
         val (buildNumber, usesUltimate) = ideaBuildNumberFile.buildConfiguration
         if (usesUltimate) throw RunnerException("Using of IDEA Ultimate is not yet supported in inspection runner")
         val systemPath = generateSystemPath(ideaSystemDirectory, buildNumber, usesUltimate)
-        val pluginsPath = plugins.joinToString(":") { it.absolutePath }
+        val pluginsPath = plugins.joinToString(":") { it.directory.absolutePath }
         val platformPrefix = if (usesUltimate) PlatformUtils.IDEA_PREFIX else PlatformUtils.IDEA_CE_PREFIX
 
         System.setProperty(IDEA_HOME_PATH, ideaHomeDirectory.path)
@@ -217,12 +228,11 @@ abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
 
         // Do not remove the call of PluginManagerCore.getPlugins(), it prevents NPE in IDEA
         // NB: IdeaApplication.getStarter() from IJ community contains the same call
-        val enabledPlugins = PluginManagerCore.getPlugins()
+        val enabledPlugins = PluginManagerCore.getPlugins().toList()
         val disabledPlugins = PluginManagerCore.getDisabledPlugins()
         logger.info("InspectionPlugin: Enabled plugins: ${enabledPlugins.map { it.name to it.pluginId }.toMap()}")
         logger.info("InspectionPlugin: Disabled plugins ${disabledPlugins.toList()}")
-        val skippedPlugins = enabledPlugins.asSequence().filter { PluginManagerCore.isIncompatible(it) }.map { it.name }.toList()
-        if (skippedPlugins.isNotEmpty()) throw RunnerException(skippedPlugins.joinToString(", ") + " can not loaded")
+        plugins.forEach { checkCompatibility(it, enabledPlugins, buildNumber, ideaVersion) }
         return ApplicationManagerEx.getApplicationEx().apply { load() }
     }
 
