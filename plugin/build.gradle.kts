@@ -55,7 +55,6 @@ configure<PublishingExtension> {
             configure<ShadowExtension> {
                 component(this@create)
             }
-//            from(components.getByName("java"))
             version = projectVersion
             groupId = projectGroup
             artifactId = projectName
