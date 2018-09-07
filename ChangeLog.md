@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 0.2.0
+
+More versions of Kotlin plugin are supported by default.
+
 ## 0.2.0-rc-3
 
 Make gradle configuration a bit nicer
