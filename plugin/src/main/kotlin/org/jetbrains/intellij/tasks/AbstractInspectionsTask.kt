@@ -275,7 +275,14 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
             val kotlinPluginVersion = parameters.kotlinPluginVersion
             if (kotlinPluginVersion != null) checkCompatibility(this, kotlinPluginVersion, ideaVersion)
             val kotlinPluginDirectory = extension.plugins.kotlin.kotlinPluginDirectory(ideaVersion)
-            val plugins = listOf(kotlinPluginDirectory)
+            val kotlinPlugin = object : Plugin("Kotlin", kotlinPluginDirectory) {
+                override fun isIncompatible(plugin: PluginDescriptor, idea: IdeaDescriptor): Boolean {
+                    if ("IJ" in plugin.version) return false
+                    logger.error("InspectionPlugin: Unsupported non idea kotlin plugins: ${plugin.version}")
+                    return true
+                }
+            }
+            val plugins = listOf(kotlinPlugin)
             var success = true
             val inspectionsThread = thread(start = false) {
                 val runner = createRunner(loader)
@@ -298,6 +305,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
                         projectDir = project.rootProject.projectDir,
                         projectName = project.rootProject.name,
                         moduleName = project.name,
+                        ideaVersion = ideaVersion,
                         ideaHomeDirectory = ideaDirectory,
                         ideaSystemDirectory = ideaSystemDirectory,
                         plugins = plugins,

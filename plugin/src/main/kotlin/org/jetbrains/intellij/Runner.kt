@@ -1,5 +1,6 @@
 package org.jetbrains.intellij
 
+import org.jetbrains.intellij.parameters.Plugin
 import java.io.File
 import java.util.function.BiFunction
 
@@ -14,9 +15,10 @@ interface Runner<in T : Runner.Parameters> {
             projectDir: File,
             projectName: String,
             moduleName: String,
+            ideaVersion: String,
             ideaHomeDirectory: File,
             ideaSystemDirectory: File,
-            plugins: List<File>,
+            plugins: List<Plugin>,
             parameters: T
     ): Boolean
 
