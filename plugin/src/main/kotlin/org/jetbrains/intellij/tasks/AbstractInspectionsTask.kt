@@ -294,7 +294,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
             }
             val outcome = runner.run(parameters)
             when (outcome) {
-                RunnerOutcome.CRASH -> exception(this, "Caused task execution exception")
+                RunnerOutcome.CRASH -> exception(this, "Task execution exception")
                 RunnerOutcome.FAIL -> if (!getIgnoreFailures()) exception(this, "Task execution failure")
                 RunnerOutcome.SUCCESS -> logger.info("InspectionPlugin: RUN SUCCESS")
             }
@@ -302,7 +302,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
             Runner.finalize(logger)
             throw e
         } catch (e: Throwable) {
-            logger.error("InspectionPlugin: Exception during running: ${e.message}")
+            logger.error("InspectionPlugin: Exception during running: ${e.javaClass.name}: ${e.message}")
             Runner.finalize(logger)
             throw TaskExecutionException(this, e)
         }

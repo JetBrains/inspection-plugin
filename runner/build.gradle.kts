@@ -5,12 +5,6 @@ import org.gradle.api.tasks.bundling.Jar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.idea.inspections.*
 
-// Hack for resolving problem with (Unresolved reference: compileOnly)
-// issue: https://github.com/Kotlin/kotlin-frontend-plugin/issues/25
-plugins {
-    java
-}
-
 buildscript {
     extra["kotlinVersion"] = "1.2.0"
     val kotlinVersion: String by extra
@@ -31,6 +25,10 @@ buildscript {
 
 val kotlinVersion: String by extra
 
+plugins {
+    java
+}
+
 apply {
     plugin("kotlin")
     plugin("maven-publish")
@@ -40,17 +38,33 @@ apply {
 
 val projectName = "inspection-runner"
 
-val jar: Jar by tasks
-jar.apply {
+configure<Jar>("jar") {
     manifest {
-        attributes(mapOf("Main-Class" to "org.jetbrains.idea.inspections.ProxyRunnerImpl"))
+        attributes["Main-Class"] = "org.jetbrains.idea.inspections.ProxyRunnerImpl"
     }
 }
 
-val shadowJar: ShadowJar by tasks
-shadowJar.apply {
+configure<ShadowJar>("shadowJar") {
     baseName = projectName
     classifier = ""
+}
+
+configure<PublishingExtension> {
+    repositories {
+        maven {
+            url = uri("build/repository")
+        }
+    }
+    publications {
+        create<MavenPublication>("Runner") {
+            configure<ShadowExtension> {
+                component(this@create)
+            }
+            version = projectVersion
+            groupId = projectGroup
+            artifactId = projectName
+        }
+    }
 }
 
 configure<BintrayExtension> {
@@ -69,25 +83,7 @@ configure<BintrayExtension> {
         }
     }
 
-    setPublications("RunnerJar")
-}
-
-configure<PublishingExtension> {
-    repositories {
-        maven {
-            url = uri("build/repository")
-        }
-    }
-    publications {
-        create<MavenPublication>("RunnerJar") {
-            configure<ShadowExtension> {
-                component(this@create)
-            }
-            version = projectVersion
-            groupId = projectGroup
-            artifactId = projectName
-        }
-    }
+    setPublications("Runner")
 }
 
 repositories {
@@ -97,18 +93,19 @@ repositories {
     maven { setUrl("https://www.jetbrains.com/intellij-repository/snapshots") }
 }
 
+val ideaVersion = "ideaIC:2018.2"
+val ideaDirectory = File(buildDir, ideaVersion.replace(":.", '_'))
+
 configurations {
     create("idea")
     create("kotlin-plugin")
 
     dependencies {
-        add("idea", create("com.jetbrains.intellij.idea:ideaIC:2017.3@zip"))
+        add("idea", create("com.jetbrains.intellij.idea:$ideaVersion@zip"))
     }
 }
 
-val ideaDirectory = File(buildDir, "ideaIC_2017_3")
-
-task<Sync>(name = "unzip-idea") {
+val unzipIdea = task<Sync>("unzip-idea") {
     with(configurations.getByName("idea")) {
         dependsOn(this)
         from(zipTree(singleFile))
@@ -118,7 +115,7 @@ task<Sync>(name = "unzip-idea") {
 
 tasks {
     withType<KotlinCompile> {
-        dependsOn(tasks.getByName("unzip-idea"))
+        dependsOn(unzipIdea)
         kotlinOptions {
             jvmTarget = "1.8"
             languageVersion = "1.0"
@@ -128,7 +125,7 @@ tasks {
 }
 
 dependencies {
-    compileOnly("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
+    compileOnly("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
     compile("org.jdom:jdom2:2.0.6")
     compileOnly(fileTree(mapOf("dir" to "$ideaDirectory/lib", "include" to "*.jar")))
     compile(project(":interface"))
