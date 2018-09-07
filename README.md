@@ -6,12 +6,12 @@
 
 This plugin is intended to run IDEA inspections during Gradle build.
 
-Current status: beta-candidate version 0.2.0-rc-3 is available.
+Current status: beta version 0.2.0 is available.
 
 ## Usage
 
 * Add `maven { url 'https://dl.bintray.com/kotlin/kotlin-dev' }` to your buildscript repositories (temporary location)
-* Add `classpath 'org.jetbrains.intellij.plugins:inspection-plugin:0.2.0-rc-3'` to your buildscript dependencies
+* Add `classpath 'org.jetbrains.intellij.plugins:inspection-plugin:0.2.0'` to your buildscript dependencies
 * Apply plugin `'org.jetbrains.intellij.inspections'` to your gradle module
 
 This adds one inspection plugin task per source root, normally its name is `inspectionsMain` for `main` root and 
@@ -28,8 +28,10 @@ inspections {
 ``` 
 
 In this example inspections will be taken from IDEA CE version 2017.3. 
-Plugin works at least with IDEA CE versions 2017.2, 2017.2.x, 2017.3, 2017.3.x, 2018.1, 2018.1.x, 2018.2, 2018.2.x.
+Plugin works at least with IDEA CE versions 2017.1, 2017.2, 2017.2.x, 2017.3, 2017.3.x, 2018.1, 2018.1.x, 2018.2, 2018.2.x.
 If you have multi-platform project, it's recommended to use IDEA CE 2018.2 or later.
+Kotlin plugin versions from 1.2.21 to 1.2.61 are supported directly (required version for your IDE is chosen and downloaded auromatically),
+otherwise you will have to specify download URL (see below, `plugins.kotlin.location`).
 
 There are three ways to specify inspections for code analysis:
 
@@ -121,7 +123,7 @@ The meaning of the parameters is the following:
 * `reformat.quiet`: do not report reformat inspection messages to console, only to XML / HTML files (false by default)
 * `reformat.quickFix`: apply quick fixes for fixed code-style errors (true by default)
 * `plugins.kotlin.version`: version of downloading kotlin plugin (by default used bundled to IDEA)
-* `plugins.kotlin.location`: url of downloading kotlin plugin
+* `plugins.kotlin.location`: URL of downloading kotlin plugin
 
 If you wish to change location of report file, you should specify it in closure for particular task, e.g.
 
@@ -155,7 +157,7 @@ and attach `inspections.log` to the issue.
 Also it's very helpful to specify Gradle version, OS and 
 IDEA version used in inspection plugin (which is set in `idea.version` parameter).
 
-Known bugs / problems at this moment (version 0.2.0-rc-3):
+Known bugs / problems at this moment (version 0.2.0):
 
 * plugin does not work yet with Ultimate IDEA versions, like ideaIU:2017.3
 * analysis of Kotlin JS and common modules is only partially supported
