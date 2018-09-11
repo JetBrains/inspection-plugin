@@ -1,98 +1,187 @@
 package org.jetbrains.intellij
 
 import com.xenomachina.argparser.ArgParser
-import com.xenomachina.argparser.default
 import com.xenomachina.argparser.mainBody
+import org.jetbrains.intellij.parameters.FileInfoRunnerParameters
+import org.jetbrains.intellij.parameters.IdeaRunnerParameters
+import org.jetbrains.intellij.parameters.InspectionsRunnerParameters
 import java.io.File
-import java.lang.IllegalArgumentException
 
-class InspectionTool {
-    data class Module(val name: String, val directory: File, val parent: Module?)
+object InspectionTool {
 
-    data class Task(val name: String, val sourceSets: List<File>, val module: Module?)
+    private const val REFORMAT_INSPECTION_TOOL = "org.jetbrains.kotlin.idea.inspections.ReformatInspection"
 
-    class ToolArgumentsParser(parser: ArgParser) {
-        val tasks by parser.positionalList("TASKS",
-                help = "Task name for execution, example :module:inspectionsMain")
+    private val IDEA_SYSTEM_DIRECTORY = File(System.getProperty("user.home"), ".GradleInspectionPluginCaches/system")
 
-        val runnerJar by parser.storing("--runner",
-                help = "Runner jar file") { File(this) }
-                .addValidator {
-                    if (!value.isFile) {
-                        val message = "Invalid runner jar file: $value"
-                        throw IllegalArgumentException(message)
-                    }
-                }
-
-        val ideaHomeDirectory by parser.storing("--idea",
-                help = "Idea home directory") { File(this) }
-                .addValidator {
-                    if (!value.isDirectory) {
-                        val message = "Invalid idea home directory: $value"
-                        throw IllegalArgumentException(message)
-                    }
-                }
-
-        val kotlinPluginHomeDirectory by parser.storing("--kotlin",
-                help = "Kotlin plugin home directory") { File(this) }
-                .default { null }
-                .addValidator {
-                    if (value?.isDirectory == false) {
-                        val message = "Invalid kotlin plugin home directory: $value"
-                        throw IllegalArgumentException(message)
-                    }
-                }
-
-        val projectDirectory by parser.storing("--project",
-                help = "Project directory to analyze") { File(this) }
-                .default { null }
-                .addValidator {
-                    if (value?.isDirectory == false) {
-                        val message = "Invalid idea home directory: $value"
-                        throw IllegalArgumentException(message)
-                    }
-                }
-
-        val htmlReport by parser.storing("--html",
-                help = "Html report directory") { File(this) }
-                .default { null }
-                .addValidator {
-                    if (value?.isDirectory == false) {
-                        val message = "Invalid html report directory: $value"
-                        throw IllegalArgumentException(message)
-                    }
-                }
-
-        val xmlReport by parser.storing("--xml",
-                help = "Xml report directory") { File(this) }
-                .default { null }
-                .addValidator {
-                    if (value?.isDirectory == false) {
-                        val message = "Invalid xml report directory: $value"
-                        throw IllegalArgumentException(message)
-                    }
-                }
-    }
-
-//    private fun getIdeaRunnerParameters(sourceSet: File) =
-//            IdeaRunnerParameters(
-//
-//            )
-
-    companion object {
-        @JvmStatic
-        fun main(args: Array<String>) = mainBody {
-            ArgParser(args).parseInto(::ToolArgumentsParser).run {
-                println("""
-                    tasks = $tasks
-                    runnerJar = $runnerJar
-                    ideaHomeDirectory = $ideaHomeDirectory
-                    kotlinPluginHomeDirectory = $kotlinPluginHomeDirectory
-                    projectDirectory = $projectDirectory
-                    htmlReport = $htmlReport
-                    xmlReport = $xmlReport
-                """.trimIndent())
+    @JvmStatic
+    fun main(args: Array<String>) = mainBody {
+        val arguments = ArgParser(args).parseInto(::ToolArguments).toArguments()
+        val runner = ProxyRunner(arguments.configuration.runner, arguments.configuration.idea) { level, message ->
+            when (level) {
+                Logger.Level.INFO -> println("InspectionTool: $message")
+                Logger.Level.WARNING -> println("InspectionTool: $message")
+                Logger.Level.ERROR -> System.err.println("InspectionTool: $message")
             }
         }
+        try {
+            arguments.toParameters().forEach {
+                val outcome = runner.run(it)
+                when (outcome) {
+                    RunnerOutcome.CRASH -> throw RuntimeException("Execution crashed")
+                    RunnerOutcome.FAIL -> throw RuntimeException("Execution failed")
+                    RunnerOutcome.SUCCESS -> println("InspectionPlugin: RUN SUCCESS")
+                }
+            }
+        } finally {
+            runner.finalize()
+        }
     }
+
+    private fun Arguments.toParameters() = tasks.map {
+        when (it.name) {
+            Task.Name.CHECK -> configuration.checkInspectionParameters(it.module)
+            Task.Name.INSPECTIONS -> configuration.inspectionParameters(it.module)
+            Task.Name.REFORMAT -> configuration.reformatParameters(it.module)
+        }
+    }
+
+    private val Configuration.ideaVersion: String
+        get() = File(idea, "build.txt").readLines().first()
+
+    private val Configuration.projectDir: File
+        get() = modules.first { it.name == projectName }.directory
+
+    private fun Configuration.checkInspectionParameters(module: Module) = IdeaRunnerParameters(
+            projectDir = projectDir,
+            projectName = projectName,
+            moduleName = module.name,
+            ideaVersion = ideaVersion,
+            ideaHomeDirectory = idea,
+            ideaSystemDirectory = IDEA_SYSTEM_DIRECTORY,
+            kotlinPluginDirectory = kotlin,
+            childParameters = FileInfoRunnerParameters(
+                    files = module.sourceSets.map { it.walk().toList() }.flatten(),
+                    childParameters = InspectionsRunnerParameters(
+                            ideaVersion = ideaVersion,
+                            kotlinPluginVersion = null,
+                            isAvailableCodeChanging = false,
+                            reportParameters = report.toParameters(),
+                            inheritFromIdea = true,
+                            profileName = null,
+                            errors = InspectionsRunnerParameters.Inspections(emptyMap(), null),
+                            warnings = InspectionsRunnerParameters.Inspections(emptyMap(), null),
+                            info = InspectionsRunnerParameters.Inspections(emptyMap(), null)
+                    )
+            )
+    )
+
+    private fun Configuration.inspectionParameters(module: Module) = IdeaRunnerParameters(
+            projectDir = projectDir,
+            projectName = projectName,
+            moduleName = module.name,
+            ideaVersion = ideaVersion,
+            ideaHomeDirectory = idea,
+            ideaSystemDirectory = IDEA_SYSTEM_DIRECTORY,
+            kotlinPluginDirectory = kotlin,
+            childParameters = FileInfoRunnerParameters(
+                    files = module.sourceSets.map { it.walk().toList() }.flatten(),
+                    childParameters = InspectionsRunnerParameters(
+                            ideaVersion = ideaVersion,
+                            kotlinPluginVersion = null,
+                            isAvailableCodeChanging = true,
+                            reportParameters = report.toParameters(),
+                            inheritFromIdea = true,
+                            profileName = null,
+                            errors = InspectionsRunnerParameters.Inspections(emptyMap(), null),
+                            warnings = InspectionsRunnerParameters.Inspections(emptyMap(), null),
+                            info = InspectionsRunnerParameters.Inspections(emptyMap(), null)
+                    )
+            )
+    )
+
+    private fun Configuration.reformatParameters(module: Module) = IdeaRunnerParameters(
+            projectDir = projectDir,
+            projectName = projectName,
+            moduleName = module.name,
+            ideaVersion = ideaVersion,
+            ideaHomeDirectory = idea,
+            ideaSystemDirectory = IDEA_SYSTEM_DIRECTORY,
+            kotlinPluginDirectory = kotlin,
+            childParameters = FileInfoRunnerParameters(
+                    files = module.sourceSets.map { it.walk().toList() }.flatten(),
+                    childParameters = InspectionsRunnerParameters(
+                            ideaVersion = ideaVersion,
+                            kotlinPluginVersion = null,
+                            isAvailableCodeChanging = true,
+                            reportParameters = report.toParameters(),
+                            inheritFromIdea = false,
+                            profileName = null,
+                            errors = InspectionsRunnerParameters.Inspections(emptyMap(), null),
+                            warnings = InspectionsRunnerParameters.Inspections(
+                                    inspections = mapOf(
+                                            Pair(
+                                                    REFORMAT_INSPECTION_TOOL_PARAMETERS.name,
+                                                    REFORMAT_INSPECTION_TOOL_PARAMETERS
+                                            )
+                                    ),
+                                    max = null
+                            ),
+                            info = InspectionsRunnerParameters.Inspections(emptyMap(), null)
+                    )
+            )
+    )
+
+    private val REFORMAT_INSPECTION_TOOL_PARAMETERS = InspectionsRunnerParameters.Inspection(REFORMAT_INSPECTION_TOOL, true)
+
+    private fun Report.toParameters() = InspectionsRunnerParameters.Report(isQuiet, xml, html)
+
+    private fun parseTask(task: String, modules: List<Module>): List<Task> {
+        val names = task.split(':').toList()
+        val (moduleName, taskName) = when {
+            names.size == 1 -> null to names.first()
+            names.size == 2 -> names[0] to names[1]
+            else -> throw IllegalArgumentException("Wrong task syntax: $task")
+        }
+        val targetModules = if (moduleName == null) modules else modules.filter { it.name == moduleName }
+        val name = Task.Name.values().find { taskName.startsWith(it.instance) }
+                ?: throw IllegalArgumentException("Undefined task name: $taskName")
+        val sourceSetName = taskName.removePrefix(name.instance).decapitalize().let { if (it.isEmpty()) null else it }
+        val module = fun Module.() = Module(this.name, directory, sourceSets.filter { sourceSetName == null || it.name == sourceSetName })
+        val tasks = targetModules.asSequence().map(module).map { Task(name, it) }.toList()
+        val sourceSets = tasks.map { it.module.sourceSets }.flatten()
+        if (sourceSets.isEmpty()) when (sourceSetName) {
+            null -> throw IllegalArgumentException("Source sets not found")
+            else -> throw IllegalArgumentException("Source set not found: $sourceSetName")
+        }
+        return tasks
+    }
+
+    private fun ToolArguments.loadConfiguration(): Configuration {
+        val config = config ?: throw IllegalArgumentException("Configuration file must be defined")
+        return ConfigurationParser().parse(config)
+    }
+
+    private fun ToolArguments.generateConfiguration(): Configuration {
+        if (runner == null) throw IllegalArgumentException("Runner jar must be defined")
+        if (idea == null) throw IllegalArgumentException("Idea home directory must be defined")
+        if (kotlin == null) throw IllegalArgumentException("Kotlin plugin home directory must be defined")
+        return ConfigurationGenerator().generate(runner!!, idea!!, kotlin!!, project, html, xml)
+    }
+
+    private fun ToolArguments.toArguments(): Arguments {
+        val configuration = config?.let { loadConfiguration() } ?: generateConfiguration()
+        val tasks = tasks.map { parseTask(it, configuration.modules) }.flatten()
+        return Arguments(tasks, level, configuration)
+    }
+
+    data class Task(val name: Name, val module: Module) {
+        enum class Name(val instance: String) {
+            CHECK("checkInspections"),
+            INSPECTIONS("inspections"),
+            REFORMAT("reformat")
+        }
+    }
+
+    data class Arguments(val tasks: List<Task>, val level: Logger.Level, val configuration: Configuration)
+
 }

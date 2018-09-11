@@ -50,16 +50,6 @@ fun kotlinPluginArchiveDirectory(location: String?): File? {
     return File(DOWNLOAD_DIRECTORY, name)
 }
 
-fun kotlinPluginArchive(location: String?): File? {
-    return kotlinPluginArchiveDirectory(location)?.listFiles()?.firstOrNull()
-}
-
-fun bundledKotlinPluginDirectory(ideaVersion: String): File {
-    val normIdeaVersion = ideaVersion.normalizedVersion
-    val name = "kotlin-plugin-bundled-$normIdeaVersion"
-    return File(DEPENDENCY_SOURCE_DIRECTORY, "$name/Kotlin")
-}
-
 fun PluginExtension.kotlinPluginDirectory(ideaVersion: String): File {
     val name = if (location != null) {
         val hash = HashUtil.createCompactMD5(location)
@@ -69,6 +59,16 @@ fun PluginExtension.kotlinPluginDirectory(ideaVersion: String): File {
         val normKotlinPluginVersion = version?.normalizedVersion ?: "bundled"
         "kotlin-plugin-$normKotlinPluginVersion-$normIdeaVersion"
     }
+    return File(DEPENDENCY_SOURCE_DIRECTORY, "$name/Kotlin")
+}
+
+fun kotlinPluginArchive(location: String?): File? {
+    return kotlinPluginArchiveDirectory(location)?.listFiles()?.firstOrNull()
+}
+
+fun bundledKotlinPluginDirectory(ideaVersion: String): File {
+    val normIdeaVersion = ideaVersion.normalizedVersion
+    val name = "kotlin-plugin-bundled-$normIdeaVersion"
     return File(DEPENDENCY_SOURCE_DIRECTORY, "$name/Kotlin")
 }
 

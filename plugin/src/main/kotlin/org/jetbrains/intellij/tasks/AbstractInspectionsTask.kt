@@ -255,15 +255,6 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
         return getDependencyJar(identifier)
     }
 
-    private val File.classpath: List<File>
-        get() = listFiles { file, name -> name.endsWith("jar") && "xmlrpc" !in name }?.toList()
-                ?: throw IllegalStateException("Files not found in directory $this")
-
-    private fun getIdeaClasspath(ideaDirectory: File): List<File> {
-        val ideaLibraries = File(ideaDirectory, "lib")
-        return ideaLibraries.classpath
-    }
-
     @Suppress("unused")
     @TaskAction
     fun run() {
@@ -273,11 +264,9 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
             logger.info("InspectionPlugin: Backend jar: $jar")
             val ideaHomeDirectory = parameters.ideaHomeDirectory
             logger.info("Idea home directory: $ideaHomeDirectory")
-            val ideaClasspath = getIdeaClasspath(ideaHomeDirectory)
-            logger.info("Idea classpath: $ideaClasspath")
             val runner = Runner.getOrInit {
                 project.gradle.root.addBuildListener(IdeaFinishingListener())
-                ProxyRunner(jar, ideaClasspath) { level, message ->
+                ProxyRunner(jar, ideaHomeDirectory) { level, message ->
                     when (level) {
                         Logger.Level.ERROR -> logger.error("InspectionPlugin: $message")
                         Logger.Level.WARNING -> logger.warn("InspectionPlugin: $message")
@@ -291,13 +280,11 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
                 RunnerOutcome.FAIL -> if (!getIgnoreFailures()) exception(this, "Task execution failure")
                 RunnerOutcome.SUCCESS -> logger.info("InspectionPlugin: RUN SUCCESS")
             }
-        } catch (e: TaskExecutionException) {
-            Runner.finalize(logger)
-            throw e
         } catch (e: Throwable) {
             logger.error("InspectionPlugin: Exception during running: ${e.javaClass.name}: ${e.message}")
-            Runner.finalize(logger)
             throw TaskExecutionException(this, e)
+        } finally {
+            Runner.finalize(logger)
         }
     }
 

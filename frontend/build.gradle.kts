@@ -1,10 +1,11 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 buildscript {
-    extra["kotlinVersion"] = "1.2.0"
+    extra["kotlinVersion"] = "1.1.4"
     val kotlinVersion: String by extra
 
     repositories {
         mavenCentral()
-        jcenter()
     }
 
     dependencies {
@@ -13,6 +14,10 @@ buildscript {
 }
 
 val kotlinVersion: String by extra
+
+plugins {
+    java
+}
 
 apply {
     plugin("kotlin")
@@ -24,4 +29,5 @@ repositories {
 
 dependencies {
     compile("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
+    compile(project(":interface"))
 }

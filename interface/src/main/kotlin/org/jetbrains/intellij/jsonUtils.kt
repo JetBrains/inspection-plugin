@@ -22,7 +22,7 @@ fun RunnerOutcome.toJson(): String {
 fun String.loadOutcome(): RunnerOutcome {
     val parser = JSONParser()
     val obj = parser.parse(this) as JSONObject
-    val value = obj.getFiled<String>("value")
+    val value = obj.getField<String>("value")
     return RunnerOutcome.valueOf(value)
 }
 
@@ -32,11 +32,11 @@ fun String.loadIdeaRunnerParameters(): IdeaRunnerParameters<FileInfoRunnerParame
     return obj.loadIdeaRunnerParameters()
 }
 
-private inline fun <reified T> JSONObject.getFiled(field: String): T = get(field) as T
+private inline fun <reified T> JSONObject.getField(field: String): T = get(field) as T
 
 private fun JSONObject.loadInspection() = InspectionsRunnerParameters.Inspection(
-        getFiled("name"),
-        getFiled("quickFix")
+        getField("name"),
+        getField("quickFix")
 )
 
 private fun JSONObject.loadInspectionsMap() = map {
@@ -44,48 +44,48 @@ private fun JSONObject.loadInspectionsMap() = map {
 }.toMap()
 
 private fun JSONObject.loadInspections() = InspectionsRunnerParameters.Inspections(
-        getFiled<JSONObject>("inspections").loadInspectionsMap(),
-        getFiled<Long?>("max")?.toInt()
+        getField<JSONObject>("inspections").loadInspectionsMap(),
+        getField<Long?>("max")?.toInt()
 )
 
 private fun JSONObject.loadReport() = InspectionsRunnerParameters.Report(
-        getFiled("isQuiet"),
-        getFiled<JSONObject?>("xml")?.loadFile(),
-        getFiled<JSONObject?>("html")?.loadFile()
+        getField("isQuiet"),
+        getField<JSONObject?>("xml")?.loadFile(),
+        getField<JSONObject?>("html")?.loadFile()
 )
 
 private fun JSONObject.loadFile() = File(
-        getFiled<String>("path")
+        getField<String>("path")
 )
 
 private fun JSONObject.loadInspectionsRunnerParameters() = InspectionsRunnerParameters(
-        getFiled("ideaVersion"),
-        getFiled("kotlinPluginVersion"),
-        getFiled("isAvailableCodeChanging"),
-        getFiled<JSONObject>("reportParameters").loadReport(),
-        getFiled("inheritFromIdea"),
-        getFiled("profileName"),
-        getFiled<JSONObject>("errors").loadInspections(),
-        getFiled<JSONObject>("warnings").loadInspections(),
-        getFiled<JSONObject>("info").loadInspections()
+        getField("ideaVersion"),
+        getField("kotlinPluginVersion"),
+        getField("isAvailableCodeChanging"),
+        getField<JSONObject>("reportParameters").loadReport(),
+        getField("inheritFromIdea"),
+        getField("profileName"),
+        getField<JSONObject>("errors").loadInspections(),
+        getField<JSONObject>("warnings").loadInspections(),
+        getField<JSONObject>("info").loadInspections()
 )
 
 private fun JSONObject.loadFileInfoRunnerParameters() = FileInfoRunnerParameters(
-        getFiled<JSONArray>("files").loadFiles(),
-        getFiled<JSONObject>("childParameters").loadInspectionsRunnerParameters()
+        getField<JSONArray>("files").loadFiles(),
+        getField<JSONObject>("childParameters").loadInspectionsRunnerParameters()
 )
 
 private fun JSONArray.loadFiles() = map { it as JSONObject }.map { it.loadFile() }.toList()
 
 private fun JSONObject.loadIdeaRunnerParameters() = IdeaRunnerParameters(
-        getFiled<JSONObject>("projectDir").loadFile(),
-        getFiled("projectName"),
-        getFiled("moduleName"),
-        getFiled("ideaVersion"),
-        getFiled<JSONObject>("ideaHomeDirectory").loadFile(),
-        getFiled<JSONObject>("ideaSystemDirectory").loadFile(),
-        getFiled<JSONObject>("kotlinPluginDirectory").loadFile(),
-        getFiled<JSONObject>("childParameters").loadFileInfoRunnerParameters()
+        getField<JSONObject>("projectDir").loadFile(),
+        getField("projectName"),
+        getField("moduleName"),
+        getField("ideaVersion"),
+        getField<JSONObject>("ideaHomeDirectory").loadFile(),
+        getField<JSONObject>("ideaSystemDirectory").loadFile(),
+        getField<JSONObject>("kotlinPluginDirectory").loadFile(),
+        getField<JSONObject>("childParameters").loadFileInfoRunnerParameters()
 )
 
 private fun InspectionsRunnerParameters.toJsonObject(): JSONObject = JSONObject().apply {

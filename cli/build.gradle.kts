@@ -2,9 +2,10 @@ import com.github.jengelman.gradle.plugins.shadow.ShadowExtension
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import com.jfrog.bintray.gradle.BintrayExtension
 import org.jetbrains.idea.inspections.*
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 buildscript {
-    extra["kotlinVersion"] = "1.2.0"
+    extra["kotlinVersion"] = "1.1.4"
     extra["kotlinArgParserVersion"] = "2.0.7"
     val kotlinVersion: String by extra
 
@@ -93,18 +94,10 @@ repositories {
 }
 
 dependencies {
-    compile("org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion")
+    compile("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
     compile("com.xenomachina:kotlin-argparser:$kotlinArgParserVersion")
+    implementation("com.googlecode.json-simple:json-simple:1.1")
+    compile("org.jdom:jdom2:2.0.6")
     compile(project(":interface"))
     compile(project(":frontend"))
-}
-
-configure<ProcessResources>("processResources") {
-    eachFile {
-        if (name == "org.jetbrains.intellij.inspections.properties") {
-            filter {
-                it.replace("<version>", projectVersion)
-            }
-        }
-    }
 }

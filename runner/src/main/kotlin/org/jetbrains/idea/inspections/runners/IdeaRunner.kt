@@ -141,6 +141,7 @@ abstract class IdeaRunner<T>(logger: Logger) : Runner<IdeaRunnerParameters<T>>(l
             with(parameters) {
                 val plugins = listOf(KotlinPlugin(kotlinPluginDirectory))
                 application = loadApplication(ideaVersion, ideaHomeDirectory, ideaSystemDirectory, plugins)
+                @Suppress("DEPRECATION")
                 application?.doNotSave()
                 application?.configureJdk()
                 val project = openProject(projectDir, projectName, moduleName)
