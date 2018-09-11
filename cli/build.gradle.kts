@@ -2,11 +2,11 @@ import com.github.jengelman.gradle.plugins.shadow.ShadowExtension
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import com.jfrog.bintray.gradle.BintrayExtension
 import org.gradle.api.tasks.bundling.Jar
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.idea.inspections.*
 
 buildscript {
     extra["kotlinVersion"] = "1.2.0"
+    extra["kotlinArgParserVersion"] = "2.0.7"
     val kotlinVersion: String by extra
 
     repositories {
@@ -24,6 +24,7 @@ buildscript {
 }
 
 val kotlinVersion: String by extra
+val kotlinArgParserVersion: String by extra
 
 plugins {
     java
@@ -31,13 +32,18 @@ plugins {
 
 apply {
     plugin("kotlin")
-    plugin("java-gradle-plugin")
     plugin("maven-publish")
     plugin("com.github.johnrengelman.shadow")
     plugin("com.jfrog.bintray")
 }
 
-val projectName = "inspection-plugin"
+val projectName = "inspection-cli"
+
+configure<Jar>("jar") {
+    manifest {
+        attributes["Main-Class"] = "org.jetbrains.intellij.InspectionTool"
+    }
+}
 
 configure<ShadowJar>("shadowJar") {
     baseName = projectName
@@ -51,7 +57,7 @@ configure<PublishingExtension> {
         }
     }
     publications {
-        create<MavenPublication>("Plugin") {
+        create<MavenPublication>("Cli") {
             configure<ShadowExtension> {
                 component(this@create)
             }
@@ -78,45 +84,20 @@ configure<BintrayExtension> {
         }
     }
 
-    setPublications("Plugin")
+    setPublications("Cli")
 }
 
 repositories {
     mavenCentral()
     mavenLocal()
-}
-
-tasks {
-    withType<KotlinCompile> {
-        kotlinOptions {
-            jvmTarget = "1.8"
-            languageVersion = "1.1"
-            apiVersion = "1.1"
-        }
-    }
+    jcenter()
 }
 
 dependencies {
-    compileOnly("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
-    compileOnly(gradleApi())
-
-    testCompile("junit:junit:4.12")
-    testCompile("org.jdom:jdom2:2.0.6")
-    testCompile(gradleTestKit())
-    testCompile("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
-
-    compile("org.apache.httpcomponents:httpclient:4.2.2")
+    compile("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
+    compile("com.xenomachina:kotlin-argparser:$kotlinArgParserVersion")
+    implementation("com.googlecode.json-simple:json-simple:1.1")
+    compile("org.jdom:jdom2:2.0.6")
     compile(project(":interface"))
     compile(project(":frontend"))
-}
-
-configure<ProcessResources>("processResources") {
-    inputs.file("../gradle.properties")
-    eachFile {
-        if (name == "org.jetbrains.intellij.inspections.properties") {
-            filter {
-                it.replace("<version>", projectVersion)
-            }
-        }
-    }
 }

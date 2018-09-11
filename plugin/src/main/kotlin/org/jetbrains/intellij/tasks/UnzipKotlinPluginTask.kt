@@ -33,7 +33,7 @@ open class UnzipKotlinPluginTask : ConventionTask() {
     @get:InputFile
     @get:Optional
     val archive: File?
-        get() = location?.let { kotlinPluginDownloadDirectory(it, isTempDirInHome).listFiles()?.firstOrNull() }
+        get() = location?.let { kotlinPluginDownloadDirectory(it, isTempDirInHome)?.listFiles()?.firstOrNull() }
 
     @get:OutputDirectory
     val plugin: File

@@ -58,7 +58,8 @@ fun ideaSystemDirectory(version: String): File {
 // Used to download plugins
 private fun pluginDownloadDirectory(inHome: Boolean) = File(baseCacheDirectory(inHome), "downloads")
 
-fun kotlinPluginDownloadDirectory(location: String, tempInHome: Boolean): File {
+fun kotlinPluginDownloadDirectory(location: String?, tempInHome: Boolean): File? {
+    if (location == null) return null
     val hash = HashUtil.createCompactMD5(location)
     val name = "kotlin-plugin-$hash"
     return File(pluginDownloadDirectory(tempInHome), name)

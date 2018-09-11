@@ -5,4 +5,4 @@
 val a = ""
 val b = String.format("--tests \"%s\" ", a.replace('\"', '*'))
 
-// EXCEPTION: RunnerException: Kotlin not loaded
+// FAIL: RunnerException: Kotlin not loaded
