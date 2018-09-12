@@ -6,7 +6,7 @@ import org.jetbrains.intellij.parameters.InspectionsRunnerParameters
 import java.io.File
 import java.lang.IllegalStateException
 
-class ProxyRunner(jar: File, ideaHomeDirectory: File, private val logger: (Logger.Level, String) -> Unit) {
+class ProxyRunner(jar: File, ideaHomeDirectory: File, private val logger: (LoggerLevel, String) -> Unit) {
     private val connection: Connection.Master
 
     fun run(parameters: IdeaRunnerParameters<FileInfoRunnerParameters<InspectionsRunnerParameters>>): RunnerOutcome {
@@ -15,9 +15,9 @@ class ProxyRunner(jar: File, ideaHomeDirectory: File, private val logger: (Logge
         while (true) {
             val (type, data) = connection.read()
             when (type) {
-                Connection.Type.SlaveOut.ERROR -> logger(Logger.Level.ERROR, data)
-                Connection.Type.SlaveOut.WARNING -> logger(Logger.Level.WARNING, data)
-                Connection.Type.SlaveOut.INFO -> logger(Logger.Level.INFO, data)
+                Connection.Type.SlaveOut.ERROR -> logger(LoggerLevel.ERROR, data)
+                Connection.Type.SlaveOut.WARNING -> logger(LoggerLevel.WARNING, data)
+                Connection.Type.SlaveOut.INFO -> logger(LoggerLevel.INFO, data)
                 Connection.Type.SlaveOut.VALUE -> return data.loadOutcome()
                 null -> println(data)
             }
@@ -48,11 +48,11 @@ class ProxyRunner(jar: File, ideaHomeDirectory: File, private val logger: (Logge
             throw IllegalStateException("$tools not found")
         }
         val ideaClasspath = getIdeaClasspath(ideaHomeDirectory)
-        logger(Logger.Level.INFO, "Idea classpath: $ideaClasspath")
+        logger(LoggerLevel.INFO, "Idea classpath: $ideaClasspath")
         val classpath = (listOf(jar, tools) + ideaClasspath).joinToString(separator) { it.absolutePath }
         val command = listOf("java", "-cp", classpath, "org.jetbrains.idea.inspections.ProxyRunnerImpl")
         val process = ProcessBuilder(command).redirectErrorStream(true).start()
-        logger(Logger.Level.INFO, "Process started: ${command.joinToString(" ")}")
+        logger(LoggerLevel.INFO, "Process started: ${command.joinToString(" ")}")
         connection = Connection.Master(process.outputStream, process.inputStream)
     }
 }

@@ -23,7 +23,7 @@ import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.util.PlatformUtils
 import org.jetbrains.idea.inspections.control.DisableSystemExit
-import org.jetbrains.intellij.Logger
+import org.jetbrains.intellij.ProxyLogger
 import org.jetbrains.intellij.parameters.IdeaRunnerParameters
 import org.jetbrains.idea.inspections.Plugin
 import java.io.File
@@ -34,7 +34,7 @@ import java.nio.channels.OverlappingFileLockException
 import java.nio.file.StandardOpenOption
 
 
-abstract class IdeaRunner<T>(logger: Logger) : Runner<IdeaRunnerParameters<T>>(logger) {
+abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<T>>(logger) {
 
     abstract fun analyze(project: Project, parameters: T): Boolean
 

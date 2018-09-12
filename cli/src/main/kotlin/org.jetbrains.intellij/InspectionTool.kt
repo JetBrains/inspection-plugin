@@ -16,20 +16,15 @@ object InspectionTool {
     @JvmStatic
     fun main(args: Array<String>) = mainBody {
         val arguments = ArgParser(args).parseInto(::ToolArguments).toArguments()
-        val runner = ProxyRunner(arguments.configuration.runner, arguments.configuration.idea) { level, message ->
-            when (level) {
-                Logger.Level.INFO -> println("InspectionTool: $message")
-                Logger.Level.WARNING -> println("InspectionTool: $message")
-                Logger.Level.ERROR -> System.err.println("InspectionTool: $message")
-            }
-        }
+        val logger = Logger(arguments.level, "InspectionTool")
+        val runner = ProxyRunner(arguments.configuration.runner, arguments.configuration.idea, logger::proxy)
         try {
             arguments.toParameters().forEach {
                 val outcome = runner.run(it)
                 when (outcome) {
                     RunnerOutcome.CRASH -> throw RuntimeException("Execution crashed")
                     RunnerOutcome.FAIL -> throw RuntimeException("Execution failed")
-                    RunnerOutcome.SUCCESS -> println("InspectionPlugin: RUN SUCCESS")
+                    RunnerOutcome.SUCCESS -> logger.info("InspectionPlugin: RUN SUCCESS")
                 }
             }
         } finally {
@@ -185,6 +180,6 @@ object InspectionTool {
         }
     }
 
-    data class Arguments(val tasks: List<Task>, val level: Logger.Level, val configuration: Configuration)
+    data class Arguments(val tasks: List<Task>, val level: LoggerLevel, val configuration: Configuration)
 
 }

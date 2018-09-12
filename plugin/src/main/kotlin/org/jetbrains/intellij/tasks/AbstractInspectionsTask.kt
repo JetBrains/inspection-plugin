@@ -275,9 +275,9 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
                 project.gradle.root.addBuildListener(IdeaFinishingListener())
                 ProxyRunner(jar, ideaHomeDirectory) { level, message ->
                     when (level) {
-                        Logger.Level.ERROR -> logger.error("InspectionPlugin: $message")
-                        Logger.Level.WARNING -> logger.warn("InspectionPlugin: $message")
-                        Logger.Level.INFO -> logger.info("InspectionPlugin: $message")
+                        LoggerLevel.ERROR -> logger.error("InspectionPlugin: $message")
+                        LoggerLevel.WARNING -> logger.warn("InspectionPlugin: $message")
+                        LoggerLevel.INFO -> logger.info("InspectionPlugin: $message")
                     }
                 }
             }

@@ -18,13 +18,13 @@ import org.jetbrains.idea.inspections.generators.HTMLGenerator
 import org.jetbrains.idea.inspections.generators.XMLGenerator
 import org.jetbrains.idea.inspections.problems.PinnedProblemDescriptor
 import org.jetbrains.idea.inspections.problems.ProblemLevel
-import org.jetbrains.intellij.Logger
+import org.jetbrains.intellij.ProxyLogger
 import org.jetbrains.intellij.parameters.InspectionsRunnerParameters
 import java.io.File
 import java.util.*
 
 
-class InspectionsRunner(logger: Logger) : FileInfoRunner<InspectionsRunnerParameters>(logger) {
+class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerParameters>(logger) {
 
     class PluginInspectionWrapper<out T : InspectionProfileEntry>(
             val tool: T,
