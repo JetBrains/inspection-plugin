@@ -2,11 +2,11 @@ package org.jetbrains.idea.inspections.runners
 
 import com.intellij.psi.codeStyle.CodeStyleManager
 import com.intellij.openapi.project.Project
-import org.jetbrains.intellij.Logger
+import org.jetbrains.intellij.ProxyLogger
 import org.jetbrains.intellij.parameters.InspectionsRunnerParameters
 
 @Suppress("unused")
-class ReformatRunner(logger: Logger) : FileInfoRunner<InspectionsRunnerParameters>(logger) {
+class ReformatRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerParameters>(logger) {
     override fun analyze(
             files: Collection<FileInfo>,
             project: Project,

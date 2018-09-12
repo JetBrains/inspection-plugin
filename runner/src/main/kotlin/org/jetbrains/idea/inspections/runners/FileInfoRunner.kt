@@ -10,11 +10,11 @@ import com.intellij.openapi.util.io.FileUtilRt
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
-import org.jetbrains.intellij.Logger
+import org.jetbrains.intellij.ProxyLogger
 import org.jetbrains.intellij.parameters.FileInfoRunnerParameters
 import java.util.*
 
-abstract class FileInfoRunner<T>(logger: Logger) : IdeaRunner<FileInfoRunnerParameters<T>>(logger) {
+abstract class FileInfoRunner<T>(logger: ProxyLogger) : IdeaRunner<FileInfoRunnerParameters<T>>(logger) {
     data class FileInfo(val psiFile: PsiFile, val document: Document)
 
     abstract fun analyze(files: Collection<FileInfo>, project: Project, parameters: T): Boolean

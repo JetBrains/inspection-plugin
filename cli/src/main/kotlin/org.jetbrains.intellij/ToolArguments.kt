@@ -10,11 +10,11 @@ class ToolArguments(parser: ArgParser) {
             help = "Task name for execution, example :module:inspectionsMain")
 
     val level by parser.mapping(
-            "--info" to Logger.Level.INFO,
-            "--warn" to Logger.Level.WARNING,
-            "--error" to Logger.Level.ERROR,
+            "--info" to LoggerLevel.INFO,
+            "--warn" to LoggerLevel.WARNING,
+            "--error" to LoggerLevel.ERROR,
             help = "Writable logging level")
-            .default { Logger.Level.WARNING }
+            .default { LoggerLevel.WARNING }
 
     val config: File? by parser.storing("--config",
             help = "Configuration file") { File(this) }

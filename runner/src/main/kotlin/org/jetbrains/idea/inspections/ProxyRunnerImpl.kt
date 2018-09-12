@@ -6,7 +6,7 @@ import org.jetbrains.intellij.*
 
 class ProxyRunnerImpl {
     private val connection = Connection.Slave(System.out, System.`in`)
-    private val logger = Logger(connection)
+    private val logger = ProxyLogger(connection)
     private var runner = InspectionsRunner(logger)
 
     fun step(): Boolean {
