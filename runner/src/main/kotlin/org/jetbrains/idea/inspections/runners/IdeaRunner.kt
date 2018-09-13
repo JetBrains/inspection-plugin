@@ -102,13 +102,6 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
 
     private var application: ApplicationEx? = null
 
-    enum class LockStatus {
-        FREE, USED, SKIP
-    }
-
-    private var systemLockChannel: FileChannel? = null
-    private var systemLock: FileLock? = null
-
     private val idea: ApplicationEx
         get() = application ?: throw IllegalStateException("Idea not runned")
 
@@ -143,8 +136,6 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
         } catch (e: Throwable) {
             if (e is RunnerException) throw e
             throw RunnerException("Exception caught in inspection plugin: $e", e)
-        } finally {
-            releaseSystemLock()
         }
     }
 
@@ -196,7 +187,7 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
         val ideaBuildNumberFile = File(ideaHomeDirectory, "build.txt")
         val (buildNumber, usesUltimate) = ideaBuildNumberFile.buildConfiguration
         if (usesUltimate) throw RunnerException("Using of IDEA Ultimate is not yet supported in inspection runner")
-        val systemPath = generateSystemPath(ideaSystemDirectory, buildNumber, usesUltimate)
+        val systemPath = SystemPathManager.allocateSystemDirectory(ideaSystemDirectory, buildNumber, usesUltimate)
         val pluginsPath = plugins.joinToString(":") { it.directory.absolutePath }
         val platformPrefix = if (usesUltimate) PlatformUtils.IDEA_PREFIX else PlatformUtils.IDEA_CE_PREFIX
 
@@ -233,69 +224,8 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
         return ApplicationManagerEx.getApplicationEx().apply { load() }
     }
 
-    private fun generateSystemPath(ideaSystemDirectory: File, buildNumber: String, usesUltimate: Boolean): String {
-        val buildPrefix = (if (usesUltimate) "U_" else "") + buildNumber.replace(".", "_")
-        var file: File
-        var code = 0
-        do {
-            if (code++ == 256) throw RunnerException("Cannot create IDEA system directory (all locked)")
-            file = File(ideaSystemDirectory, "${buildPrefix}_code$code/system")
-            if (!file.exists()) file.mkdirs()
-            val systemMarkerFile = File(file, SYSTEM_MARKER_FILE)
-            // To prevent usages by multiple processes
-            val status = acquireSystemLockIfNeeded(systemMarkerFile)
-            if (status == LockStatus.SKIP) {
-                throw RunnerException("IDEA system path is already used in current process")
-            }
-        } while (status == LockStatus.USED)
-        return file.absolutePath
-    }
-
-    private fun acquireLockIfNeeded(lockType: String, lockFile: File): Triple<LockStatus, FileLock?, FileChannel?> {
-        val lockDirectory: File? = lockFile.parentFile
-        if (lockDirectory != null && !lockDirectory.exists()) lockDirectory.mkdirs()
-        val lockName = lockType + " lock " + lockFile.name
-        if (!lockFile.exists()) lockFile.createNewFile()
-        val channel = FileChannel.open(lockFile.toPath(), StandardOpenOption.WRITE)
-        val (status, lock) = try {
-            val lock = channel?.tryLock()
-            val status = if (lock == null) LockStatus.USED else LockStatus.FREE
-            Pair(status, lock)
-        } catch (ignore: OverlappingFileLockException) {
-            Pair(LockStatus.SKIP, null)
-        } catch (e: IOException) {
-            logger.warn("IO exception while locking: ${e.message}")
-            throw RunnerException("Exception caught in inspection plugin (IDEA $lockName locking): $e", e)
-        }
-        when (status) {
-            LockStatus.SKIP -> logger.info("$lockName used by current process.")
-            LockStatus.USED -> logger.info("$lockName used by another process.")
-            LockStatus.FREE -> logger.info("$lockName acquired")
-        }
-        return Triple(status, lock, channel)
-    }
-
-    private fun lockRelease(name: String, lock: FileLock?, channel: FileChannel?) {
-        lock?.release()
-        channel?.close()
-        logger.info("$name lock released")
-    }
-
-    private fun acquireSystemLockIfNeeded(systemLockFile: File): LockStatus {
-        val (status, lock, channel) = acquireLockIfNeeded("System", systemLockFile)
-        systemLock = lock
-        systemLockChannel = channel
-        return status
-    }
-
-    private fun releaseSystemLock() {
-        lockRelease("System", systemLock, systemLockChannel)
-        systemLock = null
-        systemLockChannel = null
-    }
-
     override fun finalize() {
-        logger.info("IDEA shutting down.")
+        logger.info("IDEA shutting down")
         val application = application
         DisableSystemExit().use {
             when (application) {
@@ -305,6 +235,70 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
             // Wait IDEA shutdown
             application?.invokeAndWait { }
         }
+        SystemPathManager.freeSystemDirectory()
+    }
+
+    object SystemPathManager {
+        @JvmStatic
+        private var systemDirectory: File? = null
+
+        @JvmStatic
+        private var systemLockChannel: FileChannel? = null
+
+        @JvmStatic
+        private var systemLock: FileLock? = null
+
+        fun allocateSystemDirectory(ideaSystemDirectory: File, buildNumber: String, usesUltimate: Boolean): String {
+            systemDirectory?.let { return it.absolutePath }
+            val systemDirectory = generateSystemPath(ideaSystemDirectory, buildNumber, usesUltimate)
+            this.systemDirectory = systemDirectory
+            return systemDirectory.absolutePath
+        }
+
+        fun freeSystemDirectory() {
+            releaseSystemLock()
+        }
+
+        private fun generateSystemPath(ideaSystemDirectory: File, buildNumber: String, usesUltimate: Boolean): File {
+            val buildPrefix = (if (usesUltimate) "U_" else "") + buildNumber.replace(".", "_")
+            for (code in 1..256) {
+                val file = File(ideaSystemDirectory, "${buildPrefix}_code$code/system")
+                if (!file.exists()) file.mkdirs()
+                val systemMarkerFile = File(file, SYSTEM_MARKER_FILE)
+                // To prevent usages by multiple processes
+                when (acquireSystemLock(systemMarkerFile)) {
+                    LockStatus.SKIP -> throw RunnerException("IDEA system path is already used in current process")
+                    LockStatus.FREE -> return file
+                    LockStatus.USED -> Unit
+                }
+            }
+            throw RunnerException("Cannot create IDEA system directory (all locked)")
+        }
+
+        private fun acquireSystemLock(systemLockFile: File): LockStatus {
+            val lockDirectory: File? = systemLockFile.parentFile
+            if (lockDirectory != null && !lockDirectory.exists()) lockDirectory.mkdirs()
+            if (!systemLockFile.exists()) systemLockFile.createNewFile()
+            val channel = FileChannel.open(systemLockFile.toPath(), StandardOpenOption.WRITE)
+            return try {
+                systemLock = channel?.tryLock()
+                when (systemLock) {
+                    null -> LockStatus.USED
+                    else -> LockStatus.FREE
+                }
+            } catch (ignore: OverlappingFileLockException) {
+                LockStatus.SKIP
+            } catch (e: IOException) {
+                throw RunnerException("IDEA system lock ${systemLockFile.name} locking: $e", e)
+            }
+        }
+
+        private fun releaseSystemLock() {
+            systemLock?.release()
+            systemLockChannel?.close()
+        }
+
+        enum class LockStatus { FREE, USED, SKIP }
     }
 
     companion object {

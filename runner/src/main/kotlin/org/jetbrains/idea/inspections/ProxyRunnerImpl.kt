@@ -31,12 +31,17 @@ class ProxyRunnerImpl {
         val proxyRunnerParameters = parameters.loadIdeaRunnerParameters()
         val success = runner.run(proxyRunnerParameters)
         val outcome = if (success) RunnerOutcome.SUCCESS else RunnerOutcome.FAIL
-        val result = outcome.toJson()
-        connection.write(Connection.Type.SlaveOut.VALUE, result)
+        connection.write(Connection.Type.SlaveOut.VALUE, outcome.toJson())
     }
 
     fun finalize() {
-        runner.finalize()
+        try {
+            runner.finalize()
+            connection.write(Connection.Type.SlaveOut.VALUE, RunnerOutcome.SUCCESS.toJson())
+        } catch (ex: Throwable) {
+            logger.exception(ex)
+            connection.write(Connection.Type.SlaveOut.VALUE, RunnerOutcome.CRASH.toJson())
+        }
     }
 
     companion object {
@@ -45,8 +50,11 @@ class ProxyRunnerImpl {
             val runner = ProxyRunnerImpl()
             try {
                 while (!runner.step());
-            } finally {
                 runner.finalize()
+                System.exit(0)
+            } catch (ex: Throwable) {
+                runner.finalize()
+                System.exit(1)
             }
         }
     }
