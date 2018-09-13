@@ -84,9 +84,6 @@ private fun JSONObject.loadPlugin(): Plugin {
     val pluginClassName = getField<String>("className")
     val directory = getField<JSONObject>("directory").loadFile()
     val pluginClass = Class.forName(pluginClassName)
-    println(pluginClassName)
-    println(pluginClass)
-    println(pluginClass.constructors.first())
     return pluginClass.constructors.first().newInstance(directory) as Plugin
 }
 
