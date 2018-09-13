@@ -5,7 +5,7 @@ import org.jetbrains.idea.inspections.*
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 buildscript {
-    extra["kotlinVersion"] = "1.1.4"
+    extra["kotlinVersion"] = "1.2.0"
     extra["kotlinArgParserVersion"] = "2.0.7"
     val kotlinVersion: String by extra
 
@@ -37,7 +37,7 @@ apply {
     plugin("com.jfrog.bintray")
 }
 
-val projectName = "inspection-plugin"
+val projectName = "inspection-cli"
 
 configure<Jar>("jar") {
     manifest {
