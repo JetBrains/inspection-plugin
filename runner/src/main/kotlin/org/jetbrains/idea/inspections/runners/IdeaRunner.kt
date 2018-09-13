@@ -179,6 +179,19 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
         throw RunnerException("${plugin.name} not loaded")
     }
 
+    private fun initializeIdeaPlugins(): Array<IdeaPluginDescriptor> {
+        val errors = arrayListOf<String>()
+        val descriptors = PluginManagerCore.loadDescriptors(null, errors)
+        errors.forEach { logger.error(it) }
+        if (errors.isNotEmpty()) throw RunnerException("Plugin descriptors loading error")
+        val plugins = descriptors.map { it.pluginId.idString }.toSet()
+        plugins.forEach { PluginManagerCore.enablePlugin(it) }
+        plugins.filter { it !in USEFUL_PLUGINS }.forEach { PluginManagerCore.disablePlugin(it) }
+        // Do not remove the call of PluginManagerCore.getPlugins(), it prevents NPE in IDEA
+        // NB: IdeaApplication.getStarter() from IJ community contains the same call
+        return PluginManagerCore.getPlugins()
+    }
+
     private fun loadApplication(ideaVersion: String, ideaHomeDirectory: File, ideaSystemDirectory: File, plugins: List<Plugin>): ApplicationEx {
         val ideaBuildNumberFile = File(ideaHomeDirectory, "build.txt")
         val (buildNumber, usesUltimate) = ideaBuildNumberFile.buildConfiguration
@@ -210,12 +223,10 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
         }
         logger.info("IDEA starting in command line mode")
         createCommandLineApplication(isInternal = false, isUnitTestMode = false, isHeadless = true)
-        USELESS_PLUGINS.forEach { PluginManagerCore.disablePlugin(it) }
-
-        // Do not remove the call of PluginManagerCore.getPlugins(), it prevents NPE in IDEA
-        // NB: IdeaApplication.getStarter() from IJ community contains the same call
-        val enabledPlugins = PluginManagerCore.getPlugins().toList()
+        val allPlugins = initializeIdeaPlugins()
         val disabledPlugins = PluginManagerCore.getDisabledPlugins()
+        val enabledPlugins = allPlugins.filter { it.pluginId.idString !in disabledPlugins }
+        logger.info("All plugins: ${allPlugins.map { it.name to it.pluginId }.toMap()}")
         logger.info("Enabled plugins: ${enabledPlugins.map { it.name to it.pluginId }.toMap()}")
         logger.info("Disabled plugins ${disabledPlugins.toList()}")
         plugins.forEach { checkCompatibility(it, enabledPlugins, buildNumber, ideaVersion) }
@@ -312,11 +323,16 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
                 //"9" to "JDK_9"
         )
 
-        // TODO: change to USEFUL_PLUGINS
-        private val USELESS_PLUGINS = listOf(
-                "mobi.hsz.idea.gitignore",
-                "org.jetbrains.plugins.github",
-                "Git4Idea"
+        private val USEFUL_PLUGINS = setOf(
+                "com.intellij", // IDEA CORE
+                "org.jetbrains.kotlin", // Kotlin
+                "org.intellij.intelliLang", // IntelliLang
+                "org.jetbrains.plugins.javaFX", // JavaFX
+                "org.jetbrains.plugins.gradle", // Gradle
+                "org.jetbrains.idea.maven", // Maven Integration
+                "com.intellij.properties", // Properties Support
+                "org.intellij.groovy", // Groovy
+                "JUnit" // JUnit
         )
 
         private const val KT_LIB = "kotlin-stdlib"
