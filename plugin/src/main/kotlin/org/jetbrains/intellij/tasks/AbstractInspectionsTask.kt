@@ -19,6 +19,7 @@ import org.jetbrains.intellij.parameters.InspectionsRunnerParameters
 import java.io.File
 import java.util.*
 import org.jetbrains.intellij.ProxyRunner
+import org.jetbrains.intellij.plugins.KotlinPlugin
 
 @Suppress("MemberVisibilityCanBePrivate")
 abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
@@ -201,6 +202,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
         val ideaDirectory = ideaDirectory(ideaVersion, isTempDirInHome)
         val ideaSystemDirectory = ideaSystemDirectory(ideaVersion)
         val kotlinPluginDirectory = extension.plugins.kotlin.kotlinPluginDirectory(ideaVersion, isTempDirInHome)
+        val plugins = listOf(KotlinPlugin(kotlinPluginDirectory))
         return IdeaRunnerParameters(
                 projectDir = project.rootProject.projectDir,
                 projectName = project.rootProject.name,
@@ -208,7 +210,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
                 ideaVersion = ideaVersion,
                 ideaHomeDirectory = ideaDirectory,
                 ideaSystemDirectory = ideaSystemDirectory,
-                kotlinPluginDirectory = kotlinPluginDirectory,
+                plugins = plugins,
                 childParameters = getFileInfoParameters()
         )
     }

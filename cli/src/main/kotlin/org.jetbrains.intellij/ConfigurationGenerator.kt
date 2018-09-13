@@ -5,12 +5,9 @@ import org.jdom2.Element
 import org.jdom2.input.SAXBuilder
 import java.io.File
 
-class ConfigurationGenerator() {
-    fun generate(runner: File, idea: File, kotlin: File, projectDir: File?, html: File?, xml: File?): Configuration {
+class ConfigurationGenerator {
+    fun generate(runner: File, idea: File, projectDir: File?, html: File?, xml: File?): Configuration {
         val workingDirectory = File(System.getProperty("user.dir"))
-        if (!kotlin.exists()) {
-            throw IllegalArgumentException("Kotlin plugin not found. Please check ${kotlin.absolutePath}")
-        }
         val projectDirectory = projectDir ?: workingDirectory
         val projectFile = projectDirectory.listFiles()?.find { it.extension == "ipr" }
                 ?: throw IllegalArgumentException("Project not found in directory: $projectDirectory")
@@ -19,7 +16,6 @@ class ConfigurationGenerator() {
         return Configuration(
                 runner,
                 idea,
-                kotlin,
                 project.name,
                 project.modules,
                 report

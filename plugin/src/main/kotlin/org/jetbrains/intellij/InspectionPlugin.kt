@@ -8,7 +8,6 @@ import org.jetbrains.intellij.configurations.*
 import org.jetbrains.intellij.extensions.InspectionPluginExtension
 import org.jetbrains.intellij.tasks.*
 import java.io.File
-import java.net.URLClassLoader
 
 open class InspectionPlugin : AbstractCodeQualityPlugin<AbstractInspectionsTask, InspectionPluginExtension>() {
 

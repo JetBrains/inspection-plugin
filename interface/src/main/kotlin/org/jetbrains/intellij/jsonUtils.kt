@@ -6,6 +6,7 @@ import org.json.simple.JSONArray
 import org.jetbrains.intellij.parameters.FileInfoRunnerParameters
 import org.jetbrains.intellij.parameters.IdeaRunnerParameters
 import org.jetbrains.intellij.parameters.InspectionsRunnerParameters
+import org.jetbrains.intellij.plugins.Plugin
 import java.io.File
 
 
@@ -75,7 +76,16 @@ private fun JSONObject.loadFileInfoRunnerParameters() = FileInfoRunnerParameters
         getField<JSONObject>("childParameters").loadInspectionsRunnerParameters()
 )
 
-private fun JSONArray.loadFiles() = map { it as JSONObject }.map { it.loadFile() }.toList()
+private fun JSONArray.loadFiles() = asSequence().map { it as JSONObject }.map { it.loadFile() }.toList()
+
+private fun JSONArray.loadPlugins() = asSequence().map { it as JSONObject }.map { it.loadPlugin() }.toList()
+
+private fun JSONObject.loadPlugin(): Plugin {
+    val pluginClassName = getField<String>("className")
+    val directory = getField<JSONObject>("directory").loadFile()
+    val pluginClass = Class.forName(pluginClassName)
+    return pluginClass.constructors.first().newInstance(directory) as Plugin
+}
 
 private fun JSONObject.loadIdeaRunnerParameters() = IdeaRunnerParameters(
         getField<JSONObject>("projectDir").loadFile(),
@@ -84,7 +94,7 @@ private fun JSONObject.loadIdeaRunnerParameters() = IdeaRunnerParameters(
         getField("ideaVersion"),
         getField<JSONObject>("ideaHomeDirectory").loadFile(),
         getField<JSONObject>("ideaSystemDirectory").loadFile(),
-        getField<JSONObject>("kotlinPluginDirectory").loadFile(),
+        getField<JSONArray>("plugins").loadPlugins(),
         getField<JSONObject>("childParameters").loadFileInfoRunnerParameters()
 )
 
@@ -98,6 +108,11 @@ private fun InspectionsRunnerParameters.toJsonObject(): JSONObject = JSONObject(
     put("errors", errors.toJsonObject())
     put("warnings", warnings.toJsonObject())
     put("info", info.toJsonObject())
+}
+
+private fun Plugin.toJsonObject(): JSONObject = JSONObject().apply {
+    put("className", this@toJsonObject.javaClass.canonicalName)
+    put("directory", directory.toJsonObject())
 }
 
 private fun File.toJsonObject(): JSONObject = JSONObject().apply {
@@ -130,10 +145,14 @@ private fun IdeaRunnerParameters<FileInfoRunnerParameters<InspectionsRunnerParam
     put("ideaVersion", ideaVersion)
     put("ideaHomeDirectory", ideaHomeDirectory.toJsonObject())
     put("ideaSystemDirectory", ideaSystemDirectory.toJsonObject())
-    put("kotlinPluginDirectory", kotlinPluginDirectory.toJsonObject())
+    put("plugins", plugins.toJsonObject())
     put("childParameters", childParameters.toJsonObject())
 }
 
+@JvmName("pluginsToJsonObject")
+private fun List<Plugin>.toJsonObject(): JSONArray = map { it.toJsonObject() }.toCollection(JSONArray())
+
+@JvmName("filesToJsonObject")
 private fun List<File>.toJsonObject(): JSONArray = map { it.toJsonObject() }.toCollection(JSONArray())
 
 private fun FileInfoRunnerParameters<InspectionsRunnerParameters>.toJsonObject(): JSONObject = JSONObject().apply {
