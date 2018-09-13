@@ -1,8 +1,8 @@
 import com.github.jengelman.gradle.plugins.shadow.ShadowExtension
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import com.jfrog.bintray.gradle.BintrayExtension
+import org.gradle.api.tasks.bundling.Jar
 import org.jetbrains.idea.inspections.*
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 buildscript {
     extra["kotlinVersion"] = "1.2.0"
@@ -57,7 +57,7 @@ configure<PublishingExtension> {
         }
     }
     publications {
-        create<MavenPublication>("Plugin") {
+        create<MavenPublication>("Cli") {
             configure<ShadowExtension> {
                 component(this@create)
             }
@@ -84,7 +84,7 @@ configure<BintrayExtension> {
         }
     }
 
-    setPublications("Plugin")
+    setPublications("Cli")
 }
 
 repositories {
@@ -94,7 +94,7 @@ repositories {
 }
 
 dependencies {
-    compile("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
+    compile("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
     compile("com.xenomachina:kotlin-argparser:$kotlinArgParserVersion")
     implementation("com.googlecode.json-simple:json-simple:1.1")
     compile("org.jdom:jdom2:2.0.6")

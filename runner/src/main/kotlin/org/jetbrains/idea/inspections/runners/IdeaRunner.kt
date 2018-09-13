@@ -314,7 +314,8 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
         private val USELESS_PLUGINS = listOf(
                 "mobi.hsz.idea.gitignore",
                 "org.jetbrains.plugins.github",
-                "Git4Idea"
+                "Git4Idea",
+                "org.jetbrains.android"
         )
 
         private const val KT_LIB = "kotlin-stdlib"
