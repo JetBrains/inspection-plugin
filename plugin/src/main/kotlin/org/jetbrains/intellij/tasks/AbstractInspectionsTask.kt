@@ -300,6 +300,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
         }
 
     object Runner {
+        @JvmStatic
         private var proxyRunner: ProxyRunner? = null
 
         fun getOrInit(get: () -> ProxyRunner): ProxyRunner {
