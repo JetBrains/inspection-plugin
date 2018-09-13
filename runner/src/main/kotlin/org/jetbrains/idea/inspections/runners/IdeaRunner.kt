@@ -25,7 +25,7 @@ import com.intellij.util.PlatformUtils
 import org.jetbrains.idea.inspections.control.DisableSystemExit
 import org.jetbrains.intellij.ProxyLogger
 import org.jetbrains.intellij.parameters.IdeaRunnerParameters
-import org.jetbrains.idea.inspections.Plugin
+import org.jetbrains.intellij.plugins.Plugin
 import java.io.File
 import java.io.IOException
 import java.nio.channels.FileChannel
@@ -127,19 +127,10 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
             }
         }
 
-    inner class KotlinPlugin(directory: File) : Plugin("Kotlin", directory) {
-        override fun isIncompatible(plugin: PluginDescriptor, idea: IdeaDescriptor): Boolean {
-            if ("IJ" in plugin.version) return false
-            logger.error("InspectionPlugin: Unsupported non idea kotlin plugins: ${plugin.version}")
-            return true
-        }
-    }
-
     override fun run(parameters: IdeaRunnerParameters<T>): Boolean {
         logger.info("Class loader: " + this.javaClass.classLoader)
         try {
             with(parameters) {
-                val plugins = listOf(KotlinPlugin(kotlinPluginDirectory))
                 application = loadApplication(ideaVersion, ideaHomeDirectory, ideaSystemDirectory, plugins)
                 @Suppress("DEPRECATION")
                 application?.doNotSave()
@@ -181,7 +172,9 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
         if (PluginManagerCore.isIncompatible(descriptor)) throw RunnerException("${plugin.name} not loaded")
         val pluginDescriptor = Plugin.PluginDescriptor(descriptor.version, descriptor.sinceBuild, descriptor.untilBuild)
         val ideaDescriptor = Plugin.IdeaDescriptor(ideaVersion, buildNumber)
-        if (plugin.isIncompatible(pluginDescriptor, ideaDescriptor)) throw RunnerException("${plugin.name} not loaded")
+        val reason = plugin.checkCompatibility(pluginDescriptor, ideaDescriptor) ?: return
+        logger.info(reason)
+        throw RunnerException("${plugin.name} not loaded")
     }
 
     private fun loadApplication(ideaVersion: String, ideaHomeDirectory: File, ideaSystemDirectory: File, plugins: List<Plugin>): ApplicationEx {

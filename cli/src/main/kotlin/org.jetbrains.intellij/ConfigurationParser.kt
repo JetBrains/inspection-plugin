@@ -13,15 +13,13 @@ class ConfigurationParser {
         val configuration = parser.parse(file.readText()) as JSONObject
         val runner = configuration.getField<String>("runner").loadFile("Runner jar")
         val idea = configuration.getField<String>("idea").loadDir("Idea home")
-        val kotlin = configuration.getField<String?>("kotlin")?.loadDir("Kotlin plugin")
-                ?: File(idea, "plugins/Kotlin")
         val modules = configuration.getField<JSONArray>("modules").loadModules()
         val projectName = configuration.getField<String>("projectName")
         if (modules.find { it.name == projectName } == null) {
             throw IllegalArgumentException("Project module not found")
         }
         val report = configuration.getField<JSONObject?>("report")?.loadReport() ?: Report(false, null, null)
-        return Configuration(runner, idea, kotlin, projectName, modules, report)
+        return Configuration(runner, idea, projectName, modules, report)
     }
 
     private inline fun <reified T> JSONObject.getField(field: String): T = get(field) as T

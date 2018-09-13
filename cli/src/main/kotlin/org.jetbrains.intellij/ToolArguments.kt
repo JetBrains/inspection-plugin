@@ -45,16 +45,6 @@ class ToolArguments(parser: ArgParser) {
                 }
             }
 
-    val kotlin by parser.storing("--kotlin",
-            help = "Kotlin plugin home directory") { File(this) }
-            .default { null }
-            .addValidator {
-                if (value?.isDirectory == false) {
-                    val message = "Invalid kotlin plugin home directory: $value"
-                    throw IllegalArgumentException(message)
-                }
-            }
-
     val project by parser.storing("--project",
             help = "Project directory to analyze") { File(this) }
             .default { null }

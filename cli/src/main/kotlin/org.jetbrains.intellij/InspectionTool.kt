@@ -56,7 +56,7 @@ object InspectionTool {
             ideaVersion = ideaVersion,
             ideaHomeDirectory = idea,
             ideaSystemDirectory = IDEA_SYSTEM_DIRECTORY,
-            kotlinPluginDirectory = kotlin,
+            plugins = emptyList(),
             childParameters = FileInfoRunnerParameters(
                     files = module.sources,
                     childParameters = InspectionsRunnerParameters(
@@ -80,7 +80,7 @@ object InspectionTool {
             ideaVersion = ideaVersion,
             ideaHomeDirectory = idea,
             ideaSystemDirectory = IDEA_SYSTEM_DIRECTORY,
-            kotlinPluginDirectory = kotlin,
+            plugins = emptyList(),
             childParameters = FileInfoRunnerParameters(
                     files = module.sources,
                     childParameters = InspectionsRunnerParameters(
@@ -104,7 +104,7 @@ object InspectionTool {
             ideaVersion = ideaVersion,
             ideaHomeDirectory = idea,
             ideaSystemDirectory = IDEA_SYSTEM_DIRECTORY,
-            kotlinPluginDirectory = kotlin,
+            plugins = emptyList(),
             childParameters = FileInfoRunnerParameters(
                     files = module.sources,
                     childParameters = InspectionsRunnerParameters(
@@ -162,8 +162,7 @@ object InspectionTool {
     private fun ToolArguments.generateConfiguration(): Configuration {
         if (runner == null) throw IllegalArgumentException("Runner jar must be defined")
         if (idea == null) throw IllegalArgumentException("Idea home directory must be defined")
-        if (kotlin == null) throw IllegalArgumentException("Kotlin plugin home directory must be defined")
-        return ConfigurationGenerator().generate(runner!!, idea!!, kotlin!!, project, html, xml)
+        return ConfigurationGenerator().generate(runner!!, idea!!, project, html, xml)
     }
 
     private fun ToolArguments.toArguments(): Arguments {
