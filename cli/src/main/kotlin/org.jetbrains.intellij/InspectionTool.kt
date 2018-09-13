@@ -46,6 +46,9 @@ object InspectionTool {
     private val Configuration.projectDir: File
         get() = modules.first { it.name == projectName }.directory
 
+    private val Module.sources: List<File>
+        get() = sourceSets.asSequence().map { it.walk().asSequence() }.flatten().filter { it.isFile }.toList()
+
     private fun Configuration.checkInspectionParameters(module: Module) = IdeaRunnerParameters(
             projectDir = projectDir,
             projectName = projectName,
@@ -55,7 +58,7 @@ object InspectionTool {
             ideaSystemDirectory = IDEA_SYSTEM_DIRECTORY,
             kotlinPluginDirectory = kotlin,
             childParameters = FileInfoRunnerParameters(
-                    files = module.sourceSets.map { it.walk().toList() }.flatten(),
+                    files = module.sources,
                     childParameters = InspectionsRunnerParameters(
                             ideaVersion = ideaVersion,
                             kotlinPluginVersion = null,
@@ -79,7 +82,7 @@ object InspectionTool {
             ideaSystemDirectory = IDEA_SYSTEM_DIRECTORY,
             kotlinPluginDirectory = kotlin,
             childParameters = FileInfoRunnerParameters(
-                    files = module.sourceSets.map { it.walk().toList() }.flatten(),
+                    files = module.sources,
                     childParameters = InspectionsRunnerParameters(
                             ideaVersion = ideaVersion,
                             kotlinPluginVersion = null,
@@ -103,7 +106,7 @@ object InspectionTool {
             ideaSystemDirectory = IDEA_SYSTEM_DIRECTORY,
             kotlinPluginDirectory = kotlin,
             childParameters = FileInfoRunnerParameters(
-                    files = module.sourceSets.map { it.walk().toList() }.flatten(),
+                    files = module.sources,
                     childParameters = InspectionsRunnerParameters(
                             ideaVersion = ideaVersion,
                             kotlinPluginVersion = null,
