@@ -233,7 +233,9 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
             // Wait IDEA shutdown
             application?.invokeAndWait { }
         }
+        logger.info("IDEA shutdown")
         SystemPathManager.freeSystemDirectory()
+        logger.info("System lock free")
     }
 
     object SystemPathManager {
