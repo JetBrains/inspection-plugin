@@ -14,16 +14,36 @@ class ProxyRunner(jar: File, ideaHomeDirectory: File, private val logger: Logger
     constructor(jar: File, ideaHomeDirectory: File, logger: (LoggerLevel, String) -> Unit) : this(jar, ideaHomeDirectory, Logger(null, logger))
 
     private fun waitOutcome(): RunnerOutcome {
-        while (true) {
-            val (type, data) = connection.read()
-            when (type) {
-                Connection.Type.SlaveOut.ERROR -> logger.error(data)
-                Connection.Type.SlaveOut.WARNING -> logger.warn(data)
-                Connection.Type.SlaveOut.INFO -> logger.info(data)
-                Connection.Type.SlaveOut.VALUE -> return data.loadOutcome()
-                null -> println(data)
-            }
+        var outcome: RunnerOutcome? = null
+        while (outcome == null) {
+            outcome = readOutcome()
         }
+        return outcome
+    }
+
+    private fun waitOutcome(timeout: Long): RunnerOutcome? {
+        val startTime = System.currentTimeMillis()
+        while (System.currentTimeMillis() - startTime < timeout) {
+            if (!connection.ready()) {
+                Thread.yield()
+                continue
+            }
+            val outcome = readOutcome()
+            if (outcome != null) return outcome
+        }
+        return null
+    }
+
+    private fun readOutcome(): RunnerOutcome? {
+        val (type, data) = connection.read()
+        when (type) {
+            Connection.Type.SlaveOut.ERROR -> logger.error(data)
+            Connection.Type.SlaveOut.WARNING -> logger.warn(data)
+            Connection.Type.SlaveOut.INFO -> logger.info(data)
+            Connection.Type.SlaveOut.VALUE -> return data.loadOutcome()
+            null -> println(data)
+        }
+        return null
     }
 
     fun run(parameters: IdeaRunnerParameters<FileInfoRunnerParameters<InspectionsRunnerParameters>>): RunnerOutcome {
@@ -32,15 +52,14 @@ class ProxyRunner(jar: File, ideaHomeDirectory: File, private val logger: Logger
         return waitOutcome()
     }
 
-    fun finalize(): RunnerOutcome {
+    fun finalize() {
         connection.write(Connection.Type.MasterOut.COMMAND, Command.FINALIZE.toString())
-        val outcome = waitOutcome()
-        val hasFinish = process.waitFor(TIMEOUT, TimeUnit.MILLISECONDS)
-        if (!hasFinish) {
-            logger.error("Runner")
-            process.destroy()
+        val outcome by lazy { waitOutcome(TIMEOUT) }
+        val exited by lazy { process.waitFor(TIMEOUT, TimeUnit.MILLISECONDS) }
+        if (outcome == null || !exited) {
+            logger.error("Process finalization timeout")
+            process.destroyForcibly()
         }
-        return outcome
     }
 
     companion object {

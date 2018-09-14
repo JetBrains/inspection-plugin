@@ -58,8 +58,7 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
             for (module in modules) {
                 if (module.name != moduleName) continue
                 val moduleRootManager = ModuleRootManager.getInstance(module)
-                val dependencyEnumerator =
-                        moduleRootManager.orderEntries().compileOnly().recursively().exportedOnly()
+                val dependencyEnumerator = moduleRootManager.orderEntries().compileOnly().recursively().exportedOnly()
                 var dependsOnKotlinCommon = false
                 var dependsOnKotlinJS = false
                 var dependsOnKotlinJVM = false
@@ -235,7 +234,9 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
             // Wait IDEA shutdown
             application?.invokeAndWait { }
         }
+        logger.info("IDEA shutdown")
         SystemPathManager.freeSystemDirectory()
+        logger.info("System lock free")
     }
 
     object SystemPathManager {
