@@ -264,6 +264,7 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
             for (code in 1..256) {
                 val file = File(ideaSystemDirectory, "${buildPrefix}_code$code/system")
                 if (!file.exists()) file.mkdirs()
+                if (!file.canWrite()) continue
                 val systemMarkerFile = File(file, SYSTEM_MARKER_FILE)
                 // To prevent usages by multiple processes
                 when (acquireSystemLock(systemMarkerFile)) {
@@ -276,8 +277,6 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
         }
 
         private fun acquireSystemLock(systemLockFile: File): LockStatus {
-            val lockDirectory: File? = systemLockFile.parentFile
-            if (lockDirectory != null && !lockDirectory.exists()) lockDirectory.mkdirs()
             if (!systemLockFile.exists()) systemLockFile.createNewFile()
             val channel = FileChannel.open(systemLockFile.toPath(), StandardOpenOption.WRITE)
             return try {
