@@ -22,7 +22,6 @@ import com.intellij.openapi.roots.OrderRootType
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.util.PlatformUtils
-import org.jetbrains.idea.inspections.control.DisableSystemExit
 import org.jetbrains.intellij.ProxyLogger
 import org.jetbrains.intellij.parameters.IdeaRunnerParameters
 import org.jetbrains.intellij.plugins.Plugin
@@ -224,14 +223,9 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
     override fun finalize() {
         logger.info("IDEA shutting down")
         val application = application
-        DisableSystemExit().use {
-            when (application) {
-                is ApplicationImpl -> application.exit(true, true, false)
-                else -> application?.exit(true, true)
-            }
-            // Wait IDEA shutdown
-            application?.isActive
-            application?.invokeAndWait { }
+        when (application) {
+            is ApplicationImpl -> application.exit(false, true, false)
+            else -> application?.exit(false, true)
         }
         logger.info("IDEA shutdown")
         SystemPathManager.freeSystemDirectory()
