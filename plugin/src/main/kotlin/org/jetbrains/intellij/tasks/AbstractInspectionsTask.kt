@@ -273,6 +273,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
                         LoggerLevel.ERROR -> logger.error("InspectionPlugin: $message")
                         LoggerLevel.WARNING -> logger.warn("InspectionPlugin: $message")
                         LoggerLevel.INFO -> logger.info("InspectionPlugin: $message")
+                        LoggerLevel.DEBUG -> logger.debug("InspectionPlugin: $message")
                     }
                 }
             }

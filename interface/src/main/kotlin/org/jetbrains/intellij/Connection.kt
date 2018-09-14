@@ -16,6 +16,8 @@ sealed class Connection<R : Connection.Type, W : Connection.Type>(
 
     abstract fun getReadType(type: String): R
 
+    fun ready(): Boolean = reader.ready()
+
     fun read(type: R): String {
         val (actualType, data) = read()
         require(actualType == type) { "Expected: $type but was: $actualType" }

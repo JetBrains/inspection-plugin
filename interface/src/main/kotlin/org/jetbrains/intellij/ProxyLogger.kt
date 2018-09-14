@@ -19,6 +19,6 @@ open class ProxyLogger(private val connection: Connection.Slave) {
     fun exception(exception: Throwable) {
         val writer = StringWriter()
         exception.printStackTrace(PrintWriter(writer))
-        connection.write(Connection.Type.SlaveOut.ERROR, writer.toString())
+        error(writer.toString())
     }
 }
