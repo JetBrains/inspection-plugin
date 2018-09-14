@@ -25,7 +25,7 @@ class InspectionTestGenerated {
     fun testConfigurationIdea_IJ2017_2() {
         val extension = InspectionPluginExtension(null)
         extension.idea.version = "ideaIC:2017.2"
-        extension.warning("org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection")
+        extension.warning("RedundantVisibilityModifier")
         testBench.doTest(File("testData/inspection/configurationIdea_IJ2017_2"), extension)
     }
 
@@ -57,7 +57,7 @@ class InspectionTestGenerated {
     fun testConfigurationIdea_IU2017_3() {
         val extension = InspectionPluginExtension(null)
         extension.idea.version = "ideaIU:2017.3"
-        extension.warning("org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection")
+        extension.warning("RedundantVisibilityModifier")
         testBench.doTest(File("testData/inspection/configurationIdea_IU2017_3"), extension)
     }
 
@@ -100,7 +100,7 @@ class InspectionTestGenerated {
     @Test
     fun testConvertToStringTemplate() {
         val extension = InspectionPluginExtension(null)
-        extension.warning("org.jetbrains.kotlin.idea.intentions.ConvertToStringTemplateInspection")
+        extension.warning("ConvertToStringTemplate")
         testBench.doTest(File("testData/inspection/convertToStringTemplate"), extension)
     }
 
@@ -133,7 +133,7 @@ class InspectionTestGenerated {
     @Test
     fun testJavaInspections() {
         val extension = InspectionPluginExtension(null)
-        extension.warning("org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection")
+        extension.warning("ClassHasNoToStringMethod")
         testBench.doTest(File("testData/inspection/javaInspections"), extension)
     }
 
@@ -172,8 +172,8 @@ class InspectionTestGenerated {
     @Test
     fun testRedundantVisibility() {
         val extension = InspectionPluginExtension(null)
-        extension.warning("org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection")
-        extension.warning("org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection").quickFix = true
+        extension.warning("RedundantVisibilityModifier")
+        extension.warning("RedundantVisibilityModifier").quickFix = true
         testBench.doTest(File("testData/inspection/redundantVisibility"), extension)
     }
 
@@ -205,7 +205,7 @@ class InspectionTestGenerated {
     fun testUnusedSymbolByIdeaProfile() {
         val extension = InspectionPluginExtension(null)
         extension.inheritFromIdea = true
-        extension.error("org.jetbrains.kotlin.idea.inspections.UnusedSymbolInspection")
+        extension.error("UnusedSymbol")
         extension.errors.max = 2
         testBench.doTest(File("testData/inspection/unusedSymbolByIdeaProfile"), extension)
     }
@@ -221,7 +221,7 @@ class InspectionTestGenerated {
     fun testUnusedSymbolIdeaError() {
         val extension = InspectionPluginExtension(null)
         extension.inheritFromIdea = true
-        extension.error("org.jetbrains.kotlin.idea.inspections.UnusedSymbolInspection")
+        extension.error("UnusedSymbol")
         testBench.doTest(File("testData/inspection/unusedSymbolIdeaError"), extension)
     }
 

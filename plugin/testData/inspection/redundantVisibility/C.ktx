@@ -1,4 +1,4 @@
-// warning: org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection
+// warning: RedundantVisibilityModifier
 // quickFix = true
 
 class C {

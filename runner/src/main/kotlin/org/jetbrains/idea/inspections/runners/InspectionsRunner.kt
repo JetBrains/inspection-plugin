@@ -30,6 +30,7 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
             val tool: T,
             val extension: InspectionEP?,
             val classFqName: String,
+            val name: String,
             val language: String?,
             val level: ProblemLevel?
     ) {
@@ -76,7 +77,7 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
             val tool = it.tool
             val classFqName = tool.tool.javaClass.name
             val level = ProblemLevel.fromInspectionEPLevel(it.defaultState.level.name)
-            PluginInspectionWrapper(tool.tool, tool.extension, classFqName, tool.language, level)
+            PluginInspectionWrapper(tool.tool, tool.extension, classFqName, tool.displayName, tool.language, level)
         }
     }
 
@@ -92,11 +93,15 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
         logger.info("Info inspections: " + parameters.info.inspections.map { it.key })
         val tools = InspectionToolRegistrar.getInstance().createTools()
         return parameters.inspectionsWithLevel().map { entry ->
-            val inspectionClassName = entry.key
+            val name = entry.key
+            val longInspectionClassName = name + "Inspection"
             val level = entry.value
-            tools.find { it.tool.javaClass.name == inspectionClassName }
-                    ?.let { PluginInspectionWrapper(it.tool, it.extension, inspectionClassName, it.language, level) }
-                    ?: throw IllegalArgumentException("$inspectionClassName is not found in registrar")
+            tools.find {
+                it.tool.javaClass.name == name
+                        || it.tool.javaClass.name.split(".").last() == longInspectionClassName
+                        || it.tool.displayName == name
+            }?.let { PluginInspectionWrapper(it.tool, it.extension, it.tool.javaClass.name, name, it.language, level) }
+                    ?: throw IllegalArgumentException("'$name' is not found in registrar")
         }
     }
 
@@ -117,25 +122,25 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
             project: Project,
             parameters: InspectionsRunnerParameters,
             checker: InspectionChecker
-    ): Map<String, List<PinnedProblemDescriptor>> {
-        val results = HashMap<String, List<PinnedProblemDescriptor>>()
+    ): Map<String, InspectionResult<*>> {
+        val results = HashMap<String, InspectionResult<*>>()
         logger.info("Before inspections launched: total of ${files.size} files to analyze")
         val inspectionWrappers = getInspectionWrappers(parameters, project)
         logger.info("Inspections: " + inspectionWrappers.map { it.classFqName to it.level }.toMap())
         for (inspectionWrapper in inspectionWrappers) {
-            val inspectionName = inspectionWrapper.classFqName
+            val inspectionClass = inspectionWrapper.classFqName
             val inspectionTool = inspectionWrapper.tool
             when (inspectionTool) {
                 is LocalInspectionTool -> {
                     @Suppress("UNCHECKED_CAST")
                     inspectionWrapper as PluginInspectionWrapper<LocalInspectionTool>
-                    results[inspectionName] = inspectionWrapper.apply(files, parameters, checker)
+                    results[inspectionClass] = inspectionWrapper.apply(files, parameters, checker)
                 }
                 is GlobalInspectionTool -> {
-                    logger.warn("Global inspection tools like $inspectionName are not yet supported")
+                    logger.warn("Global inspection tools like $inspectionClass are not yet supported")
                 }
                 else -> {
-                    logger.error("Unexpected $inspectionName which is neither local nor global")
+                    logger.error("Unexpected $inspectionClass which is neither local nor global")
                 }
             }
             if (checker.isFail) break
@@ -173,11 +178,16 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
         private fun InspectionsRunnerParameters.Inspections.isTooMany(value: Int) = max?.let { value > it } ?: false
     }
 
+    data class InspectionResult<out T : InspectionProfileEntry>(
+            val wrapper: PluginInspectionWrapper<T>,
+            val problems: List<PinnedProblemDescriptor>
+    )
+
     private fun PluginInspectionWrapper<LocalInspectionTool>.apply(
             files: Collection<FileInfo>,
             parameters: InspectionsRunnerParameters,
             checker: InspectionChecker
-    ): List<PinnedProblemDescriptor> {
+    ): InspectionResult<LocalInspectionTool> {
         val displayName = extension?.displayName ?: "<Unknown diagnostic>"
         val inspectionResults = mutableListOf<PinnedProblemDescriptor>()
         runReadAction {
@@ -186,7 +196,7 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
                     for ((psiFile, document) in files) {
                         if (!inspectionEnabledForFile(psiFile)) continue
                         val fileName = psiFile.name
-                        logger.info("($level) Inspection '$classFqName' analyzing started for $fileName")
+                        logger.info("($level) Inspection '$displayName' analyzing started for $fileName")
                         val problems = tool.analyze(psiFile, document, displayName, level)
                         inspectionResults += problems
                         for (problem in problems) {
@@ -205,18 +215,18 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
             }
             ProgressManager.getInstance().runProcess(task, EmptyProgressIndicator())
         }
-        return inspectionResults
+        return InspectionResult(this, inspectionResults)
     }
 
-    private fun reportProblems(parameters: InspectionsRunnerParameters, results: Map<String, List<PinnedProblemDescriptor>>) {
-        val numProblems = results.values.flatten().count()
+    private fun reportProblems(parameters: InspectionsRunnerParameters, results: Map<String, InspectionResult<*>>) {
+        val numProblems = results.values.map { it.problems }.flatten().count()
         logger.info("Total of $numProblems problem(s) found")
         val generators = listOfNotNull(
                 parameters.reportParameters.xml?.let { XMLGenerator(it) },
                 parameters.reportParameters.html?.let { HTMLGenerator(it) }
         )
         val sortedResults = results.entries
-                .map { entry -> entry.value.map { entry.key to it } }
+                .map { entry -> entry.value.problems.map { entry.key to it } }
                 .flatten()
                 .asSequence()
                 .sortedBy { (it.second.line shl 16) + it.second.row }
@@ -235,16 +245,16 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
     private fun quickFixProblems(
             project: Project,
             parameters: InspectionsRunnerParameters,
-            results: Map<String, List<PinnedProblemDescriptor>>
+            results: Map<String, InspectionResult<*>>
     ) {
         if (!parameters.isAvailableCodeChanging) return
         val writeFixes = ArrayList<Pair<PinnedProblemDescriptor, QuickFix<CommonProblemDescriptor>>>()
         val otherFixes = ArrayList<Pair<PinnedProblemDescriptor, QuickFix<CommonProblemDescriptor>>>()
         @Suppress("UNUSED_VARIABLE")
         for ((inspectionClassName, result) in results) {
-            val quickFix = parameters.inspections[inspectionClassName]?.quickFix
+            val quickFix = parameters.inspections[result.wrapper.name]?.quickFix
             if (quickFix != true) continue
-            for (problem in result) {
+            for (problem in result.problems) {
                 val fixes = problem.fixes ?: continue
                 if (fixes.size != 1) {
                     logger.error("Can not apply problem fixes for '${problem.renderWithLocation()}'")

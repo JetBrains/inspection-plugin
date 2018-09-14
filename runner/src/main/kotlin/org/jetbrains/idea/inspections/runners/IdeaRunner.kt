@@ -230,6 +230,7 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
                 else -> application?.exit(true, true)
             }
             // Wait IDEA shutdown
+            application?.isActive
             application?.invokeAndWait { }
         }
         logger.info("IDEA shutdown")

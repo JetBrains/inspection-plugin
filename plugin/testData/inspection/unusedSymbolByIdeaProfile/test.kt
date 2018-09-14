@@ -1,6 +1,6 @@
 // inheritFromIdea = true
 // maxErrors = 2
-// error: org.jetbrains.kotlin.idea.inspections.UnusedSymbolInspection
+// error: UnusedSymbol
 
 class My
 
