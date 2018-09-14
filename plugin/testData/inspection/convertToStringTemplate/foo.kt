@@ -1,4 +1,4 @@
-// warning: org.jetbrains.kotlin.idea.intentions.ConvertToStringTemplateInspection
+// warning: ConvertToStringTemplate
 
 fun foo(arg: Int) = "(" + arg + ")"
 

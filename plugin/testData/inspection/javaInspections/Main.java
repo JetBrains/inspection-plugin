@@ -1,4 +1,4 @@
-// warning: org.jetbrains.java.generate.inspection.ClassHasNoToStringMethodInspection
+// warning: ClassHasNoToStringMethod
 
 public class Main {
     private int x = 42;

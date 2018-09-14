@@ -37,9 +37,5 @@ open class ReformatTask : AbstractInspectionsTask() {
 
     @get:Internal
     private val reformatInspectionToolParameters: InspectionsRunnerParameters.Inspection
-        get() = InspectionsRunnerParameters.Inspection(REFORMAT_INSPECTION_TOOL, reformatQuickFix)
-
-    companion object {
-        const val REFORMAT_INSPECTION_TOOL = "org.jetbrains.kotlin.idea.inspections.ReformatInspection"
-    }
+        get() = InspectionsRunnerParameters.Inspection("Reformat", reformatQuickFix)
 }

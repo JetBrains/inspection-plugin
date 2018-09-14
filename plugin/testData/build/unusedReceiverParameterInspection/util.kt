@@ -1,4 +1,4 @@
-// warning: org.jetbrains.kotlin.idea.inspections.UnusedReceiverParameterInspection
+// warning: UnusedReceiverParameter
 // quickFix = True
 
 fun Int.foo() = 10

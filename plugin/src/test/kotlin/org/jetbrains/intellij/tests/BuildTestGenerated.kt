@@ -10,8 +10,8 @@ class BuildTestGenerated {
     @Test
     fun testRedundantVisibility() {
         val extension = InspectionPluginExtension(null)
-        extension.warning("org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection")
-        extension.warning("org.jetbrains.kotlin.idea.inspections.RedundantVisibilityModifierInspection").quickFix = true
+        extension.warning("Redundant visibility modifier")
+        extension.warning("Redundant visibility modifier").quickFix = true
         testBench.doTest(File("testData/build/redundantVisibility"), extension)
     }
 
@@ -26,8 +26,8 @@ class BuildTestGenerated {
     @Test
     fun testUnusedReceiverParameterInspection() {
         val extension = InspectionPluginExtension(null)
-        extension.warning("org.jetbrains.kotlin.idea.inspections.UnusedReceiverParameterInspection")
-        extension.warning("org.jetbrains.kotlin.idea.inspections.UnusedReceiverParameterInspection").quickFix = true
+        extension.warning("UnusedReceiverParameter")
+        extension.warning("UnusedReceiverParameter").quickFix = true
         testBench.doTest(File("testData/build/unusedReceiverParameterInspection"), extension)
     }
 }
