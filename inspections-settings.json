@@ -1,0 +1,26 @@
+{
+  "runner": "~/.m2/repository/org/jetbrains/intellij/plugins/inspection-runner/0.3.0-SNAPSHOT/inspection-runner-0.3.0-SNAPSHOT.jar",
+  "idea": "~/Documents/projects/inspection-plugin/runner/build/ideaIC_2018_2",
+  "inheritFromIdea": false,
+  "profileName": null,
+  "errors": {
+    "max": null
+  },
+  "warnings": {
+    "UnusedSymbol": {
+      "quickFix": false
+    },
+    "max": null
+  },
+  "info": {
+    "max": null
+  },
+  "reformat": {
+    "quickFix": false
+  },
+  "report": {
+    "quiet": false,
+    "html": "build/report.html",
+    "xml": "build/report.html"
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "projectName": "inspections",
+  "modules": [
+    {
+      "name": "inspections",
+      "directory": "."
+    },
+    {
+      "name": "sample",
+      "directory": "sample",
+      "sourceSets": [
+        "sample/src/main/kotlin",
+        "sample/src/main/java"
+      ]
+    },
+    {
+      "name": "cli",
+      "directory": "cli",
+      "sourceSets": [
+        "cli/src/main/kotlin"
+      ]
+    },
+    {
+      "name": "plugin",
+      "directory": "plugin",
+      "sourceSets": [
+        "plugin/src/main/kotlin",
+        "plugin/src/main/java",
+        "plugin/src/test/kotlin"
+      ]
+    },
+    {
+      "name": "frontend",
+      "directory": "frontend",
+      "sourceSets": [
+        "frontend/src/main/kotlin"
+      ]
+    },
+    {
+      "name": "interface",
+      "directory": "interface",
+      "sourceSets": [
+        "interface/src/main/kotlin"
+      ]
+    },
+    {
+      "name": "runner",
+      "directory": "runner",
+      "sourceSets": [
+        "runner/src/main/kotlin"
+      ]
+    }
+  ]
+}

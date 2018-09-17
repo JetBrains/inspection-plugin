@@ -5,28 +5,21 @@ import org.jdom2.Element
 import org.jdom2.input.SAXBuilder
 import java.io.File
 
-class ConfigurationGenerator {
-    fun generate(runner: File, idea: File, projectDir: File?, html: File?, xml: File?): Configuration {
+class StructureGenerator {
+    fun generate(projectDir: File?): Structure {
         val workingDirectory = File(System.getProperty("user.dir"))
         val projectDirectory = projectDir ?: workingDirectory
         val projectFile = projectDirectory.listFiles()?.find { it.extension == "ipr" }
                 ?: throw IllegalArgumentException("Project not found in directory: $projectDirectory")
         val project = loadProject(projectFile)
-        val report = Report(false, html, xml)
-        return Configuration(
-                runner,
-                idea,
-                project.name,
-                project.modules,
-                report
-        )
+        return Structure(project.name, project.modules)
     }
 
     private operator fun List<Attribute>.get(name: String) = first { it.name == name }.value!!
 
     private operator fun List<Element>.get(name: String) = filter { it.name == name }
 
-    private fun loadModule(moduleFile: File): Module {
+    private fun loadModule(moduleFile: File): Structure.Module {
         val sourceSets = SAXBuilder().build(moduleFile).rootElement
                 .children["component"].first { it.attributes["name"] == "NewModuleRootManager" }
                 .children["content"].first()
@@ -35,7 +28,7 @@ class ConfigurationGenerator {
                 .map { it.removePrefix("file://${'$'}MODULE_DIR$/") }
                 .map { File(moduleFile.parentFile, it) }
                 .toSet()
-        return Module(moduleFile.nameWithoutExtension, moduleFile.parentFile, sourceSets)
+        return Structure.Module(moduleFile.nameWithoutExtension, moduleFile.parentFile, sourceSets)
     }
 
     private fun loadProject(projectFile: File): Project {
@@ -51,5 +44,5 @@ class ConfigurationGenerator {
         return Project(projectFile.nameWithoutExtension, projectFile.parentFile, modules)
     }
 
-    data class Project(val name: String, val directory: File, val modules: List<Module>)
+    data class Project(val name: String, val directory: File, val modules: List<Structure.Module>)
 }
