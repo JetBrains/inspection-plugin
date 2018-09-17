@@ -12,9 +12,7 @@ data class ToolArguments(
         val config: File?,
         val runner: File?,
         val idea: File?,
-        val project: File?,
-        val html: String?,
-        val xml: String?
+        val project: File?
 ) {
     fun toCommandLineArguments() = tasks!! + listOfNotNull(
             when (level) {
@@ -27,8 +25,6 @@ data class ToolArguments(
             config?.let { "--config=${it.absolutePath}" },
             runner?.let { "--runner=${it.absolutePath}" },
             idea?.let { "--idea=${it.absolutePath}" },
-            project?.let { "--project=${it.absolutePath}" },
-            html?.let { "--html=$it" },
-            xml?.let { "--xml=$it" }
+            project?.let { "--project=${it.absolutePath}" }
     )
 }

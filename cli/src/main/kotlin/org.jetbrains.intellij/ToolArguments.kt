@@ -17,12 +17,21 @@ class ToolArguments(parser: ArgParser) {
             help = "Writable logging level")
             .default { LoggerLevel.WARNING }
 
-    val config: File? by parser.storing("--config",
-            help = "Configuration file") { File(this) }
+    val structure: File? by parser.storing("--structure",
+            help = "Structure file") { File(this) }
             .default { null }
             .addValidator {
                 if (value?.isFile == false) {
-                    throw IllegalArgumentException("Invalid configuration file: $value")
+                    throw IllegalArgumentException("Invalid structure file: $value")
+                }
+            }
+
+    val settings: File? by parser.storing("--settings",
+            help = "Settings file") { File(this) }
+            .default { null }
+            .addValidator {
+                if (value?.isFile == false) {
+                    throw IllegalArgumentException("Invalid settings file: $value")
                 }
             }
 
@@ -55,12 +64,4 @@ class ToolArguments(parser: ArgParser) {
                     throw IllegalArgumentException(message)
                 }
             }
-
-    val html by parser.storing("--html",
-            help = "Html report directory") { File(this) }
-            .default { null }
-
-    val xml by parser.storing("--xml",
-            help = "Xml report directory") { File(this) }
-            .default { null }
 }

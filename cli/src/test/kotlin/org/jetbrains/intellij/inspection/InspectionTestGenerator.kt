@@ -16,8 +16,6 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
         var runner: File? = null
         var idea: File? = null
         var project: File? = null
-        var html: File? = null
-        var xml: File? = null
 
         fun toString(base: File): String {
             return /*language=kotlin*/"""
@@ -30,9 +28,7 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
                     config = ${config?.kotlinCode(base)},
                     runner = ${runner?.kotlinCode(base)},
                     idea = ${idea?.kotlinCode(base)},
-                    project = ${project?.kotlinCode(base)},
-                    html = ${html?.path?.kotlinCode},
-                    xml = ${xml?.path?.kotlinCode}
+                    project = ${project?.kotlinCode(base)}
                 )
             """.trimIndent()
         }
@@ -51,8 +47,8 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
         Parameter<File>(parameters("runner")) { runner = it }
         Parameter<File>(parameters("idea")) { idea = it }
         Parameter<File>(parameters("project")) { project = it }
-        Parameter<Boolean>(parameters("htmlReport")) { if (it) html = File("build/report.html") }
-        Parameter<Boolean>(parameters("xmlReport")) { if (it) xml = File("build/report.xml") }
+//        Parameter<Boolean>(parameters("htmlReport")) { if (it) html = File("build/report.html") }
+//        Parameter<Boolean>(parameters("xmlReport")) { if (it) xml = File("build/report.xml") }
     }
 
     fun generate(defaultTaskName: String, taskTestDataDirName: String) {

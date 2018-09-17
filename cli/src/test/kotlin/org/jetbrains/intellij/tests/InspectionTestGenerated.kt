@@ -18,9 +18,7 @@ class InspectionTestGenerated {
             config = null,
             runner = null,
             idea = null,
-            project = null,
-            html = null,
-            xml = null
+            project = null
         )
         testBench.doTest(File("testData/inspection/addVariance"), toolArguments)
     }
@@ -36,9 +34,7 @@ class InspectionTestGenerated {
             config = null,
             runner = null,
             idea = null,
-            project = null,
-            html = null,
-            xml = null
+            project = null
         )
         testBench.doTest(File("testData/inspection/configurationIdea_Default"), toolArguments)
     }
@@ -54,9 +50,7 @@ class InspectionTestGenerated {
             config = null,
             runner = null,
             idea = null,
-            project = null,
-            html = null,
-            xml = null
+            project = null
         )
         testBench.doTest(File("testData/inspection/convertToStringTemplate"), toolArguments)
     }
@@ -72,9 +66,7 @@ class InspectionTestGenerated {
             config = null,
             runner = null,
             idea = null,
-            project = null,
-            html = null,
-            xml = null
+            project = null
         )
         testBench.doTest(File("testData/inspection/customConfigInheritFromIdea"), toolArguments)
     }
@@ -90,9 +82,7 @@ class InspectionTestGenerated {
             config = null,
             runner = null,
             idea = null,
-            project = null,
-            html = null,
-            xml = null
+            project = null
         )
         testBench.doTest(File("testData/inspection/doNotShowViolations"), toolArguments)
     }
@@ -108,9 +98,7 @@ class InspectionTestGenerated {
             config = null,
             runner = null,
             idea = null,
-            project = null,
-            html = "build/report.html",
-            xml = null
+            project = null
         )
         testBench.doTest(File("testData/inspection/htmlOutput"), toolArguments)
     }
@@ -126,9 +114,7 @@ class InspectionTestGenerated {
             config = null,
             runner = null,
             idea = null,
-            project = null,
-            html = null,
-            xml = null
+            project = null
         )
         testBench.doTest(File("testData/inspection/javaInspections"), toolArguments)
     }
@@ -144,9 +130,7 @@ class InspectionTestGenerated {
             config = null,
             runner = null,
             idea = null,
-            project = null,
-            html = null,
-            xml = null
+            project = null
         )
         testBench.doTest(File("testData/inspection/maxErrors"), toolArguments)
     }
@@ -162,9 +146,7 @@ class InspectionTestGenerated {
             config = null,
             runner = null,
             idea = null,
-            project = null,
-            html = null,
-            xml = null
+            project = null
         )
         testBench.doTest(File("testData/inspection/maxWarningsIgnoreFailures"), toolArguments)
     }
@@ -180,9 +162,7 @@ class InspectionTestGenerated {
             config = null,
             runner = null,
             idea = null,
-            project = null,
-            html = null,
-            xml = null
+            project = null
         )
         testBench.doTest(File("testData/inspection/pluginInjection"), toolArguments)
     }
@@ -198,9 +178,7 @@ class InspectionTestGenerated {
             config = null,
             runner = null,
             idea = null,
-            project = null,
-            html = null,
-            xml = null
+            project = null
         )
         testBench.doTest(File("testData/inspection/redundantModality"), toolArguments)
     }
@@ -216,9 +194,7 @@ class InspectionTestGenerated {
             config = null,
             runner = null,
             idea = null,
-            project = null,
-            html = null,
-            xml = null
+            project = null
         )
         testBench.doTest(File("testData/inspection/redundantVisibility"), toolArguments)
     }
@@ -234,9 +210,7 @@ class InspectionTestGenerated {
             config = null,
             runner = null,
             idea = null,
-            project = null,
-            html = null,
-            xml = null
+            project = null
         )
         testBench.doTest(File("testData/inspection/spaces"), toolArguments)
     }
@@ -252,9 +226,7 @@ class InspectionTestGenerated {
             config = null,
             runner = null,
             idea = null,
-            project = null,
-            html = null,
-            xml = null
+            project = null
         )
         testBench.doTest(File("testData/inspection/stdlib"), toolArguments)
     }
@@ -270,9 +242,7 @@ class InspectionTestGenerated {
             config = null,
             runner = null,
             idea = null,
-            project = null,
-            html = null,
-            xml = null
+            project = null
         )
         testBench.doTest(File("testData/inspection/unusedReceiverParameterInspection"), toolArguments)
     }
@@ -288,9 +258,7 @@ class InspectionTestGenerated {
             config = null,
             runner = null,
             idea = null,
-            project = null,
-            html = null,
-            xml = null
+            project = null
         )
         testBench.doTest(File("testData/inspection/unusedSymbolByIdeaProfile"), toolArguments)
     }
@@ -306,9 +274,7 @@ class InspectionTestGenerated {
             config = null,
             runner = null,
             idea = null,
-            project = null,
-            html = null,
-            xml = null
+            project = null
         )
         testBench.doTest(File("testData/inspection/unusedSymbolError"), toolArguments)
     }
@@ -324,9 +290,7 @@ class InspectionTestGenerated {
             config = null,
             runner = null,
             idea = null,
-            project = null,
-            html = null,
-            xml = null
+            project = null
         )
         testBench.doTest(File("testData/inspection/unusedSymbolIdeaError"), toolArguments)
     }
@@ -342,9 +306,7 @@ class InspectionTestGenerated {
             config = null,
             runner = null,
             idea = null,
-            project = null,
-            html = null,
-            xml = null
+            project = null
         )
         testBench.doTest(File("testData/inspection/unusedSymbolIdeaWarning"), toolArguments)
     }
@@ -360,9 +322,7 @@ class InspectionTestGenerated {
             config = null,
             runner = null,
             idea = null,
-            project = null,
-            html = null,
-            xml = null
+            project = null
         )
         testBench.doTest(File("testData/inspection/unusedSymbolWarning"), toolArguments)
     }
@@ -378,9 +338,7 @@ class InspectionTestGenerated {
             config = null,
             runner = null,
             idea = null,
-            project = null,
-            html = null,
-            xml = null
+            project = null
         )
         testBench.doTest(File("testData/inspection/weakWarningNeverBecomesError"), toolArguments)
     }
@@ -396,9 +354,7 @@ class InspectionTestGenerated {
             config = null,
             runner = null,
             idea = null,
-            project = null,
-            html = null,
-            xml = "build/report.xml"
+            project = null
         )
         testBench.doTest(File("testData/inspection/xmlOutput"), toolArguments)
     }

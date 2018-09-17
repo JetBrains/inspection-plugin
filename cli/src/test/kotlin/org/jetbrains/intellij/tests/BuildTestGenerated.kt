@@ -18,9 +18,7 @@ class BuildTestGenerated {
             config = null,
             runner = null,
             idea = null,
-            project = null,
-            html = null,
-            xml = null
+            project = null
         )
         testBench.doTest(File("testData/build/redundantVisibility"), toolArguments)
     }
@@ -36,9 +34,7 @@ class BuildTestGenerated {
             config = null,
             runner = null,
             idea = null,
-            project = null,
-            html = null,
-            xml = null
+            project = null
         )
         testBench.doTest(File("testData/build/spaces"), toolArguments)
     }
@@ -54,9 +50,7 @@ class BuildTestGenerated {
             config = null,
             runner = null,
             idea = null,
-            project = null,
-            html = null,
-            xml = null
+            project = null
         )
         testBench.doTest(File("testData/build/unusedReceiverParameterInspection"), toolArguments)
     }

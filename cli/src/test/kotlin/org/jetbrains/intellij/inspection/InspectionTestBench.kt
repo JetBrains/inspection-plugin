@@ -214,9 +214,7 @@ class InspectionTestBench(private val defaultTaskName: String) {
                     runner = toolArguments.runner ?: runner,
                     tasks = toolArguments.tasks ?: listOf(defaultTaskName),
                     project = toolArguments.project ?: projectDir,
-                    level = toolArguments.level ?: LoggerLevel.INFO,
-                    html = toolArguments.html?.let { File(projectDir, it).absolutePath },
-                    xml = toolArguments.xml?.let { File(projectDir, it).absolutePath }
+                    level = toolArguments.level ?: LoggerLevel.INFO
             ).toCommandLineArguments()
             val command = listOf("java", "-jar", cli.absolutePath) + arguments
             val process = ProcessBuilder(command).start()

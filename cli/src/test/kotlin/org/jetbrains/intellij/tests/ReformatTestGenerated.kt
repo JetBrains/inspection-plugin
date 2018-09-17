@@ -18,9 +18,7 @@ class ReformatTestGenerated {
             config = null,
             runner = null,
             idea = null,
-            project = null,
-            html = null,
-            xml = null
+            project = null
         )
         testBench.doTest(File("testData/reformat/multiFile"), toolArguments)
     }
@@ -36,9 +34,7 @@ class ReformatTestGenerated {
             config = null,
             runner = null,
             idea = null,
-            project = null,
-            html = null,
-            xml = null
+            project = null
         )
         testBench.doTest(File("testData/reformat/spaces"), toolArguments)
     }
