@@ -28,10 +28,11 @@ object InspectionTool {
         try {
             arguments.toParameters().forEach {
                 val outcome = runner.run(it)
+                logger.info("InspectionPlugin: RUN $outcome")
                 when (outcome) {
                     RunnerOutcome.CRASH -> throw RuntimeException("Execution crashed")
                     RunnerOutcome.FAIL -> throw RuntimeException("Execution failed")
-                    RunnerOutcome.SUCCESS -> logger.info("InspectionPlugin: RUN SUCCESS")
+                    RunnerOutcome.SUCCESS -> Unit
                 }
             }
         } finally {
@@ -54,7 +55,7 @@ object InspectionTool {
         get() = modules.first { it.name == projectName }.directory
 
     private val Module.sources: List<File>
-        get() = sourceSets.asSequence().map { it.walk().asSequence() }.flatten().filter { it.isFile }.toList()
+        get() = sourceSets.asSequence().map { it.walk().asSequence() }.flatten().filter { it.isFile }.toSet().toList()
 
     private fun Configuration.checkInspectionParameters(module: Module) = IdeaRunnerParameters(
             projectDir = projectDir,
@@ -65,7 +66,7 @@ object InspectionTool {
             ideaSystemDirectory = IDEA_SYSTEM_DIRECTORY,
             plugins = emptyList(),
             childParameters = FileInfoRunnerParameters(
-                    files = module.sources,
+                    files = module.sources.toList(),
                     childParameters = InspectionsRunnerParameters(
                             ideaVersion = ideaVersion,
                             kotlinPluginVersion = null,
@@ -151,7 +152,11 @@ object InspectionTool {
         val name = Task.Name.values().find { taskName.startsWith(it.instance) }
                 ?: throw IllegalArgumentException("Undefined task name: $taskName")
         val sourceSetName = taskName.removePrefix(name.instance).decapitalize().let { if (it.isEmpty()) null else it }
-        val module = fun Module.() = Module(this.name, directory, sourceSets.filter { sourceSetName == null || it.name == sourceSetName })
+        val module = fun Module.() = Module(
+                name = this.name,
+                directory = directory,
+                sourceSets = sourceSets.filterTo(HashSet()) { sourceSetName == null || it.name == sourceSetName }
+        )
         val tasks = targetModules.asSequence().map(module).map { Task(name, it) }.toList()
         val sourceSets = tasks.map { it.module.sourceSets }.flatten()
         if (sourceSets.isEmpty()) when (sourceSetName) {

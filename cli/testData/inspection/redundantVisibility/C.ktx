@@ -1,0 +1,7 @@
+// warning: RedundantVisibilityModifier
+// quickFix = true
+
+class C {
+}
+
+// :4:1: Redundant visibility modifier

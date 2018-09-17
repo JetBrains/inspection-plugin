@@ -34,7 +34,7 @@ class ConfigurationGenerator {
                 .map { it.attributes["url"] }
                 .map { it.removePrefix("file://${'$'}MODULE_DIR$/") }
                 .map { File(moduleFile.parentFile, it) }
-                .toList()
+                .toSet()
         return Module(moduleFile.nameWithoutExtension, moduleFile.parentFile, sourceSets)
     }
 

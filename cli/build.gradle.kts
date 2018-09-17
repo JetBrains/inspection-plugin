@@ -100,4 +100,9 @@ dependencies {
     compile("org.jdom:jdom2:2.0.6")
     compile(project(":interface"))
     compile(project(":frontend"))
+
+    testCompile(gradleTestKit())
+    testCompile("junit:junit:4.12")
+    testCompile("org.jdom:jdom2:2.0.6")
+    testCompile("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
 }

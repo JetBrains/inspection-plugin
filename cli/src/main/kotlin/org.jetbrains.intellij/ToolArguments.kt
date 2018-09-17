@@ -12,6 +12,7 @@ class ToolArguments(parser: ArgParser) {
     val level by parser.mapping(
             "--info" to LoggerLevel.INFO,
             "--warn" to LoggerLevel.WARNING,
+            "--warning" to LoggerLevel.WARNING,
             "--error" to LoggerLevel.ERROR,
             help = "Writable logging level")
             .default { LoggerLevel.WARNING }
@@ -58,20 +59,8 @@ class ToolArguments(parser: ArgParser) {
     val html by parser.storing("--html",
             help = "Html report directory") { File(this) }
             .default { null }
-            .addValidator {
-                if (value?.isFile == false) {
-                    val message = "Invalid html report file: $value"
-                    throw IllegalArgumentException(message)
-                }
-            }
 
     val xml by parser.storing("--xml",
             help = "Xml report directory") { File(this) }
             .default { null }
-            .addValidator {
-                if (value?.isFile == false) {
-                    val message = "Invalid xml report file: $value"
-                    throw IllegalArgumentException(message)
-                }
-            }
 }
