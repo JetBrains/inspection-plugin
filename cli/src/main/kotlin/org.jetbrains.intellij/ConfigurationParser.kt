@@ -40,12 +40,12 @@ class ConfigurationParser {
             getField<String?>("xml")?.loadFile("Xml report", checkExistence = false)
     )
 
-    private fun JSONArray.loadSourceSets() = map { (it as String).loadDir("Source set") }.toList()
+    private fun JSONArray.loadSourceSets() = map { (it as String).loadDir("Source set") }.toSet()
 
     private fun JSONObject.loadModule() = Module(
             getField("name"),
             getField<String>("directory").loadDir("Module directory"),
-            getField<JSONArray?>("sourceSets")?.loadSourceSets() ?: emptyList()
+            getField<JSONArray?>("sourceSets")?.loadSourceSets() ?: emptySet()
     )
 
     private fun JSONArray.loadModules() = map { (it as JSONObject).loadModule() }.toList()
