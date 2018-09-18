@@ -7,7 +7,6 @@ import org.jdom2.output.XMLOutputter
 import org.jetbrains.intellij.*
 import org.junit.Assert
 import org.junit.rules.TemporaryFolder
-import org.gradle.testkit.runner.GradleRunner
 import org.json.simple.JSONObject
 import java.io.*
 import java.util.*
@@ -80,9 +79,10 @@ class InspectionTestBench(private val defaultTaskName: String) {
             testProjectDir.create()
             try {
                 testProjectDir.newFolder("build")
+                testProjectDir.newFolder(".idea")
+                initIdeaProject()
                 initTestProjectIdeaProfile()
                 val testFiles = initTestProjectSources()
-                initIdeaProject()
                 val result = buildTestProject()
                 assertInspectionBuildLog(result)
                 assertInspectionBuildXmlReport()
@@ -91,6 +91,20 @@ class InspectionTestBench(private val defaultTaskName: String) {
             } finally {
                 testProjectDir.delete()
             }
+        }
+
+        private fun initIdeaProject() {
+            testProjectDir.newFolder(".idea", "libraries")
+            val moduleFile = testProjectDir.newFile("test.iml")
+            val miscFile = testProjectDir.newFile(".idea/misc.xml")
+            val kotlincFile = testProjectDir.newFile(".idea/kotlinc.xml")
+            val modulesFile = testProjectDir.newFile(".idea/modules.xml")
+            val kotlinJavaRuntimeFile = testProjectDir.newFile(".idea/libraries/kotlinJavaRuntime.xml")
+            writeFile(moduleFile, File("testData/test.iml.template").readText())
+            writeFile(miscFile, File("testData/misc.xml.template").readText())
+            writeFile(kotlincFile, File("testData/kotlinc.xml.template").readText())
+            writeFile(modulesFile, File("testData/modules.xml.template").readText())
+            writeFile(kotlinJavaRuntimeFile, File("testData/kotlinJavaRuntime.xml.template").readText())
         }
 
         private fun initTestProjectIdeaProfile() {
@@ -137,33 +151,6 @@ class InspectionTestBench(private val defaultTaskName: String) {
             }
             sources.zip(testFiles).forEach { it.first.copyTo(it.second, overwrite = true) }
             return testFiles
-        }
-
-        private fun initIdeaProject() {
-            val buildFile = testProjectDir.newFile("build.gradle")
-            val settingsFile = testProjectDir.newFile("settings.gradle")
-            writeFile(buildFile, /*language=groovy*/"""
-                buildscript {
-                    repositories {
-                        mavenCentral()
-                    }
-                    dependencies {
-                        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.2.70"
-                    }
-                }
-
-                apply plugin: "idea"
-                apply plugin: "kotlin"
-
-                sourceSets {
-                    main.kotlin.srcDirs += "src"
-                    main.java.srcDirs += "src"
-                }
-            """.trimIndent())
-            writeFile(settingsFile, /*language=groovy*/"""
-                rootProject.name = '${projectDir.name}'
-            """.trimMargin())
-            GradleRunner.create().withProjectDir(projectDir).withArguments("idea").build()
         }
 
         private inner class ComparableByLastModification(val file: File) : Comparable<ComparableByLastModification> {
