@@ -30,11 +30,18 @@ object Parameter {
         }
     }
 
+    fun parseSetOfStrings(value: String): Set<String> {
+        val internal = value.removeSurrounding("setOf(", ")")
+        return internal.split(",").asSequence().map { it.trim().removeSurrounding("\"") }.toSet()
+    }
+
     @JvmName("valueOf")
     inline operator fun <reified T> invoke(value: String): T? = when (T::class) {
         List::class -> if (isNull(value)) null else parseListOfStrings(value) as T
         LoggerLevel::class -> if (isNull(value)) null else parseLoggerLevel(value) as T
         File::class -> if (isNull(value)) null else parseFile(value) as T
+        Set::class -> if (isNull(value)) null else parseSetOfStrings(value) as T
+        Int::class -> if (isNull(value)) null else value.toInt() as T
         Boolean::class -> if (isNull(value)) null else value.toBoolean() as T
         else -> throw IllegalArgumentException("Unexpected type parameter ${T::class}")
     }

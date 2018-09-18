@@ -1,4 +1,5 @@
-import org.jetbrains.intellij.inspection.ToolArguments
+import org.jetbrains.intellij.SettingsBuilder
+import org.jetbrains.intellij.inspection.ToolArgumentsBuilder
 import org.jetbrains.intellij.inspection.InspectionTestBench
 import org.junit.Test
 import org.junit.Ignore
@@ -9,33 +10,17 @@ class ReformatTestGenerated {
 
     @Test
     fun testMultiFile() {
-        val toolArguments = ToolArguments(
-            errors = null,
-            warnings = null,
-            info = null,
-            tasks = null,
-            level = null,
-            config = null,
-            runner = null,
-            idea = null,
-            project = null
-        )
+        val toolArguments = ToolArgumentsBuilder().apply {
+            settings = SettingsBuilder()
+        }
         testBench.doTest(File("testData/reformat/multiFile"), toolArguments)
     }
 
     @Test
     fun testSpaces() {
-        val toolArguments = ToolArguments(
-            errors = null,
-            warnings = null,
-            info = null,
-            tasks = null,
-            level = null,
-            config = null,
-            runner = null,
-            idea = null,
-            project = null
-        )
+        val toolArguments = ToolArgumentsBuilder().apply {
+            settings = SettingsBuilder()
+        }
         testBench.doTest(File("testData/reformat/spaces"), toolArguments)
     }
 }

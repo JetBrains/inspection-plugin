@@ -1,5 +1,6 @@
 // inheritFromIdea = true
 
+
 final class My
 
 interface Your {

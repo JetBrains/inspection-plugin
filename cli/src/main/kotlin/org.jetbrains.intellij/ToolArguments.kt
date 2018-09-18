@@ -35,6 +35,9 @@ class ToolArguments(parser: ArgParser) {
                 }
             }
 
+    val ignoreFailures by parser.flagging("--ignoreFailures",
+            help = "Ignore failure outcomes")
+
     val runner by parser.storing("--runner",
             help = "Runner jar file") { File(this) }
             .default { null }

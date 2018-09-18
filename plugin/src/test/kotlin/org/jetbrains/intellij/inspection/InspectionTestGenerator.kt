@@ -55,7 +55,6 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
         Parameter<Boolean>(parameters("isQuiet")) { isQuiet = it }
         Parameter<Boolean>(parameters("quiet")) { isQuiet = it }
         reformat {
-            Parameter<Boolean>(parameters("reformat.isQuiet")) { isQuiet = it }
             Parameter<Boolean>(parameters("reformat.quickFix")) { quickFix = it }
         }
     }

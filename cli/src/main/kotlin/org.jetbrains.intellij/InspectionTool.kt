@@ -25,13 +25,17 @@ object InspectionTool {
             }
         }
         val runner = ProxyRunner(arguments.runner, arguments.idea, logger)
+        val ignoreFailures = arguments.settings.ignoreFailures == true
         try {
             arguments.toParameters().forEach {
                 val outcome = runner.run(it)
-                logger.info("RUN $outcome")
+                val hasIgnoring = ignoreFailures && outcome == RunnerOutcome.FAIL
+                val correctedOutcome = if (hasIgnoring) RunnerOutcome.SUCCESS else outcome
+                val marker = if (hasIgnoring) "(CORRECTED)" else ""
+                logger.info("RUN $correctedOutcome $marker")
                 when (outcome) {
                     RunnerOutcome.CRASH -> throw RuntimeException("Execution crashed")
-                    RunnerOutcome.FAIL -> throw RuntimeException("Execution failed")
+                    RunnerOutcome.FAIL -> if (ignoreFailures) throw RuntimeException("Execution failed")
                     RunnerOutcome.SUCCESS -> Unit
                 }
             }
@@ -57,7 +61,7 @@ object InspectionTool {
     private val Structure.Module.sources: List<File>
         get() = sourceSets.asSequence().map { it.walk().asSequence() }.flatten().filter { it.isFile }.toSet().toList()
 
-    private fun Arguments.toCheckInspectionParameters(settings: Settings, structure: Structure, module: Structure.Module) = IdeaRunnerParameters(
+    private fun Arguments.toCheckInspectionParameters(settings: SettingsBuilder, structure: Structure, module: Structure.Module) = IdeaRunnerParameters(
             projectDir = structure.projectDir,
             projectName = structure.projectName,
             moduleName = module.name,
@@ -75,13 +79,13 @@ object InspectionTool {
                             inheritFromIdea = settings.inheritFromIdea ?: settings.inspections.isEmpty(),
                             profileName = settings.profileName,
                             errors = settings.errors.toParameters(),
-                            warnings = settings.errors.toParameters(),
-                            info = settings.errors.toParameters()
+                            warnings = settings.warnings.toParameters(),
+                            info = settings.info.toParameters()
                     )
             )
     )
 
-    private fun Arguments.toInspectionParameters(settings: Settings, structure: Structure, module: Structure.Module) = IdeaRunnerParameters(
+    private fun Arguments.toInspectionParameters(settings: SettingsBuilder, structure: Structure, module: Structure.Module) = IdeaRunnerParameters(
             projectDir = structure.projectDir,
             projectName = structure.projectName,
             moduleName = module.name,
@@ -99,13 +103,13 @@ object InspectionTool {
                             inheritFromIdea = settings.inheritFromIdea ?: settings.inspections.isEmpty(),
                             profileName = settings.profileName,
                             errors = settings.errors.toParameters(),
-                            warnings = settings.errors.toParameters(),
-                            info = settings.errors.toParameters()
+                            warnings = settings.warnings.toParameters(),
+                            info = settings.info.toParameters()
                     )
             )
     )
 
-    private fun Arguments.toReformatParameters(settings: Settings, structure: Structure, module: Structure.Module) = IdeaRunnerParameters(
+    private fun Arguments.toReformatParameters(settings: SettingsBuilder, structure: Structure, module: Structure.Module) = IdeaRunnerParameters(
             projectDir = structure.projectDir,
             projectName = structure.projectName,
             moduleName = module.name,
@@ -120,9 +124,9 @@ object InspectionTool {
                             kotlinPluginVersion = null,
                             isAvailableCodeChanging = true,
                             reportParameters = settings.report.toParameters(),
-                            inheritFromIdea = settings.inheritFromIdea ?: settings.inspections.isEmpty(),
+                            inheritFromIdea = false,
                             profileName = settings.profileName,
-                            errors = settings.errors.toParameters(),
+                            errors = InspectionsRunnerParameters.Inspections(emptyMap(), null),
                             warnings = InspectionsRunnerParameters.Inspections(
                                     inspections = mapOf(
                                             Pair(
@@ -132,23 +136,23 @@ object InspectionTool {
                                     ),
                                     max = null
                             ),
-                            info = settings.errors.toParameters()
+                            info = InspectionsRunnerParameters.Inspections(emptyMap(), null)
                     )
             )
     )
 
-    private fun Settings.Report?.toParameters() = InspectionsRunnerParameters.Report(
+    private fun SettingsBuilder.Report?.toParameters() = InspectionsRunnerParameters.Report(
             this?.isQuiet ?: false,
             this?.xml,
             this?.html
     )
 
-    private fun Settings.Inspections?.toParameters() = InspectionsRunnerParameters.Inspections(
+    private fun SettingsBuilder.Inspections?.toParameters() = InspectionsRunnerParameters.Inspections(
             this?.inspections?.map { it.key to it.value.toParameters(it.key) }?.toMap() ?: emptyMap(),
             this?.max
     )
 
-    private fun Settings.Inspection?.toParameters(name: String, defaultQuickFix: Boolean = false) = InspectionsRunnerParameters.Inspection(
+    private fun SettingsBuilder.Inspection?.toParameters(name: String, defaultQuickFix: Boolean = false) = InspectionsRunnerParameters.Inspection(
             name,
             this?.quickFix ?: defaultQuickFix
     )
@@ -183,12 +187,15 @@ object InspectionTool {
     }
 
     private fun ToolArguments.toArguments(): Arguments {
-        val structure = structure?.let { StructureParser().parse(it) } ?: generateStructure()
-        val settings = settings?.let { SettingsParser().parse(it) } ?: Settings.EMPTY
+        val structureFile = structure ?: File("inspections-structure.json").let { if (it.isFile) it else null }
+        val settingsFile = settings ?: File("inspections-settings.json").let { if (it.isFile) it else null }
+        val structure = structureFile?.let { StructureParser().parse(it) } ?: generateStructure()
+        val settings = settingsFile?.let { SettingsParser().parse(it) } ?: SettingsBuilder()
         val tasks = tasks.map { parseTask(it, structure.modules) }.flatten()
-        val runner = settings.runner ?: runner ?: throw IllegalArgumentException("Runner jar must be defined")
-        val idea = settings.idea ?: idea ?: throw IllegalArgumentException("Idea home directory must be defined")
-        return Arguments(tasks, idea, runner, level, structure, settings)
+        val runner = runner ?: settings.runner ?: throw IllegalArgumentException("Runner jar must be defined")
+        val idea = idea ?: settings.idea ?: throw IllegalArgumentException("Idea home directory must be defined")
+        val ignoreFailures = ignoreFailures || settings.ignoreFailures ?: false
+        return Arguments(tasks, ignoreFailures, idea, runner, level, structure, settings)
     }
 
     data class Task(val name: Name, val module: Structure.Module) {
@@ -201,10 +208,11 @@ object InspectionTool {
 
     data class Arguments(
             val tasks: List<Task>,
+            val ignoreFailures: Boolean,
             val idea: File,
             val runner: File,
             val level: LoggerLevel,
             val structure: Structure,
-            val settings: Settings
+            val settings: SettingsBuilder
     )
 }

@@ -1,5 +1,6 @@
 package org.jetbrains.intellij.inspection
 
+import org.gradle.internal.impldep.com.google.gson.GsonBuilder
 import org.jdom2.input.SAXBuilder
 import org.jdom2.output.Format
 import org.jdom2.output.XMLOutputter
@@ -7,6 +8,7 @@ import org.jetbrains.intellij.*
 import org.junit.Assert
 import org.junit.rules.TemporaryFolder
 import org.gradle.testkit.runner.GradleRunner
+import org.json.simple.JSONObject
 import java.io.*
 import java.util.*
 import java.io.IOException
@@ -66,7 +68,7 @@ class InspectionTestBench(private val defaultTaskName: String) {
             val testDir: File,
             val sources: List<File>,
             val expectedSources: List<File>,
-            val toolArguments: ToolArguments,
+            val toolArguments: ToolArgumentsBuilder,
             val xmlReport: Boolean,
             val htmlReport: Boolean,
             val expectedOutcome: TaskOutcome,
@@ -93,9 +95,9 @@ class InspectionTestBench(private val defaultTaskName: String) {
 
         private fun initTestProjectIdeaProfile() {
             with(toolArguments) {
-                val errors = errors ?: emptyList()
-                val warnings = warnings ?: emptyList()
-                val info = info ?: emptyList()
+                val errors = settings.errors.inspections.keys.toList()
+                val warnings = settings.warnings.inspections.keys.toList()
+                val info = settings.info.inspections.keys.toList()
                 if ((errors + warnings + info).isNotEmpty()) {
                     testProjectDir.newFolder(".idea", "inspectionProfiles")
                     val profileName = "Project_Default.xml"
@@ -200,6 +202,61 @@ class InspectionTestBench(private val defaultTaskName: String) {
             }
         }
 
+        private inner class ToolArguments(
+                val tasks: List<String>,
+                val project: File,
+                val settings: File,
+                val level: LoggerLevel
+        ) {
+            fun toCommandLineArguments() = tasks + listOfNotNull(
+                    when (level) {
+                        LoggerLevel.ERROR -> "--error"
+                        LoggerLevel.WARNING -> "--warning"
+                        LoggerLevel.INFO -> "--info"
+                        LoggerLevel.DEBUG -> "--debug"
+                    },
+                    settings.let { "--settings=${it.absolutePath}" },
+                    project.let { "--project=${it.absolutePath}" }
+            )
+        }
+
+        private fun SettingsBuilder.toJson() = toJsonObject().toJSONString()!!
+
+        private fun SettingsBuilder.toJsonObject() = JSONObject().apply {
+            put("runner", runner?.absolutePath)
+            put("idea", idea?.absolutePath)
+            put("ignoreFailures", ignoreFailures)
+            put("inheritFromIdea", inheritFromIdea)
+            put("profileName", profileName)
+            put("report", report.toJsonObject())
+            put("reformat", reformat.toJsonObject())
+            put("errors", errors.toJsonObject())
+            put("warnings", warnings.toJsonObject())
+            put("info", info.toJsonObject())
+        }
+
+        private fun SettingsBuilder.Report.toJsonObject() = JSONObject().apply {
+            put("quiet", isQuiet)
+            put("html", html?.absolutePath)
+            put("xml", xml?.absolutePath)
+        }
+
+        private fun SettingsBuilder.Inspection.toJsonObject() = JSONObject().apply {
+            put("quickFix", quickFix)
+        }
+
+        private fun SettingsBuilder.Inspections.toJsonObject() = JSONObject().apply {
+            put("max", max)
+            inspections.forEach { put(it.key, it.value.toJsonObject()) }
+        }
+
+        private fun SettingsBuilder.toPrettyJson(): String {
+            val gson = GsonBuilder().setPrettyPrinting().create()
+            val jsonParser = org.gradle.internal.impldep.com.google.gson.JsonParser()
+            val jsonElement = jsonParser.parse(toJson())
+            return gson.toJson(jsonElement)
+        }
+
         private fun buildTestProject(): BuildResult {
             val home = System.getProperty("user.home")
             val mavenLocalRepo = File(home, ".m2/repository")
@@ -207,26 +264,32 @@ class InspectionTestBench(private val defaultTaskName: String) {
             val inspectionPluginProjectDirectory = File(workingDirectory, "..").canonicalFile
             val inspectionPluginRepo = File(mavenLocalRepo, "org/jetbrains/intellij/plugins")
             val cli = File(inspectionPluginRepo, "inspection-cli").findLatestJar()
-            val runner = File(inspectionPluginRepo, "inspection-runner").findLatestJar()
-            val idea = File(inspectionPluginProjectDirectory, "runner/build/ideaIC_2018_2")
-            val arguments = toolArguments.copy(
-                    idea = toolArguments.idea ?: idea,
-                    runner = toolArguments.runner ?: runner,
+            val runnerJar = File(inspectionPluginRepo, "inspection-runner").findLatestJar()
+            val ideaHomeDir = File(inspectionPluginProjectDirectory, "runner/build/ideaIC_2018_2")
+            val settingsFile = File(projectDir, "inspections-settings.json")
+            val arguments = ToolArguments(
                     tasks = toolArguments.tasks ?: listOf(defaultTaskName),
-                    project = toolArguments.project ?: projectDir,
-                    level = toolArguments.level ?: LoggerLevel.INFO
+                    project = projectDir,
+                    level = toolArguments.level ?: LoggerLevel.INFO,
+                    settings = settingsFile
             ).toCommandLineArguments()
+            val settings = toolArguments.settings.apply {
+                idea = idea ?: ideaHomeDir
+                runner = runner ?: runnerJar
+                if (htmlReport) report.html = File(projectDir, "build/report.html")
+                if (xmlReport) report.xml = File(projectDir, "build/report.xml")
+            }
+            val settingsText = settings.toPrettyJson()
+            writeFile(settingsFile, settingsText)
+            println(settingsText)
             val command = listOf("java", "-jar", cli.absolutePath) + arguments
-            val process = ProcessBuilder(command).start()
+            val process = ProcessBuilder(command).redirectErrorStream(true).start()
             println("Process started: ${command.joinToString(" ")}")
             val pipe = ByteArrayOutputStream()
             val outputGobbler = StreamGobbler(process.inputStream, System.out, pipe)
-            val errorGobbler = StreamGobbler(process.errorStream, System.err, pipe)
             outputGobbler.start()
-            errorGobbler.start()
             process.waitFor()
             outputGobbler.join()
-            errorGobbler.join()
             val output = pipe.toString()
             val outcome = when {
                 RunnerOutcome.FAIL.toString() in output -> TaskOutcome.FAILED
@@ -257,6 +320,7 @@ class InspectionTestBench(private val defaultTaskName: String) {
             fun File.toRootElement() = SAXBuilder().build(this).rootElement
 
             val actualFile = File(projectDir, "build/report.xml")
+            Assert.assertTrue("Report XML file is not generated (but should)", actualFile.exists())
             val expectedFile = File(testDir, "report.xml")
             val actualRoot = actualFile.toRootElement()
             val expectedRoot = expectedFile.toRootElement()
@@ -269,6 +333,7 @@ class InspectionTestBench(private val defaultTaskName: String) {
         private fun assertInspectionBuildHtmlReport() {
             if (!htmlReport) return
             val actualFile = File(projectDir, "build/report.html")
+            Assert.assertTrue("Report HTML file is not generated (but should)", actualFile.exists())
             val expectedFile = File(testDir, "report.html")
             Assert.assertEquals(expectedFile.readText().trim().replace("\r\n", "\n"),
                     actualFile.readText().trim().replace("\r\n", "\n"))
@@ -298,7 +363,7 @@ class InspectionTestBench(private val defaultTaskName: String) {
         }
     }
 
-    fun doTest(testDir: File, toolArguments: ToolArguments) {
+    fun doTest(testDir: File, toolArguments: ToolArgumentsBuilder) {
         val sources = testDir.allSourceFiles.toList()
         if (sources.isEmpty()) throw IllegalArgumentException("Test directory in $testDir not found.")
         val expectedSources = testDir.allExpectedSourceFiles.toList()
