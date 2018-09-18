@@ -89,7 +89,7 @@ class InspectionTestBench(private val defaultTaskName: String) {
                 assertInspectionBuildHtmlReport()
                 assertInspectionBuildProjectFiles(testFiles)
             } finally {
-//                testProjectDir.delete()
+                testProjectDir.delete()
             }
         }
 
