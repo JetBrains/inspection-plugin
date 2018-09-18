@@ -42,11 +42,10 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
         var ideaProject: Project? = null
         val projectFile = File(projectDir, projectName + ProjectFileType.DOT_DEFAULT_EXTENSION)
         invokeAndWait {
-            ideaProject = ProjectUtil.openOrImport(
-                    projectFile.absolutePath,
-                    /* projectToClose = */ null,
-                    /* forceOpenInNewFrame = */ true
-            )
+            ideaProject = when (projectFile.exists()) {
+                true -> ProjectUtil.openOrImport(projectFile.absolutePath, null, true)
+                false -> ProjectUtil.openOrImport(projectDir.absolutePath, null, true)
+            }
         }
         return ideaProject?.apply {
             val rootManager = ProjectRootManager.getInstance(this)
@@ -90,7 +89,7 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
                 }
             }
         } ?: run {
-            throw RunnerException("Cannot open IDEA project: '${projectFile.absolutePath}'")
+            throw RunnerException("Cannot open IDEA project: '${projectDir.absolutePath}'")
         }
     }
 
