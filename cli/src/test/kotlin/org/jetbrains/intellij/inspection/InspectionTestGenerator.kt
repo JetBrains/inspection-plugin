@@ -182,7 +182,7 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
                     .deleteEmptyLines()
             methods.add(method)
         }
-        val testClassName = taskTestDataDirName.capitalize().replace('-', '_').replace("_", "") + "TestGenerated"
+        val testClassName = taskTestDataDirName.capitalize().replace('-', '_').replace("_", "") + "CliTestGenerated"
         val resultFile = File(testsDir, "$testClassName.kt")
         val testClass = /*language=kotlin*/"""
                 import org.jetbrains.intellij.SettingsBuilder

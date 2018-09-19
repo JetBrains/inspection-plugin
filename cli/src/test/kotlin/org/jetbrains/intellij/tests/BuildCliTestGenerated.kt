@@ -5,7 +5,7 @@ import org.junit.Test
 import org.junit.Ignore
 import java.io.File
 
-class BuildTestGenerated {
+class BuildCliTestGenerated {
     private val testBench = InspectionTestBench("checkInspections")
 
     @Test

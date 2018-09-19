@@ -5,7 +5,7 @@ import org.junit.Test
 import org.junit.Ignore
 import java.io.File
 
-class ReformatTestGenerated {
+class ReformatCliTestGenerated {
     private val testBench = InspectionTestBench("reformat")
 
     @Test
