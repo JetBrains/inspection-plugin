@@ -102,6 +102,21 @@ class InspectionPluginTestGenerated {
         testBench.doTest(File("testData/inspection/stdlib"), extension)
     }
 
+    @Ignore
+    @Test
+    fun testUnusedDeclaration() {
+        val extension = InspectionPluginExtension(null)
+        extension.warning("UnusedDeclaration")
+        testBench.doTest(File("testData/inspection/unusedDeclaration"), extension)
+    }
+
+    @Test
+    fun testUnusedImport() {
+        val extension = InspectionPluginExtension(null)
+        extension.warning("UnusedImport")
+        testBench.doTest(File("testData/inspection/unusedImport"), extension)
+    }
+
     @Test
     fun testUnusedReceiverParameterInspection() {
         val extension = InspectionPluginExtension(null)

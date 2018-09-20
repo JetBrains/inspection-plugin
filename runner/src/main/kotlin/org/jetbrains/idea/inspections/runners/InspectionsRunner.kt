@@ -4,7 +4,7 @@ import com.intellij.analysis.AnalysisScope
 import com.intellij.codeInsight.FileModificationService
 import com.intellij.codeInspection.*
 import com.intellij.codeInspection.ex.*
-import com.intellij.codeInspection.reference.RefEntity
+import com.intellij.codeInspection.reference.*
 import com.intellij.codeInspection.ui.DefaultInspectionToolPresentation
 import com.intellij.lang.java.JavaLanguage
 import com.intellij.openapi.command.WriteCommandAction
@@ -15,6 +15,7 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiManager
 import com.intellij.psi.impl.source.tree.SharedImplUtil
 import org.jetbrains.idea.inspections.*
 import org.jetbrains.idea.inspections.generators.HTMLGenerator
@@ -144,9 +145,10 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
                     results[inspectionClass] = inspectionWrapper.applyGlobalSimpleInspection(project, files, checker)
                 }
                 is GlobalInspectionTool -> {
-                    @Suppress("UNCHECKED_CAST")
-                    inspectionWrapper as PluginInspectionWrapper<GlobalInspectionTool>
-                    results[inspectionClass] = inspectionWrapper.applyGlobalInspectionTool(project, files, checker)
+                    logger.warn("Global inspection tool '$inspectionClass' is unsupported")
+//                    @Suppress("UNCHECKED_CAST")
+//                    inspectionWrapper as PluginInspectionWrapper<GlobalInspectionTool>
+//                    results[inspectionClass] = inspectionWrapper.applyGlobalInspectionTool(project, files, checker)
                 }
                 else -> {
                     logger.error("Unexpected $inspectionClass which is neither local nor global")
@@ -213,11 +215,8 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
                         problems.forEach { checker.apply(it.level) }
                         if (checker.isFail) return@Runnable
                     }
-                } catch (exception: InspectionException) {
-                    logger.error("Exception during inspection running ${exception.message}")
-                    logger.error(exception.stackTrace.joinToString(separator = "\n") { "    $it" })
-                    logger.error("Caused by: " + (exception.cause.message ?: exception.cause))
-                    logger.error(exception.cause.stackTrace.joinToString(separator = "\n") { "    $it" })
+                } catch (exception: Throwable) {
+                    logger.exception(exception)
                 }
             }
             ProgressManager.getInstance().runProcess(task, EmptyProgressIndicator())
@@ -245,7 +244,7 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
                         if (!inspectionEnabledForFile(psiFile)) continue
                         val fileName = psiFile.name
                         val holder = ProblemsHolder(inspectionManager, psiFile, false)
-                        logger.info("($level) Inspection '$displayName' analyzing started for $fileName")
+                        logger.info("($level) Global simple inspection '$displayName' analyzing started for $fileName")
                         tool.checkFile(psiFile, inspectionManager, holder, context, problemProcessor)
                         val problems = holder.results.mapNotNull {
                             PinnedProblemDescriptor(it, document, displayName, level)
@@ -254,16 +253,35 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
                         problems.forEach { checker.apply(it.level) }
                         if (checker.isFail) return@Runnable
                     }
-                } catch (exception: InspectionException) {
-                    logger.error("Exception during inspection running ${exception.message}")
-                    logger.error(exception.stackTrace.joinToString(separator = "\n") { "    $it" })
-                    logger.error("Caused by: " + (exception.cause.message ?: exception.cause))
-                    logger.error(exception.cause.stackTrace.joinToString(separator = "\n") { "    $it" })
+                } catch (exception: Throwable) {
+                    logger.exception(exception)
                 }
             }
             ProgressManager.getInstance().runProcess(task, EmptyProgressIndicator())
         }
         return InspectionResult(this, inspectionResults)
+    }
+
+    private fun InspectionManagerEx.getGlobalContext(
+            toolWrapper: PluginInspectionWrapper<GlobalInspectionTool>,
+            project: Project,
+            scope: AnalysisScope
+    ): GlobalInspectionContextImpl {
+        val context = createNewGlobalContext(false)
+        context.currentScope = scope
+        val psiManager = PsiManager.getInstance(project)
+        val refManager = context.refManager as RefManagerImpl
+        if (toolWrapper.tool.isGraphNeeded) {
+            try {
+                refManager.findAllDeclarations()
+            } catch (e: Throwable) {
+                context.stdJobDescriptors.BUILD_GRAPH.doneAmount = 0
+                throw e
+            }
+        }
+        psiManager.startBatchFilesProcessingMode()
+        refManager.inspectionReadActionStarted()
+        return context
     }
 
     private fun PluginInspectionWrapper<GlobalInspectionTool>.applyGlobalInspectionTool(
@@ -298,11 +316,8 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
                             }
                         }
                     }.flatten()
-                } catch (exception: InspectionException) {
-                    logger.error("Exception during inspection running ${exception.message}")
-                    logger.error(exception.stackTrace.joinToString(separator = "\n") { "    $it" })
-                    logger.error("Caused by: " + (exception.cause.message ?: exception.cause))
-                    logger.error(exception.cause.stackTrace.joinToString(separator = "\n") { "    $it" })
+                } catch (exception: Throwable) {
+                    logger.exception(exception)
                 }
             }
             ProgressManager.getInstance().runProcess(task, EmptyProgressIndicator())
