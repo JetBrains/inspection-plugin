@@ -15,14 +15,12 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 
 
-class CliTestBench(private val defaultTaskName: String) {
+class CliTestBench(private val defaultTaskName: String) : TestBench<ToolArgumentsBuilder>() {
 
     private val testProjectDir = TemporaryFolder(File(System.getProperty("java.io.tmpdir")))
 
     private val projectDir: File
         get() = testProjectDir.root
-
-    enum class TaskOutcome { FAILED, SUCCESS }
 
     data class BuildResult(val outcome: TaskOutcome, val output: String)
 
@@ -56,11 +54,6 @@ class CliTestBench(private val defaultTaskName: String) {
             appendln("    </profile>")
             appendln("</component>")
         }.toString()
-    }
-
-    private enum class DiagnosticsStatus {
-        SHOULD_PRESENT,
-        SHOULD_BE_ABSENT
     }
 
     private inner class InspectionTestConfiguration(
@@ -139,11 +132,7 @@ class CliTestBench(private val defaultTaskName: String) {
             val testFiles = ArrayList<File>()
             for (source in sources) {
                 val file = source.relativeTo(testDir)
-                val file2 = when {
-                    file.isKotlinSource -> File("src/main/kotlin", file.path)
-                    file.isJavaSource -> File("src/main/java", file.path)
-                    else -> throw IllegalArgumentException("Undefined language of source file $file")
-                }
+                val file2 = file.toMavenLayout()
                 val dir2 = File(projectDir, file2.parentFile.path)
                 if (!dir2.exists()) dir2.mkdirs()
                 val file3 = testProjectDir.newFile(file2.path)
@@ -350,63 +339,30 @@ class CliTestBench(private val defaultTaskName: String) {
         }
     }
 
-    fun doTest(testDir: File, toolArguments: ToolArgumentsBuilder) {
-        val sources = testDir.allSourceFiles.toList()
-        if (sources.isEmpty()) throw IllegalArgumentException("Test directory in $testDir not found.")
-        val expectedSources = testDir.allExpectedSourceFiles.toList()
-        val lines = sources.map { it.readLines() }.flatten()
-
-        val expectedDiagnostics = sources.map { source ->
-            source.readLines().asSequence()
-                    .filter { it.startsWith("//") }
-                    .map { it.drop(2).trim() }
-                    .mapNotNull {
-                        when {
-                            it.startsWith(':') -> source.name + it
-                            it.startsWith("ERROR: :") -> "ERROR: " + source.name + it.removePrefix("ERROR: ")
-                            it.startsWith("WARNING: :") -> "WARNING: " + source.name + it.removePrefix("WARNING: ")
-                            it.startsWith("INFO: :") -> "INFO: " + source.name + it.removePrefix("INFO: ")
-                            else -> null
-                        }
-                    }
-                    .toList()
-        }.flatten()
-
-        fun getParameterValue(parameterName: String, defaultValue: String): String {
-            val line = lines.singleOrNull { it.startsWith("// $parameterName =") } ?: return defaultValue
-            return line.split("=")[1].trim()
-        }
-
-        val xmlReport = getParameterValue("xmlReport", "false").toBoolean()
-        val htmlReport = getParameterValue("htmlReport", "false").toBoolean()
-
-        val expectedDiagnosticsStatus = lines.asSequence()
-                .map { it.trim() }
-                .find { it == "// SHOULD_BE_ABSENT" }
-                ?.let { DiagnosticsStatus.SHOULD_BE_ABSENT }
-                ?: DiagnosticsStatus.SHOULD_PRESENT
-        val expectedOutcome = lines.asSequence()
-                .map { it.trim() }
-                .find { it.startsWith("// FAIL") }
-                ?.let { TaskOutcome.FAILED }
-                ?: TaskOutcome.SUCCESS
-        val expectedException = lines.asSequence()
-                .map { it.trim() }
-                .find { it.startsWith("// FAIL:") }
-                ?.removePrefix("// FAIL:")
-                ?.trim()
-
+    override fun doTest(
+            arguments: ToolArgumentsBuilder,
+            testDir: File,
+            sources: List<File>,
+            expectedSources: List<File>,
+            xmlReport: Boolean,
+            htmlReport: Boolean,
+            kotlinVersion: String,
+            expectedOutcome: TestBench.TaskOutcome,
+            expectedException: String?,
+            expectedDiagnosticsStatus: TestBench.DiagnosticsStatus,
+            vararg expectedDiagnostics: String
+    ) {
         InspectionTestConfiguration(
                 testDir,
                 sources,
                 expectedSources,
-                toolArguments,
+                arguments,
                 xmlReport,
                 htmlReport,
                 expectedOutcome,
                 expectedException,
                 expectedDiagnosticsStatus,
-                *expectedDiagnostics.toTypedArray()
+                *expectedDiagnostics
         ).doTest()
     }
 }

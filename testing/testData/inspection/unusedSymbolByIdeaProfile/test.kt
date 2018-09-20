@@ -9,6 +9,6 @@ fun foo(arg: Int) {}
 val answer get() = 42
 
 // FAIL
-// :5:7: Class "My" is never used
-// :7:5: Function "foo" is never used
-// :9:5: Property "answer" is never used
+// ERROR: :5:7: Class "My" is never used
+// ERROR: :7:5: Function "foo" is never used
+// ERROR: :9:5: Property "answer" is never used
