@@ -260,17 +260,13 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
                 if (!file.canWrite()) continue
                 val systemMarkerFile = File(file, SYSTEM_MARKER_FILE)
                 // To prevent usages by multiple processes
-                when (acquireSystemLock(systemMarkerFile)) {
-                    LockStatus.SKIP -> throw RunnerException("IDEA system path is already used in current process")
-                    LockStatus.FREE -> return file
-                    LockStatus.USED -> Unit
-                }
+                if (acquireSystemLock(systemMarkerFile) == LockStatus.FREE) return file
             }
             throw RunnerException("Cannot create IDEA system directory (all locked)")
         }
 
         private fun acquireSystemLock(systemLockFile: File): LockStatus {
-            if (!systemLockFile.exists()) systemLockFile.createNewFile()
+            systemLockFile.createNewFile()
             val channel = FileChannel.open(systemLockFile.toPath(), StandardOpenOption.WRITE)
             return try {
                 systemLock = channel?.tryLock()
@@ -279,7 +275,7 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
                     else -> LockStatus.FREE
                 }
             } catch (ignore: OverlappingFileLockException) {
-                LockStatus.SKIP
+                throw RunnerException("IDEA system path is already used in current process")
             } catch (e: IOException) {
                 throw RunnerException("IDEA system lock ${systemLockFile.name} locking: $e", e)
             }
@@ -290,7 +286,7 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
             systemLockChannel?.close()
         }
 
-        enum class LockStatus { FREE, USED, SKIP }
+        enum class LockStatus { FREE, USED }
     }
 
     companion object {

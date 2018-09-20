@@ -110,7 +110,6 @@ val unzipIdea = task<Sync>("unzip-idea") {
         dependsOn(this)
         from(zipTree(singleFile))
         into(ideaDirectory)
-        println("IDEA unzipped to '$ideaDirectory'")
     }
 }
 
