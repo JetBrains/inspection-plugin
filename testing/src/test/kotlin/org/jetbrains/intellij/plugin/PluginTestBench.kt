@@ -2,7 +2,6 @@ package org.jetbrains.intellij.plugin
 
 import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.GradleRunner
-import org.gradle.testkit.runner.TaskOutcome
 import org.gradle.testkit.runner.UnexpectedBuildFailure
 import org.gradle.testkit.runner.internal.PluginUnderTestMetadataReading
 import org.jdom2.input.SAXBuilder
@@ -15,7 +14,7 @@ import org.junit.rules.TemporaryFolder
 import java.io.File
 import java.util.*
 
-class PluginTestBench(private val taskName: String) {
+class PluginTestBench(private val taskName: String) : TestBench<InspectionPluginExtension>() {
 
     private val testProjectDir = TemporaryFolder(File(System.getProperty("java.io.tmpdir")))
 
@@ -159,11 +158,6 @@ class PluginTestBench(private val taskName: String) {
         }.toString()
     }
 
-    private enum class DiagnosticsStatus {
-        SHOULD_PRESENT,
-        SHOULD_BE_ABSENT
-    }
-
     private inner class InspectionTestConfiguration(
             val testDir: File,
             val sources: List<File>,
@@ -172,7 +166,7 @@ class PluginTestBench(private val taskName: String) {
             val xmlReport: Boolean,
             val htmlReport: Boolean,
             val kotlinVersion: String,
-            val expectedOutcome: TaskOutcome,
+            val expectedOutcome: org.gradle.testkit.runner.TaskOutcome,
             val expectedException: String?,
             val expectedDiagnosticsStatus: DiagnosticsStatus,
             vararg val expectedDiagnostics: String
@@ -337,65 +331,36 @@ class PluginTestBench(private val taskName: String) {
         }
     }
 
-    fun doTest(testDir: File, extension: InspectionPluginExtension) {
-        val sources = testDir.allSourceFiles.toList()
-        if (sources.isEmpty()) throw IllegalArgumentException("Test directory in $testDir not found.")
-        val expectedSources = testDir.allExpectedSourceFiles.toList()
-        val lines = sources.map { it.readLines() }.flatten()
-
-        val expectedDiagnostics = sources.map { source ->
-            source.readLines().asSequence()
-                    .filter { it.startsWith("//") }
-                    .map { it.drop(2).trim() }
-                    .mapNotNull {
-                        when {
-                            it.startsWith(':') -> source.name + it
-                            it.startsWith("ERROR: :") -> "ERROR: " + source.name + it.removePrefix("ERROR: ")
-                            it.startsWith("WARNING: :") -> "WARNING: " + source.name + it.removePrefix("WARNING: ")
-                            it.startsWith("INFO: :") -> "INFO: " + source.name + it.removePrefix("INFO: ")
-                            else -> null
-                        }
-                    }
-                    .toList()
-        }.flatten()
-
-        fun getParameterValue(parameterName: String, defaultValue: String): String {
-            val line = lines.singleOrNull { it.startsWith("// $parameterName =") } ?: return defaultValue
-            return line.split("=")[1].trim()
+    override fun doTest(
+            arguments: InspectionPluginExtension,
+            testDir: File,
+            sources: List<File>,
+            expectedSources: List<File>,
+            xmlReport: Boolean,
+            htmlReport: Boolean,
+            kotlinVersion: String,
+            expectedOutcome: TestBench.TaskOutcome,
+            expectedException: String?,
+            expectedDiagnosticsStatus: DiagnosticsStatus,
+            vararg expectedDiagnostics: String
+    ) {
+        val expectedGradleOutcome = when (expectedOutcome) {
+            TestBench.TaskOutcome.FAILED -> org.gradle.testkit.runner.TaskOutcome.FAILED
+            TestBench.TaskOutcome.SUCCESS -> org.gradle.testkit.runner.TaskOutcome.SUCCESS
         }
-
-        val xmlReport = getParameterValue("xmlReport", "false").toBoolean()
-        val htmlReport = getParameterValue("htmlReport", "false").toBoolean()
-        val kotlinVersion = getParameterValue("kotlinVersion", "1.2.0")
-
-        val expectedDiagnosticsStatus = lines.asSequence()
-                .map { it.trim() }
-                .find { it == "// SHOULD_BE_ABSENT" }
-                ?.let { DiagnosticsStatus.SHOULD_BE_ABSENT }
-                ?: DiagnosticsStatus.SHOULD_PRESENT
-        val expectedOutcome = lines.asSequence()
-                .map { it.trim() }
-                .find { it.startsWith("// FAIL") }
-                ?.let { TaskOutcome.FAILED }
-                ?: TaskOutcome.SUCCESS
-        val expectedException = lines.asSequence()
-                .map { it.trim() }
-                .find { it.startsWith("// FAIL:") }
-                ?.removePrefix("// FAIL:")
-                ?.trim()
 
         InspectionTestConfiguration(
                 testDir,
                 sources,
                 expectedSources,
-                extension,
+                arguments,
                 xmlReport,
                 htmlReport,
                 kotlinVersion,
-                expectedOutcome,
+                expectedGradleOutcome,
                 expectedException,
                 expectedDiagnosticsStatus,
-                *expectedDiagnostics.toTypedArray()
+                *expectedDiagnostics
         ).doTest()
     }
 }
