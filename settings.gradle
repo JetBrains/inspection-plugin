@@ -5,6 +5,7 @@ include 'plugin'
 include 'cli'
 include 'sample'
 include 'frontend'
+include 'testing'
 
 // It flag provided stable plugin publishing (configuration of publishing
 // task will be in-place but not a in end of build configuration). It needed

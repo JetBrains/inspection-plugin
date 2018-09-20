@@ -25,8 +25,14 @@
       "directory": "plugin",
       "sourceSets": [
         "plugin/src/main/kotlin",
-        "plugin/src/main/java",
-        "plugin/src/test/kotlin"
+        "plugin/src/main/java"
+      ]
+    },
+    {
+      "name": "testing",
+      "directory": "testing",
+      "sourceSets": [
+        "testing/src/test/kotlin"
       ]
     },
     {
