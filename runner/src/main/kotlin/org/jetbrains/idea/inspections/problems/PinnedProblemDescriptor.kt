@@ -8,15 +8,20 @@ import org.jetbrains.idea.inspections.getLine
 import org.jetbrains.idea.inspections.getRow
 import org.jetbrains.idea.inspections.relativeFilePath
 import com.intellij.openapi.util.text.StringUtil.replace
+import com.intellij.psi.PsiElement
+import org.jetbrains.idea.inspections.getLine
+import org.jetbrains.idea.inspections.getRow
 
 class PinnedProblemDescriptor private constructor(
         private val descriptor: ProblemDescriptor,
         val fileName: String,
         val line: Int,
         val row: Int,
-        val displayName: String?,
-        val level: ProblemLevel
-) : ProblemDescriptor by descriptor {
+        override val displayName: String,
+        override val level: ProblemLevel
+) : ProblemDescriptor by descriptor, DisplayableProblemDescriptor<PsiElement> {
+
+    override val entity = psiElement?.let { Entity.Element(it) }
 
     private val highlightedText = psiElement?.let {
         ProblemDescriptorUtil.extractHighlightedText(this, it)
@@ -24,20 +29,21 @@ class PinnedProblemDescriptor private constructor(
 
     fun renderLocation() = "$fileName:${line + 1}:${row + 1}"
 
-    fun renderWithLocation(): String = renderLocation() + ": " + render()
+    private fun String.replace(oldS: String, newS: String) = replace(this, oldS, newS)
 
-    private fun String.intellijReplace(oldS: String, newS: String) = replace(this, oldS, newS)
+    fun renderDescription() = descriptionTemplate.replace("#ref", highlightedText).replace(" #loc", "")
 
-    fun render(): String = descriptionTemplate.intellijReplace("#ref", highlightedText).intellijReplace(" #loc", "")
+    override fun render() = renderLocation() + ": " + renderDescription()
 
     companion object {
         fun createIfProblem(
                 descriptor: ProblemDescriptor,
                 document: Document,
-                displayName: String?,
+                displayName: String,
                 problemLevel: ProblemLevel?
         ): PinnedProblemDescriptor? {
-            val level = actualLevel(problemLevel, descriptor.highlightType) ?: return null
+            val level = actualLevel(problemLevel, descriptor.highlightType)
+                    ?: return null
             val lineNumber = descriptor.psiElement.getLine(document)
             val fileName = descriptor.psiElement.relativeFilePath
             val rowNumber = descriptor.psiElement.getRow(document, lineNumber)

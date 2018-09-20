@@ -1,9 +1,11 @@
 package org.jetbrains.idea.inspections.runners
 
+import com.intellij.analysis.AnalysisScope
 import com.intellij.codeInsight.FileModificationService
 import com.intellij.codeInspection.*
-import com.intellij.codeInspection.ex.ApplicationInspectionProfileManager
-import com.intellij.codeInspection.ex.InspectionToolRegistrar
+import com.intellij.codeInspection.ex.*
+import com.intellij.codeInspection.reference.*
+import com.intellij.codeInspection.ui.DefaultInspectionToolPresentation
 import com.intellij.lang.java.JavaLanguage
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Document
@@ -13,11 +15,12 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
-import org.jetbrains.idea.inspections.acceptRecursively
+import com.intellij.psi.PsiManager
+import com.intellij.psi.impl.source.tree.SharedImplUtil
+import org.jetbrains.idea.inspections.*
 import org.jetbrains.idea.inspections.generators.HTMLGenerator
 import org.jetbrains.idea.inspections.generators.XMLGenerator
-import org.jetbrains.idea.inspections.problems.PinnedProblemDescriptor
-import org.jetbrains.idea.inspections.problems.ProblemLevel
+import org.jetbrains.idea.inspections.problems.*
 import org.jetbrains.intellij.ProxyLogger
 import org.jetbrains.intellij.parameters.InspectionsRunnerParameters
 import java.io.File
@@ -26,14 +29,15 @@ import java.util.*
 
 class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerParameters>(logger) {
 
-    class PluginInspectionWrapper<out T : InspectionProfileEntry>(
-            val tool: T,
-            val extension: InspectionEP?,
-            val classFqName: String,
+    class PluginInspectionWrapper<T : InspectionProfileEntry>(
+            val wrapper: InspectionToolWrapper<T, InspectionEP>,
             val name: String,
-            val language: String?,
             val level: ProblemLevel?
     ) {
+        val tool: T = wrapper.tool
+        val extension: InspectionEP? = wrapper.extension
+        val language: String? = wrapper.language
+        val classFqName: String = wrapper.tool.javaClass.name
 
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
@@ -77,9 +81,8 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
         logger.info("Profile file = ${profile.name}")
         return profile.getAllEnabledInspectionTools(project).map {
             val tool = it.tool
-            val classFqName = tool.tool.javaClass.name
             val level = ProblemLevel.fromInspectionEPLevel(it.defaultState.level.name)
-            PluginInspectionWrapper(tool.tool, tool.extension, classFqName, tool.displayName, tool.language, level)
+            PluginInspectionWrapper(tool, tool.displayName, level)
         }
     }
 
@@ -102,7 +105,7 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
                 it.tool.javaClass.name == name
                         || it.tool.javaClass.name.split(".").last() == longInspectionClassName
                         || it.tool.displayName == name
-            }?.let { PluginInspectionWrapper(it.tool, it.extension, it.tool.javaClass.name, name, it.language, level) }
+            }?.let { PluginInspectionWrapper(it, name, level) }
                     ?: throw IllegalArgumentException("'$name' is not found in registrar")
         }
     }
@@ -112,7 +115,7 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
             project: Project,
             parameters: InspectionsRunnerParameters
     ): Boolean {
-        val checker = InspectionChecker()
+        val checker = InspectionChecker(parameters)
         val results = analyze(files, project, parameters, checker)
         reportProblems(parameters, results)
         quickFixProblems(project, parameters, results)
@@ -136,10 +139,18 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
                 is LocalInspectionTool -> {
                     @Suppress("UNCHECKED_CAST")
                     inspectionWrapper as PluginInspectionWrapper<LocalInspectionTool>
-                    results[inspectionClass] = inspectionWrapper.apply(files, parameters, checker)
+                    results[inspectionClass] = inspectionWrapper.applyLocalInspection(files, checker)
+                }
+                is GlobalSimpleInspectionTool -> {
+                    @Suppress("UNCHECKED_CAST")
+                    inspectionWrapper as PluginInspectionWrapper<GlobalSimpleInspectionTool>
+                    results[inspectionClass] = inspectionWrapper.applyGlobalSimpleInspection(project, files, checker)
                 }
                 is GlobalInspectionTool -> {
-                    logger.warn("Global inspection tools like $inspectionClass are not yet supported")
+                    logger.warn("Global inspection tool '$inspectionClass' is unsupported")
+//                    @Suppress("UNCHECKED_CAST")
+//                    inspectionWrapper as PluginInspectionWrapper<GlobalInspectionTool>
+//                    results[inspectionClass] = inspectionWrapper.applyGlobalInspectionTool(project, files, checker)
                 }
                 else -> {
                     logger.error("Unexpected $inspectionClass which is neither local nor global")
@@ -150,7 +161,7 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
         return results
     }
 
-    class InspectionChecker {
+    inner class InspectionChecker(private val parameters: InspectionsRunnerParameters) {
         private var errors: Int = 0
         private var warnings: Int = 0
         private var info: Int = 0
@@ -162,11 +173,14 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
         val isFail: Boolean
             get() = !success
 
-        fun apply(level: ProblemLevel, parameters: InspectionsRunnerParameters, errorListener: (String, Int) -> Unit) {
+        fun apply(level: ProblemLevel) {
             when (level) {
                 ProblemLevel.ERROR -> errors++
                 ProblemLevel.WARNING, ProblemLevel.WEAK_WARNING -> warnings++
                 ProblemLevel.INFO -> info++
+            }
+            val errorListener: (String, Int) -> Unit = { name, number ->
+                logger.error("Too many $name found: $number. Analysis stopped")
             }
             when {
                 parameters.errors.isTooMany(errors) -> errorListener("errors", errors)
@@ -180,14 +194,13 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
         private fun InspectionsRunnerParameters.Inspections.isTooMany(value: Int) = max?.let { value > it } ?: false
     }
 
-    data class InspectionResult<out T : InspectionProfileEntry>(
+    data class InspectionResult<T : InspectionProfileEntry>(
             val wrapper: PluginInspectionWrapper<T>,
-            val problems: List<PinnedProblemDescriptor>
+            val problems: List<DisplayableProblemDescriptor<*>>
     )
 
-    private fun PluginInspectionWrapper<LocalInspectionTool>.apply(
+    private fun PluginInspectionWrapper<LocalInspectionTool>.applyLocalInspection(
             files: Collection<FileInfo>,
-            parameters: InspectionsRunnerParameters,
             checker: InspectionChecker
     ): InspectionResult<LocalInspectionTool> {
         val displayName = extension?.displayName ?: "<Unknown diagnostic>"
@@ -195,29 +208,124 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
         runReadAction {
             val task = Runnable {
                 try {
-                    for ((psiFile, document) in files) {
-                        if (!inspectionEnabledForFile(psiFile)) continue
-                        val fileName = psiFile.name
+                    for (fileInfo in files) {
+                        if (!inspectionEnabledForFile(fileInfo.psiFile)) continue
+                        val fileName = fileInfo.psiFile.name
                         logger.info("($level) Inspection '$displayName' analyzing started for $fileName")
-                        val problems = tool.analyze(psiFile, document, displayName, level)
+                        val problems = tool.analyze(fileInfo.psiFile, fileInfo.document, displayName, level)
                         inspectionResults += problems
-                        for (problem in problems) {
-                            checker.apply(problem.level, parameters) { name, number ->
-                                logger.error("Too many $name found: $number. Analysis stopped")
-                            }
-                            if (checker.isFail) return@Runnable
-                        }
+                        problems.forEach { checker.apply(it.level) }
+                        if (checker.isFail) return@Runnable
                     }
-                } catch (exception: InspectionException) {
-                    logger.error("Exception during inspection running ${exception.message}")
-                    logger.error(exception.stackTrace.joinToString(separator = "\n") { "    $it" })
-                    logger.error("Caused by: " + (exception.cause.message ?: exception.cause))
-                    logger.error(exception.cause.stackTrace.joinToString(separator = "\n") { "    $it" })
+                } catch (exception: Throwable) {
+                    logger.exception(exception)
                 }
             }
             ProgressManager.getInstance().runProcess(task, EmptyProgressIndicator())
         }
         return InspectionResult(this, inspectionResults)
+    }
+
+    private fun PluginInspectionWrapper<GlobalSimpleInspectionTool>.applyGlobalSimpleInspection(
+            project: Project,
+            files: Collection<FileInfo>,
+            checker: InspectionChecker
+    ): InspectionResult<GlobalSimpleInspectionTool> {
+        val displayName = extension?.displayName ?: "<Unknown diagnostic>"
+        val inspectionResults = mutableListOf<PinnedProblemDescriptor>()
+        val inspectionManager = InspectionManager.getInstance(project)
+        val contentManager = (inspectionManager as InspectionManagerEx).contentManager
+        val context = GlobalInspectionContextImpl(project, contentManager)
+        val problemProcessor = DefaultInspectionToolPresentation(wrapper, context)
+        runReadAction {
+            val task = Runnable {
+                try {
+                    for (fileInfo in files) {
+                        val psiFile = fileInfo.psiFile
+                        val document = fileInfo.document
+                        if (!inspectionEnabledForFile(psiFile)) continue
+                        val fileName = psiFile.name
+                        val holder = ProblemsHolder(inspectionManager, psiFile, false)
+                        logger.info("($level) Global simple inspection '$displayName' analyzing started for $fileName")
+                        tool.checkFile(psiFile, inspectionManager, holder, context, problemProcessor)
+                        val problems = holder.results.mapNotNull {
+                            PinnedProblemDescriptor.createIfProblem(it, document, displayName, level)
+                        }
+                        inspectionResults += problems
+                        problems.forEach { checker.apply(it.level) }
+                        if (checker.isFail) return@Runnable
+                    }
+                } catch (exception: Throwable) {
+                    logger.exception(exception)
+                }
+            }
+            ProgressManager.getInstance().runProcess(task, EmptyProgressIndicator())
+        }
+        return InspectionResult(this, inspectionResults)
+    }
+
+    private fun InspectionManagerEx.getGlobalContext(
+            toolWrapper: PluginInspectionWrapper<GlobalInspectionTool>,
+            project: Project,
+            scope: AnalysisScope
+    ): GlobalInspectionContextImpl {
+        val context = createNewGlobalContext(false)
+        context.currentScope = scope
+        val psiManager = PsiManager.getInstance(project)
+        val refManager = context.refManager as RefManagerImpl
+        if (toolWrapper.tool.isGraphNeeded) {
+            try {
+                refManager.findAllDeclarations()
+            } catch (e: Throwable) {
+                context.stdJobDescriptors.BUILD_GRAPH.doneAmount = 0
+                throw e
+            }
+        }
+        psiManager.startBatchFilesProcessingMode()
+        refManager.inspectionReadActionStarted()
+        return context
+    }
+
+    private fun PluginInspectionWrapper<GlobalInspectionTool>.applyGlobalInspectionTool(
+            project: Project,
+            files: Collection<FileInfo>,
+            checker: InspectionChecker
+    ): InspectionResult<GlobalInspectionTool> {
+        val displayName = extension?.displayName ?: "<Unknown diagnostic>"
+        val inspectionManager = InspectionManager.getInstance(project)
+        val contentManager = (inspectionManager as InspectionManagerEx).contentManager
+        val context = GlobalInspectionContextImpl(project, contentManager)
+        val problemProcessor = DefaultInspectionToolPresentation(wrapper, context)
+        val scope = AnalysisScope(project, files.map { it.virtualFile })
+        var problems: List<DisplayableProblemDescriptor<*>> = ArrayList()
+        runReadAction {
+            val task = Runnable {
+                try {
+                    val documents = files.map { it.virtualFile.path to it.document }.toMap()
+                    logger.info("($level) Global inspection '$displayName' analyzing started")
+                    tool.runInspection(scope, inspectionManager, context, problemProcessor)
+                    problems = problemProcessor.resolvedElements.map {
+                        problemProcessor.getResolvedProblems(it).mapNotNull { problem ->
+                            if (problem is ProblemDescriptor) {
+                                val document = documents[problem.psiElement.containingFile.virtualFile.path]
+                                if (document != null) {
+                                    PinnedProblemDescriptor.createIfProblem(problem, document, displayName, level)
+                                } else {
+                                    DisplayableProblemDescriptorImpl<RefEntity>(problem, it, displayName, level)
+                                }
+                            } else {
+                                DisplayableProblemDescriptorImpl<RefEntity>(problem, it, displayName, level)
+                            }
+                        }
+                    }.flatten()
+                } catch (exception: Throwable) {
+                    logger.exception(exception)
+                }
+            }
+            ProgressManager.getInstance().runProcess(task, EmptyProgressIndicator())
+        }
+        problems.forEach { checker.apply(it.level) }
+        return InspectionResult(this, problems)
     }
 
     private fun reportProblems(parameters: InspectionsRunnerParameters, results: Map<String, InspectionResult<*>>) {
@@ -227,14 +335,15 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
                 parameters.reportParameters.xml?.let { XMLGenerator(it) },
                 parameters.reportParameters.html?.let { HTMLGenerator(it) }
         )
-        val sortedResults = results.entries
-                .map { entry -> entry.value.problems.map { entry.key to it } }
-                .flatten()
-                .asSequence()
+        val problems = results.entries.map { entry -> entry.value.problems.map { entry.key to it } }.flatten()
+        val (pinnedProblems, displayableProblems) = problems.partition { it.second is PinnedProblemDescriptor }
+        @Suppress("UNCHECKED_CAST")
+        val sortedPinnedProblems = (pinnedProblems as List<Pair<String, PinnedProblemDescriptor>>)
                 .sortedBy { (it.second.line shl 16) + it.second.row }
                 .groupBy { it.second.fileName }
+        val sortedResults = sortedPinnedProblems.values + listOf(displayableProblems)
         runReadAction {
-            for (fileInspectionAndProblems in sortedResults.values) {
+            for (fileInspectionAndProblems in sortedResults) {
                 for ((inspectionClass, problem) in fileInspectionAndProblems) {
                     if (!parameters.reportParameters.isQuiet) log(problem)
                     generators.forEach { it.report(problem, inspectionClass) }
@@ -244,14 +353,25 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
         }
     }
 
+    private fun PsiFile.invalidateIfInvalid() = when {
+        isValid -> this
+        else -> null
+    }
+
+    private fun Entity<*>.asFile(): PsiFile? = when (this) {
+        is Entity.Element -> SharedImplUtil.getContainingFile(reference.node)?.invalidateIfInvalid()
+        is Entity.File -> reference.element
+        else -> null
+    }
+
     private fun quickFixProblems(
             project: Project,
             parameters: InspectionsRunnerParameters,
             results: Map<String, InspectionResult<*>>
     ) {
         if (!parameters.isAvailableCodeChanging) return
-        val writeFixes = ArrayList<Pair<PinnedProblemDescriptor, QuickFix<CommonProblemDescriptor>>>()
-        val otherFixes = ArrayList<Pair<PinnedProblemDescriptor, QuickFix<CommonProblemDescriptor>>>()
+        val writeFixes = ArrayList<Pair<DisplayableProblemDescriptor<*>, QuickFix<CommonProblemDescriptor>>>()
+        val otherFixes = ArrayList<Pair<DisplayableProblemDescriptor<*>, QuickFix<CommonProblemDescriptor>>>()
         @Suppress("UNUSED_VARIABLE")
         for ((inspectionClassName, result) in results) {
             val quickFix = parameters.inspections[result.wrapper.name]?.quickFix
@@ -259,7 +379,7 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
             for (problem in result.problems) {
                 val fixes = problem.fixes ?: continue
                 if (fixes.size != 1) {
-                    logger.error("Can not apply problem fixes for '${problem.renderWithLocation()}'")
+                    logger.error("Can not apply problem fixes for '${problem.render()}'")
                     continue
                 }
                 val fix = fixes[0]
@@ -273,16 +393,16 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
         val files = ArrayList<PsiFile>()
         runWriteCommandAction(project) {
             for ((problem, fix) in writeFixes) {
-                fileModificationService.applyFixWithChecks(fix, project, problem)?.let {
-                    files.add(it)
-                }
+                val file = problem.entity?.asFile()
+                fileModificationService.applyFix(fix, project, problem)
+                if (file != null) files.add(file)
             }
         }
         invokeAndWait {
             for ((problem, fix) in otherFixes) {
-                fileModificationService.applyFixWithChecks(fix, project, problem)?.let {
-                    files.add(it)
-                }
+                val file = problem.entity?.asFile()
+                fileModificationService.applyFix(fix, project, problem)
+                if (file != null) files.add(file)
             }
         }
         invokeAndWait {
@@ -290,29 +410,10 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
         }
     }
 
+    private fun QuickFix<CommonProblemDescriptor>.render(problem: DisplayableProblemDescriptor<*>) = "fix '$name' for '${problem.render()}'"
+
     private fun runWriteCommandAction(project: com.intellij.openapi.project.Project, action: () -> Unit) =
             WriteCommandAction.runWriteCommandAction(project, action)
-
-    private fun FileModificationService.applyFixWithChecks(
-            fix: QuickFix<CommonProblemDescriptor>,
-            project: Project,
-            problem: PinnedProblemDescriptor
-    ): PsiFile? {
-        val renderedFix = fix.name
-        val renderedProblem = problem.renderLocation()
-        val identificator = "fix '$renderedFix' for '$renderedProblem'"
-        val file = problem.psiElement?.containingFile
-        runReadAction {
-            val beforeText = file?.text
-            applyFix(fix, project, problem)
-            val afterText = file?.text
-            when (afterText) {
-                beforeText -> logger.info("File hasn't changes after $identificator")
-                else -> logger.info("File has changes after $identificator")
-            }
-        }
-        return file
-    }
 
     private fun Project.flushChanges(files: List<PsiFile>) {
         logger.info("Flush IDEA project")
@@ -334,33 +435,31 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
     private fun FileModificationService.applyFix(
             fix: QuickFix<CommonProblemDescriptor>,
             project: Project,
-            problem: PinnedProblemDescriptor
+            problem: DisplayableProblemDescriptor<*>
     ) {
-        val renderedFix = fix.name
-        val renderedProblem = problem.renderLocation()
-        val identificator = "fix '$renderedFix' for '$renderedProblem'"
-        if (problem.psiElement == null) {
-            logger.info("Already applied $identificator")
+        val renderedFix = fix.render(problem)
+        if (problem is PinnedProblemDescriptor && problem.psiElement == null) {
+            logger.info("Already applied $renderedFix")
             return
         }
         try {
-            if (!preparePsiElementForWrite(problem.psiElement)) {
-                logger.warn("Problem psiElement cannot be prepared $identificator")
+            if (problem is PinnedProblemDescriptor && !preparePsiElementForWrite(problem.psiElement)) {
+                logger.warn("Problem psiElement cannot be prepared $renderedFix")
                 return
             }
             fix.applyFix(project, problem)
-            logger.info("Applied $identificator")
+            logger.info("Applied $renderedFix")
             return
         } catch (exception: Exception) {
-            logger.error("Exception during applying quick $identificator")
+            logger.error("Exception during applying quick $renderedFix")
             logger.error("$exception")
             return
         }
     }
 
-    private fun log(problem: PinnedProblemDescriptor) {
+    private fun log(problem: DisplayableProblemDescriptor<*>) {
         val level = problem.level
-        val problemWithLocation = "$level: " + problem.renderWithLocation()
+        val problemWithLocation = "$level: " + problem.render()
         when (level) {
             ProblemLevel.INFO -> logger.info(problemWithLocation)
             ProblemLevel.WARNING, ProblemLevel.WEAK_WARNING -> logger.warn(problemWithLocation)
@@ -384,7 +483,7 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
     private fun LocalInspectionTool.analyze(
             file: PsiFile,
             document: Document,
-            displayName: String?,
+            displayName: String,
             problemLevel: ProblemLevel?
     ): List<PinnedProblemDescriptor> {
         val holder = ProblemsHolder(InspectionManager.getInstance(file.project), file, false)
