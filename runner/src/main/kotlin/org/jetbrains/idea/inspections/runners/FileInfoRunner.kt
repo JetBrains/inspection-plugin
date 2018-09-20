@@ -7,6 +7,7 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ProjectFileIndex
 import com.intellij.openapi.util.io.FileUtilRt
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
@@ -15,7 +16,7 @@ import org.jetbrains.intellij.parameters.FileInfoRunnerParameters
 import java.util.*
 
 abstract class FileInfoRunner<T>(logger: ProxyLogger) : IdeaRunner<FileInfoRunnerParameters<T>>(logger) {
-    data class FileInfo(val psiFile: PsiFile, val document: Document)
+    data class FileInfo(val psiFile: PsiFile, val virtualFile: VirtualFile, val document: Document)
 
     abstract fun analyze(files: Collection<FileInfo>, project: Project, parameters: T): Boolean
 
@@ -57,7 +58,7 @@ abstract class FileInfoRunner<T>(logger: ProxyLogger) : IdeaRunner<FileInfoRunne
                         logger.warn("Cannot get document for file $file $message")
                         continue
                     }
-                    files.add(FileInfo(psiFile, document))
+                    files.add(FileInfo(psiFile, virtualFile, document))
                 }
             }
             ProgressManager.getInstance().runProcess(task, EmptyProgressIndicator())

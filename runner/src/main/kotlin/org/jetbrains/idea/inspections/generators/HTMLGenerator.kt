@@ -5,14 +5,15 @@ import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import org.jetbrains.idea.inspections.PinnedProblemDescriptor
-import org.jetbrains.idea.inspections.ProblemLevel
-import org.jetbrains.idea.inspections.getLine
+import org.jetbrains.idea.inspections.*
+import org.jetbrains.idea.inspections.problems.DisplayableProblemDescriptor
+import org.jetbrains.idea.inspections.problems.PinnedProblemDescriptor
+import org.jetbrains.idea.inspections.problems.ProblemLevel
 import java.io.File
 import java.util.*
 
 class HTMLGenerator(override val reportFile: File) : ReportGenerator {
-    private val problems = ArrayList<PinnedProblemDescriptor>()
+    private val problems = ArrayList<DisplayableProblemDescriptor<*>>()
 
     private fun HTML.generateHead() {
         tag("style") {
@@ -104,44 +105,59 @@ class HTMLGenerator(override val reportFile: File) : ReportGenerator {
         }
     }
 
-    private fun HTML.generateBody() {
-        val documentManager = FileDocumentManager.getInstance()
-        for (problem in problems) {
-            tag("p") {
-                line {
-                    text("In file ")
-                    tag("b") {
-                        text(problem.renderLocation())
-                    }
-                    text(":")
+    private fun HTML.generatePinnedProblem(problem: PinnedProblemDescriptor, documentManager: FileDocumentManager) {
+        tag("p") {
+            line {
+                text("In file ")
+                tag("b") {
+                    text(problem.renderLocation())
                 }
+                text(":")
             }
+        }
 
-            val psiElement = problem.psiElement
-            val problemTag = when (problem.highlightType) {
-                ProblemHighlightType.LIKE_UNUSED_SYMBOL -> "unused"
-                else -> when (problem.level) {
-                    ProblemLevel.ERROR -> "error"
-                    ProblemLevel.WARNING -> "warning"
-                    ProblemLevel.WEAK_WARNING, ProblemLevel.INFO -> "info"
-                }
+        val psiElement = problem.psiElement
+        val problemTag = when (problem.highlightType) {
+            ProblemHighlightType.LIKE_UNUSED_SYMBOL -> "unused"
+            else -> when (problem.level) {
+                ProblemLevel.ERROR -> "error"
+                ProblemLevel.WARNING -> "warning"
+                ProblemLevel.WEAK_WARNING, ProblemLevel.INFO -> "info"
             }
-            val document = psiElement?.containingFile?.virtualFile?.let { documentManager.getDocument(it) }
-            psiElement?.findElementToPrint(document)?.let {
-                printSmartly(it, psiElement, problemTag, document)
-            }
+        }
+        val document = psiElement?.containingFile?.virtualFile?.let { documentManager.getDocument(it) }
+        psiElement?.findElementToPrint(document)?.let {
+            printSmartly(it, psiElement, problemTag, document)
+        }
 
-            tag("p") {
-                line {
-                    tag("i") {
-                        text(problem.render())
-                    }
+        tag("p") {
+            line {
+                tag("i") {
+                    text(problem.renderDescription())
                 }
             }
         }
     }
 
-    override fun report(problem: PinnedProblemDescriptor, inspectionClass: String) {
+    private fun HTML.generateProblem(problem: DisplayableProblemDescriptor<*>) {
+        tag("p") {
+            line {
+                tag("i") {
+                    text(problem.render())
+                }
+            }
+        }
+    }
+
+    private fun HTML.generateBody() {
+        val documentManager = FileDocumentManager.getInstance()
+        for (problem in problems) when (problem) {
+            is PinnedProblemDescriptor -> generatePinnedProblem(problem, documentManager)
+            else -> generateProblem(problem)
+        }
+    }
+
+    override fun report(problem: DisplayableProblemDescriptor<*>, inspectionClass: String) {
         problems.add(problem)
     }
 

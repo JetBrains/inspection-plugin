@@ -39,10 +39,9 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
 
     private fun openProject(projectDir: File, projectName: String, moduleName: String): Project {
         logger.info("Before project creation at '$projectDir'")
-        var ideaProject: Project? = null
         val projectFile = File(projectDir, projectName + ProjectFileType.DOT_DEFAULT_EXTENSION)
-        invokeAndWait {
-            ideaProject = when (projectFile.exists()) {
+        val ideaProject = invokeAndWait {
+            when (projectFile.exists()) {
                 true -> ProjectUtil.openOrImport(projectFile.absolutePath, null, true)
                 false -> ProjectUtil.openOrImport(projectDir.absolutePath, null, true)
             }
@@ -93,9 +92,18 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
         }
     }
 
-    fun invokeAndWait(action: () -> Unit) = idea.invokeAndWait(action)
+    fun <R> invokeAndWait(action: () -> R): R = idea.invoke(Application::invokeAndWait, action)
 
-    fun runReadAction(action: () -> Unit) = idea.runReadAction(action)
+    fun <R> runReadAction(action: () -> R): R = idea.invoke(Application::runReadAction, action)
+
+    fun <T, R> T.invoke(runner: T.(Runnable) -> Unit, action: () -> R): R {
+        var result: R? = null
+        runner(Runnable {
+            result = action()
+        })
+        @Suppress("UNCHECKED_CAST")
+        return result as R
+    }
 
     private var application: ApplicationEx? = null
 
