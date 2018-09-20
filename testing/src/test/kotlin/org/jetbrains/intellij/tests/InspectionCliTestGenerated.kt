@@ -141,6 +141,27 @@ class InspectionCliTestGenerated {
         testBench.doTest(File("testData/inspection/stdlib"), toolArguments)
     }
 
+    @Ignore
+    @Test
+    fun testUnusedDeclaration() {
+        val toolArguments = ToolArgumentsBuilder().apply {
+            settings = SettingsBuilder().apply {
+                warnings.inspections["UnusedDeclaration"] = SettingsBuilder.Inspection()
+            }
+        }
+        testBench.doTest(File("testData/inspection/unusedDeclaration"), toolArguments)
+    }
+
+    @Test
+    fun testUnusedImport() {
+        val toolArguments = ToolArgumentsBuilder().apply {
+            settings = SettingsBuilder().apply {
+                warnings.inspections["UnusedImport"] = SettingsBuilder.Inspection()
+            }
+        }
+        testBench.doTest(File("testData/inspection/unusedImport"), toolArguments)
+    }
+
     @Test
     fun testUnusedReceiverParameterInspection() {
         val toolArguments = ToolArgumentsBuilder().apply {

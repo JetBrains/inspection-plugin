@@ -4,7 +4,6 @@ import org.gradle.testkit.runner.BuildResult
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome as GradleTaskOutcome
 import org.gradle.testkit.runner.UnexpectedBuildFailure
-import org.gradle.testkit.runner.internal.DefaultGradleRunner
 import org.gradle.testkit.runner.internal.PluginUnderTestMetadataReading
 import org.jdom2.input.SAXBuilder
 import org.jdom2.output.Format
