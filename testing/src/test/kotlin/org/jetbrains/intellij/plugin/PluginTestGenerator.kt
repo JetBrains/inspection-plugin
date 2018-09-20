@@ -1,0 +1,163 @@
+package org.jetbrains.intellij.plugin
+
+import org.jetbrains.intellij.Parameter
+import org.jetbrains.intellij.extensions.InspectionsExtension
+import org.jetbrains.intellij.extensions.InspectionPluginExtension
+import org.jetbrains.intellij.extensions.ReformatExtension
+import org.jetbrains.intellij.allSourceFiles
+import org.jetbrains.intellij.kotlinCode
+import java.io.File
+import java.util.*
+
+class PluginTestGenerator(private val testsDir: File, private val testDataDir: File) {
+
+    private fun inspections(configuration: InspectionPluginExtension.() -> Unit) =
+            InspectionPluginExtension(null).apply(configuration)
+
+    private fun InspectionPluginExtension.errors(configuration: InspectionsExtension.() -> Unit) =
+            errors.apply(configuration)
+
+    private fun InspectionPluginExtension.warnings(configuration: InspectionsExtension.() -> Unit) =
+            warnings.apply(configuration)
+
+    private fun InspectionPluginExtension.info(configuration: InspectionsExtension.() -> Unit) =
+            info.apply(configuration)
+
+    private fun InspectionPluginExtension.reformat(configuration: ReformatExtension.() -> Unit) =
+            reformat.apply(configuration)
+
+    private inline fun <T> Iterable<T>.applyEach(crossinline action: T.() -> Unit) = forEach(action)
+
+    private fun parseInspectionParameters(parameters: (String) -> String?) = inspections {
+        Parameter<Boolean>(parameters("inheritFromIdea")) { inheritFromIdea = it }
+        Parameter<String>(parameters("profileName")) { profileName = it }
+        Parameter<Int>(parameters("maxErrors")) { errors.max = it }
+        Parameter<Int>(parameters("maxWarnings")) { warnings.max = it }
+        Parameter<Set<String>>(parameters("errors.inspections"))?.forEach { error(it) }
+        Parameter<Set<String>>(parameters("warnings.inspections"))?.forEach { warning(it) }
+        Parameter<Set<String>>(parameters("info.inspections"))?.forEach { info(it) }
+        errors {
+            Parameter<Boolean>(parameters("quickFix")) { inspections.values.applyEach { quickFix = it } }
+            Parameter<Int>(parameters("errors.max")) { max = it }
+        }
+        warnings {
+            Parameter<Boolean>(parameters("quickFix")) { inspections.values.applyEach { quickFix = it } }
+            Parameter<Int>(parameters("warnings.max")) { max = it }
+        }
+        info {
+            Parameter<Boolean>(parameters("quickFix")) { inspections.values.applyEach { quickFix = it } }
+            Parameter<Int>(parameters("info.max")) { max = it }
+        }
+        Parameter<File>(parameters("reportsDir")) { reportsDir = it }
+        Parameter<Boolean>(parameters("ignoreFailures")) { isIgnoreFailures = it }
+        Parameter<String>(parameters("idea.version")) { idea.version = it }
+        Parameter<String>(parameters("plugins.kotlin.version")) { plugins.kotlin.version = it }
+        Parameter<String>(parameters("plugins.kotlin.location")) { plugins.kotlin.location = it }
+        Parameter<Boolean>(parameters("isQuiet")) { isQuiet = it }
+        Parameter<Boolean>(parameters("quiet")) { isQuiet = it }
+        reformat {
+            Parameter<Boolean>(parameters("reformat.quickFix")) { quickFix = it }
+        }
+    }
+
+    private fun inspections(type: String, name: String, extension: InspectionsExtension): List<String> {
+        val settings = extension.max?.kotlinCode?.let { "extension.$name.max = $it" }
+        val inspections = extension.inspections.map { entry ->
+            val inspectionName = entry.key
+            val inspectionExtension = entry.value
+            val inspection = """extension.$type("$inspectionName")"""
+            val quickFix = inspectionExtension.quickFix?.kotlinCode?.let {
+                """extension.$type("$inspectionName").quickFix = $it"""
+            }
+            listOf(inspection, quickFix)
+        }
+        return (inspections.flatten() + settings).filterNotNull()
+    }
+
+    fun generate(taskName: String, taskTestDataDirName: String) {
+        val taskTestDataDir = File(testDataDir, taskTestDataDirName)
+        require(taskTestDataDir.exists() && taskTestDataDir.isDirectory)
+        val methods = ArrayList<String>()
+        for (test in taskTestDataDir.listFiles().filter { it.isDirectory }) {
+            val ignore = test.listFiles().find { it.name == "ignore" }
+            val sources = test.allSourceFiles.toList()
+            if (sources.isEmpty()) throw IllegalArgumentException("Test file in $test not found")
+            val sourceCommentLines = fun File.() = readLines().asSequence()
+                    .map { it.trim() }
+                    .filter { it.startsWith("//") }
+                    .toList()
+            val sourcesCommentLines = sources.map { it.sourceCommentLines() }.flatten()
+            val sourceParameters = { name: String ->
+                sourcesCommentLines.singleOrNull { it.startsWith("// $name =") }?.drop("// $name =".length)?.trim()
+            }
+            val diagnosticSet = { kind: String ->
+                sourcesCommentLines.asSequence()
+                        .filter { it.startsWith("// $kind:") }
+                        .map { it.drop("// $kind:".length).trim() }
+                        .toSet()
+            }
+            val diagnosticParameters = HashMap<String, String>()
+            diagnosticSet("error").let { if (it.isNotEmpty()) diagnosticParameters["errors.inspections"] = it.kotlinCode }
+            diagnosticSet("warning").let { if (it.isNotEmpty()) diagnosticParameters["warnings.inspections"] = it.kotlinCode }
+            diagnosticSet("info").let { if (it.isNotEmpty()) diagnosticParameters["info.inspections"] = it.kotlinCode }
+            val parameters = { name: String ->
+                diagnosticParameters[name] ?: sourceParameters(name)
+            }
+            val extension = parseInspectionParameters(parameters)
+            val name = test.name.capitalize().replace('-', '_').replace('.', '_').replace(':', '_')
+            val base = File(System.getProperty("user.dir"))
+
+            val ignoreAnnotation = ignore?.let { "@Ignore" } ?: ""
+            val methodTemplate = /*language=kotlin*/"""
+                <ignore>
+                @Test
+                fun test$name() {
+                    val extension = InspectionPluginExtension(null)
+                    <extension>
+                    testBench.doTest(${test.kotlinCode(base)}, extension)
+                }
+            """.replaceIndent("    ")
+
+            val methodExtension = with(extension) {
+                val errors = inspections("error", "errors", errors)
+                val warnings = inspections("warning", "warnings", warnings)
+                val info = inspections("info", "info", info)
+                @Suppress("UNNECESSARY_SAFE_CALL")
+                val settings = listOfNotNull(
+                        inheritFromIdea?.kotlinCode?.let { "extension.inheritFromIdea = $it" },
+                        profileName?.kotlinCode?.let { "extension.profileName = $it" },
+                        reportsDir?.kotlinCode(base)?.let { "extension.reportsDir = $it" },
+                        isIgnoreFailures?.kotlinCode?.let { "extension.isIgnoreFailures = $it" },
+                        idea.version?.kotlinCode?.let { "extension.idea.version = $it" },
+                        plugins.kotlin.version?.kotlinCode?.let { "extension.plugins.kotlin.version = $it" },
+                        plugins.kotlin.location?.kotlinCode?.let { "extension.plugins.kotlin.location = $it" },
+                        isQuiet?.kotlinCode?.let { "extension.isQuiet = $it" },
+                        reformat.quickFix?.kotlinCode?.let { "extension.reformat.quickFix = $it" }
+                )
+                settings + errors + warnings + info
+            }
+
+            val method = methodTemplate
+                    .replace("<ignore>", ignoreAnnotation)
+                    .replace("<extension>", methodExtension.joinToString("\n        "))
+                    .split('\n')
+                    .asSequence()
+                    .filter { it.trim().isNotEmpty() }
+                    .joinToString("\n")
+            methods.add(method)
+        }
+        val testClassName = taskTestDataDirName.capitalize().replace('-', '_').replace("_", "") + "PluginTestGenerated"
+        val resultFile = File(testsDir, "$testClassName.kt")
+        val testClass = /*language=kotlin*/"""
+                import org.jetbrains.intellij.extensions.InspectionPluginExtension
+                import org.jetbrains.intellij.plugin.PluginTestBench
+                import org.junit.Test
+                import org.junit.Ignore
+                import java.io.File
+
+                class $testClassName {
+                    private val testBench = PluginTestBench(${taskName.kotlinCode})
+        """.trimIndent()
+        resultFile.writeText(testClass + "\n\n" + methods.joinToString("\n\n") + "\n}")
+    }
+}
