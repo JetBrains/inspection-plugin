@@ -12,13 +12,13 @@ fun main(args: Array<String>) {
     PluginTestGenerator(testsDir, testDataDir).apply {
         generate("build", "build")
         generate("inspectionsMain", "inspection")
-        generate("inspectionsMain", "ideaConfiguration")
-        generate("reformatMain", "reformat")
-        generate("reformatMain", "kotlinConfiguration")
+//        generate("inspectionsMain", "ideaConfiguration")
+//        generate("reformatMain", "reformat")
+//        generate("reformatMain", "kotlinConfiguration")
     }
     CliTestGenerator(testsDir, testDataDir).apply {
         generate("checkInspections", "build")
         generate("inspections", "inspection")
-        generate("reformat", "reformat")
+//        generate("reformat", "reformat")
     }
 }
