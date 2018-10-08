@@ -8,6 +8,7 @@ import com.intellij.openapi.util.text.StringUtil.replace
 import com.intellij.psi.PsiElement
 import org.jetbrains.idea.inspections.getLine
 import org.jetbrains.idea.inspections.getRow
+import org.jetbrains.idea.inspections.relativeFilePath
 
 class PinnedProblemDescriptor(
         private val descriptor: ProblemDescriptor,
@@ -42,7 +43,7 @@ class PinnedProblemDescriptor(
             val level = actualLevel(problemLevel, descriptor.highlightType)
                     ?: return null
             val lineNumber = descriptor.psiElement.getLine(document)
-            val fileName = descriptor.psiElement.containingFile.name
+            val fileName = descriptor.psiElement.relativeFilePath
             val rowNumber = descriptor.psiElement.getRow(document, lineNumber)
             return PinnedProblemDescriptor(descriptor, fileName, lineNumber, rowNumber, displayName, level)
         }
