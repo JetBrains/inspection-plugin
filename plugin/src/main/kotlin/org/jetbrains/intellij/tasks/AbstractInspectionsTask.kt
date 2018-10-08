@@ -266,9 +266,10 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
             logger.info("InspectionPlugin: Backend jar: $jar")
             val ideaHomeDirectory = parameters.ideaHomeDirectory
             logger.info("Idea home directory: $ideaHomeDirectory")
+            val toolsJar = org.gradle.internal.jvm.Jvm.current().toolsJar
             val runner = Runner.getOrInit {
                 project.gradle.root.addBuildListener(IdeaFinishingListener())
-                ProxyRunner(jar, ideaHomeDirectory) { level, message ->
+                ProxyRunner(jar, ideaHomeDirectory, toolsJar) { level, message ->
                     when (level) {
                         LoggerLevel.ERROR -> logger.error("InspectionPlugin: $message")
                         LoggerLevel.WARNING -> logger.warn("InspectionPlugin: $message")

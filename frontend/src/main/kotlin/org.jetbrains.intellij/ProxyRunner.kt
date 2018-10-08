@@ -7,11 +7,20 @@ import java.io.File
 import java.lang.IllegalStateException
 import java.util.concurrent.TimeUnit
 
-class ProxyRunner(jar: File, ideaHomeDirectory: File, private val logger: Logger) {
+private fun findToolsJarOrNull(): File? {
+    val javaHomeEnv = System.getenv("JAVA_HOME") ?: return null
+    val javaHomeDir = File(javaHomeEnv)
+    return File(javaHomeDir, "/lib/tools.jar").canonicalFile
+}
+
+class ProxyRunner(jar: File, ideaHomeDirectory: File,
+                  toolsJar: File? = findToolsJarOrNull(), private val logger: Logger) {
     private val connection: Connection.Master
     private val process: Process
 
-    constructor(jar: File, ideaHomeDirectory: File, logger: (LoggerLevel, String) -> Unit) : this(jar, ideaHomeDirectory, Logger(null, logger))
+    constructor(jar: File, ideaHomeDirectory: File,
+                toolsJar: File? = findToolsJarOrNull(), logger: (LoggerLevel, String) -> Unit)
+            : this(jar, ideaHomeDirectory, toolsJar, Logger(null, logger))
 
     private fun waitOutcome(): RunnerOutcome {
         var outcome: RunnerOutcome? = null
@@ -75,15 +84,14 @@ class ProxyRunner(jar: File, ideaHomeDirectory: File, private val logger: Logger
 
     init {
         val separator = System.getProperty("path.separator")
-        val javaHome = File(System.getenv("JAVA_HOME"))
-        val tools = File(javaHome, "/lib/tools.jar").canonicalFile
-        if (!tools.exists()) {
-            logger.error("$tools not found, check your JAVA_HOME=$javaHome")
-            throw IllegalStateException("$tools not found")
+        if (true != toolsJar?.exists()) {
+            val ex = IllegalStateException("tools.jar ($toolsJar) not found")
+            logger.error(ex.message)
+            throw ex
         }
         val ideaClasspath = getIdeaClasspath(ideaHomeDirectory)
         logger.info("Idea classpath: $ideaClasspath")
-        val classpath = (listOf(jar, tools) + ideaClasspath).joinToString(separator) { it.absolutePath }
+        val classpath = (listOf(jar, toolsJar) + ideaClasspath).joinToString(separator) { it.absolutePath }
         val command = listOf("java", "-cp", classpath, "org.jetbrains.idea.inspections.ProxyRunnerImpl")
 //        val command = listOf("java", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005", "-cp", classpath, "org.jetbrains.idea.inspections.ProxyRunnerImpl")
         process = ProcessBuilder(command).redirectErrorStream(true).start()
