@@ -24,7 +24,7 @@ object InspectionTool {
                 LoggerLevel.DEBUG -> println("InspectionTool: $message")
             }
         }
-        val runner = ProxyRunner(arguments.runner, arguments.idea, logger)
+        val runner = ProxyRunner(arguments.runner, arguments.idea, logger = logger)
         val ignoreFailures = arguments.settings.ignoreFailures == true
         try {
             arguments.toParameters().forEach {
