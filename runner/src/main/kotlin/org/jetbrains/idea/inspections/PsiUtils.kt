@@ -1,5 +1,6 @@
 package org.jetbrains.idea.inspections
 
+import com.intellij.history.core.Paths
 import com.intellij.openapi.editor.Document
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
@@ -18,3 +19,10 @@ fun PsiElement.getLine(document: Document?): Int {
 fun PsiElement.getRow(document: Document, line: Int = getLine(document)): Int {
     return textRange.startOffset - document.getLineStartOffset(line)
 }
+
+val PsiElement.relativeFilePath: String
+    get() {
+        val basePath = project.basePath ?: ""
+        val ourPath = containingFile.virtualFile.canonicalPath ?: ""
+        return Paths.relativeIfUnder(ourPath, basePath)
+    }
