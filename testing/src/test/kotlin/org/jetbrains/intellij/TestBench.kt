@@ -37,11 +37,12 @@ abstract class TestBench<T> {
                     .filter { it.startsWith("//") }
                     .map { it.drop(2).trim() }
                     .mapNotNull {
+                        val relativeFileName = source.relativeTo(testDir).toMavenLayout().path
                         when {
-                            it.startsWith(':') -> "WARNING: " + source.name + it
-                            it.startsWith("ERROR: :") -> "ERROR: " + source.name + it.removePrefix("ERROR: ")
-                            it.startsWith("WARNING: :") -> "WARNING: " + source.name + it.removePrefix("WARNING: ")
-                            it.startsWith("INFO: :") -> "INFO: " + source.name + it.removePrefix("INFO: ")
+                            it.startsWith(':') -> "WARNING: " + relativeFileName + it
+                            it.startsWith("ERROR: :") -> "ERROR: " + relativeFileName + it.removePrefix("ERROR: ")
+                            it.startsWith("WARNING: :") -> "WARNING: " + relativeFileName + it.removePrefix("WARNING: ")
+                            it.startsWith("INFO: :") -> "INFO: " + relativeFileName + it.removePrefix("INFO: ")
                             it.startsWith("ERROR: ") -> it
                             it.startsWith("WARNING: ") -> it
                             it.startsWith("INFO: ") -> it
