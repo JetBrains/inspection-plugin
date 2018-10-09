@@ -236,11 +236,7 @@ class PluginTestBench(private val taskName: String) : TestBench<InspectionPlugin
             val testFiles = ArrayList<File>()
             for (source in sources) {
                 val file = source.relativeTo(testDir)
-                val file2 = when {
-                    file.isKotlinSource -> File("src/main/kotlin", file.path)
-                    file.isJavaSource -> File("src/main/java", file.path)
-                    else -> throw IllegalArgumentException("Undefined language of source file $file")
-                }
+                val file2 = file.toMavenLayout()
                 val dir2 = File(testProjectDir.root, file2.parentFile.path)
                 if (!dir2.exists()) dir2.mkdirs()
                 val file3 = testProjectDir.newFile(file2.path)
