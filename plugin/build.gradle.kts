@@ -99,6 +99,7 @@ dependencies {
 }
 
 configure<ProcessResources>("processResources") {
+    inputs.file("../gradle.properties")
     eachFile {
         if (name == "org.jetbrains.intellij.inspections.properties") {
             filter {
