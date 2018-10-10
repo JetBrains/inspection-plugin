@@ -15,6 +15,8 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
 import org.jetbrains.idea.inspections.generators.HTMLGenerator
 import org.jetbrains.idea.inspections.generators.XMLGenerator
+import org.jetbrains.idea.inspections.problems.PinnedProblemDescriptor
+import org.jetbrains.idea.inspections.problems.ProblemLevel
 import org.jetbrains.intellij.parameters.InspectionsParameters
 import org.jetbrains.intellij.parameters.InspectionPluginParameters
 import java.io.File

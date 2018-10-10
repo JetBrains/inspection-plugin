@@ -1,10 +1,12 @@
-package org.jetbrains.idea.inspections
+package org.jetbrains.idea.inspections.problems
 
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.codeInspection.ProblemDescriptorUtil
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.util.text.StringUtil
+import org.jetbrains.idea.inspections.getLine
+import org.jetbrains.idea.inspections.getRow
 
 class PinnedProblemDescriptor(
         val descriptor: ProblemDescriptor,

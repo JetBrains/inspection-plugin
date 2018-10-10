@@ -3,8 +3,8 @@ package org.jetbrains.idea.inspections.generators
 import org.jdom2.Document
 import org.jdom2.Element
 import org.jdom2.output.XMLOutputter
-import org.jetbrains.idea.inspections.PinnedProblemDescriptor
-import org.jetbrains.idea.inspections.ProblemLevel
+import org.jetbrains.idea.inspections.problems.PinnedProblemDescriptor
+import org.jetbrains.idea.inspections.problems.ProblemLevel
 import java.io.File
 
 class XMLGenerator(override val reportFile: File) : ReportGenerator {

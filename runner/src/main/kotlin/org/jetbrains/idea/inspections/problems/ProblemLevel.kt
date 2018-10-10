@@ -1,4 +1,4 @@
-package org.jetbrains.idea.inspections
+package org.jetbrains.idea.inspections.problems
 
 enum class ProblemLevel {
     ERROR,

@@ -1,7 +1,7 @@
 package org.jetbrains.idea.inspections.generators
 
-import org.jetbrains.idea.inspections.PinnedProblemDescriptor
-import org.jetbrains.idea.inspections.ProblemLevel
+import org.jetbrains.idea.inspections.problems.PinnedProblemDescriptor
+import org.jetbrains.idea.inspections.problems.ProblemLevel
 import java.io.File
 
 interface ReportGenerator {

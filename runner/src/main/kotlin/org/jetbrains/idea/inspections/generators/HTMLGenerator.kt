@@ -5,10 +5,10 @@ import com.intellij.openapi.editor.Document
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.psi.*
 import com.intellij.psi.impl.source.tree.LeafPsiElement
-import org.jetbrains.idea.inspections.PinnedProblemDescriptor
-import org.jetbrains.idea.inspections.ProblemLevel
 import org.jetbrains.idea.inspections.getLine
 import org.jetbrains.idea.inspections.isKotlinKeyword
+import org.jetbrains.idea.inspections.problems.PinnedProblemDescriptor
+import org.jetbrains.idea.inspections.problems.ProblemLevel
 import java.io.File
 import java.util.*
 
