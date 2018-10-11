@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 0.2.1
+
+Bug fixes:
+
+ * Files are now identified by their path in reports, not only their name (KT-27515)
+ * Minor infrastructure fixes
+
 ## 0.2.0
 
 More versions of Kotlin plugin are supported by default.
