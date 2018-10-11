@@ -24,5 +24,5 @@ val PsiElement.relativeFilePath: String
     get() {
         val basePath = project.basePath ?: ""
         val ourPath = containingFile.virtualFile.canonicalPath ?: ""
-        return Paths.relativeIfUnder(ourPath, basePath)
+        return Paths.relativeIfUnder(ourPath, basePath) ?: ourPath
     }
