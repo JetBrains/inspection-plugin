@@ -8,7 +8,7 @@ import org.jetbrains.intellij.extensions.InspectionPluginExtension
 import org.jetbrains.intellij.tasks.*
 import java.io.File
 import org.gradle.internal.hash.HashUtil.createCompactMD5
-import org.jetbrains.intellij.plugins.KotlinPlugin
+import org.jetbrains.intellij.configurations.KotlinPlugin
 
 open class InspectionPlugin : AbstractCodeQualityPlugin<AbstractInspectionsTask, InspectionPluginExtension>() {
 

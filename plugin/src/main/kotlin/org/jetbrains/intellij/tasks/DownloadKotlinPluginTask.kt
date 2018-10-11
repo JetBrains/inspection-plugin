@@ -5,7 +5,7 @@ import org.gradle.api.tasks.*
 import org.jetbrains.intellij.ExceptionHandler
 import org.jetbrains.intellij.InspectionPlugin
 import org.jetbrains.intellij.extensions.InspectionPluginExtension
-import org.jetbrains.intellij.plugins.KotlinPlugin
+import org.jetbrains.intellij.configurations.KotlinPlugin
 import org.jetbrains.intellij.utils.Downloader
 import java.io.File
 

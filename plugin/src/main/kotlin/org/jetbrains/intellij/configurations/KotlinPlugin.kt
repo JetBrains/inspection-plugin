@@ -1,4 +1,4 @@
-package org.jetbrains.intellij.plugins
+package org.jetbrains.intellij.configurations
 
 import org.gradle.api.Task
 import org.jetbrains.intellij.ExceptionHandler
@@ -55,7 +55,8 @@ object KotlinPlugin {
     }
 
     private fun getUrlForLongVersion(longVersion: String): String? {
-        val (shortVersion, platformVersion) = destructVersion(longVersion) ?: return null
+        val (shortVersion, platformVersion) = destructVersion(longVersion)
+                ?: return null
         return getUrlForShortVersionWithPlatformVersion(shortVersion, platformVersion)
     }
 
