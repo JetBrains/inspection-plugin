@@ -8,6 +8,12 @@ This plugin is intended to run IDEA inspections during Gradle build.
 
 Current status: beta version 0.2.0 is available.
 
+## Examples
+
+* Regular Gradle project -- see [sample](https://github.com/JetBrains/inspection-plugin/tree/master/sample) subdirectory here
+* Another regular Gradle project -- [here](https://github.com/Kotlin-Polytech/KotlinAsFirst/tree/gradle) 
+* Android project -- see [another sample](https://github.com/mglukhikh/inspection-sample-android) 
+
 ## Usage
 
 * Add `maven { url 'https://dl.bintray.com/kotlin/kotlin-dev' }` to your buildscript repositories (temporary location)
