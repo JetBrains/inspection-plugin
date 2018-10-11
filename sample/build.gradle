@@ -5,11 +5,11 @@ buildscript {
     ext.kotlin_version = '1.2.60'
 
     repositories {
-        mavenLocal()
         mavenCentral()
         maven {
             url 'https://dl.bintray.com/kotlin/kotlin-dev'
         }
+        mavenLocal()
     }
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
