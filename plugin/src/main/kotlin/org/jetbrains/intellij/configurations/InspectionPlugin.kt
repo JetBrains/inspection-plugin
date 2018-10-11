@@ -19,9 +19,9 @@ const val DEFAULT_IDEA_VERSION = "ideaIC:2017.3"
 
 const val REFORMAT_SHORT_TASK_NAME = "reformat"
 
-val TEMP_DIRECTORY = File(System.getProperty("user.home"))
+private val TEMP_DIRECTORY = File(System.getProperty("java.io.tmpdir"))
 
-val BASE_CACHE_DIRECTORY = File(TEMP_DIRECTORY, ".GradleInspectionPluginCaches")
+private val BASE_CACHE_DIRECTORY = File(TEMP_DIRECTORY, "inspection-plugin")
 
 val MARKERS_DIRECTORY = File(BASE_CACHE_DIRECTORY, "markers")
 
@@ -31,7 +31,7 @@ val DOWNLOAD_DIRECTORY = File(BASE_CACHE_DIRECTORY, "downloads")
 
 val IDEA_SYSTEM_DIRECTORY = File(BASE_CACHE_DIRECTORY, "system")
 
-val LOCKS_DIRECTORY = File(BASE_CACHE_DIRECTORY, "locks")
+val LOCKS_DIRECTORY = File(System.getProperty("java.io.tmpdir"), "inspection-plugin/locks")
 
 private val String.normalizedVersion: String
     get() = replace(':', '_').replace('.', '_')
