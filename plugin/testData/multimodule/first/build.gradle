@@ -6,7 +6,7 @@ buildscript {
 }
 
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.2.60'
+    id 'org.jetbrains.kotlin.jvm' version '1.2.0'
     id 'org.jetbrains.intellij.inspections'
 }
 
@@ -19,7 +19,7 @@ repositories {
 }
 
 dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    compile "org.jetbrains.kotlin:kotlin-stdlib"
     compile project(":m1")
     compile project(":m2")
 }
@@ -37,6 +37,7 @@ allprojects {
     inspections {
         idea.version "ideaIC:2017.3"
         inheritFromIdea = true
+        testMode = true
     }
 }
 
