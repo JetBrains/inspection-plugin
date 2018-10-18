@@ -220,7 +220,7 @@ class InspectionTestBench(private val taskName: String) {
                     if (profileName != null)
                         throw IllegalArgumentException("Idea profile in inspection test has auto generating")
                     testProjectDir.newFolder(".idea", "inspectionProfiles")
-                    profileName = "Project_Default.xml"
+                    val profileName = "Project_Default.xml"
                     val inspectionProfileFile = testProjectDir.newFile(".idea/inspectionProfiles/$profileName")
                     val inspectionProfileContent = generateInspectionProfileFile(errors, warnings, info)
                     println(inspectionProfileContent)

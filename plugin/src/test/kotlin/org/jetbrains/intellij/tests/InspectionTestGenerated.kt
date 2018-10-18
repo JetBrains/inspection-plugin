@@ -218,6 +218,17 @@ class InspectionTestGenerated {
         testBench.doTest(File("testData/inspection/unusedSymbolIdeaError"), extension)
     }
 
+    @Ignore
+    @Test
+    fun testUnusedSymbolIdeaError_IJ2018_2() {
+        val extension = InspectionPluginExtension(null)
+        extension.testMode = true
+        extension.inheritFromIdea = true
+        extension.idea.version = "ideaIC:2018.2"
+        extension.error("org.jetbrains.kotlin.idea.inspections.UnusedSymbolInspection")
+        testBench.doTest(File("testData/inspection/unusedSymbolIdeaError_IJ2018_2"), extension)
+    }
+
     @Test
     fun testUnusedSymbolIdeaWarning() {
         val extension = InspectionPluginExtension(null)
