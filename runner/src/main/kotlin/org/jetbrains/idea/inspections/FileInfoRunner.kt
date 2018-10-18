@@ -14,7 +14,7 @@ import org.jetbrains.intellij.Runner
 import java.io.File
 import java.util.*
 
-abstract class FileInfoRunner<T : Runner.Parameters> : IdeaRunner<T>() {
+abstract class FileInfoRunner<in T : Runner.Parameters> : IdeaRunner<T>() {
     data class FileInfo(val psiFile: PsiFile, val document: Document)
 
     abstract fun analyzeFileInfo(files: Collection<FileInfo>, project: Project, parameters: T): Boolean

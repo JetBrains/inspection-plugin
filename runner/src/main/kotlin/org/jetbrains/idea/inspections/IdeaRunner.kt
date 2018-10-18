@@ -34,7 +34,7 @@ import java.nio.channels.OverlappingFileLockException
 import java.nio.file.StandardOpenOption
 
 
-abstract class IdeaRunner<T : Runner.Parameters> : AbstractRunner<T>() {
+abstract class IdeaRunner<in T : Runner.Parameters> : AbstractRunner<T>() {
 
     abstract fun analyze(files: Collection<File>, project: Project, parameters: T): Boolean
 
