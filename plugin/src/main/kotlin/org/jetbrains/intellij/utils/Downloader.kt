@@ -4,13 +4,13 @@ import org.apache.http.client.methods.HttpGet
 import org.apache.http.impl.client.DefaultHttpClient
 import org.gradle.api.logging.Logger
 import org.gradle.internal.hash.HashUtil
-import org.jetbrains.intellij.configurations.MARKERS_DIRECTORY
+import org.jetbrains.intellij.configurations.markersDirectory
 import java.io.File
 
 class Downloader(private val logger: Logger) {
 
-    fun download(url: String, destinationDirectory: File) {
-        val markerFile = getMarkerFile(url)
+    fun download(url: String, intoHome: Boolean, destinationDirectory: File) {
+        val markerFile = getMarkerFile(url, intoHome)
         if (markerFile.exists()) {
             logger.info("InspectionPlugin: No downloading needed.")
             return
@@ -31,8 +31,8 @@ class Downloader(private val logger: Logger) {
         markerFile.createNewFile()
     }
 
-    private fun getMarkerFile(url: String): File {
+    private fun getMarkerFile(url: String, inHome: Boolean): File {
         val hash = HashUtil.createCompactMD5(url)
-        return File(MARKERS_DIRECTORY, "download-$hash.marker")
+        return File(markersDirectory(inHome), "download-$hash.marker")
     }
 }

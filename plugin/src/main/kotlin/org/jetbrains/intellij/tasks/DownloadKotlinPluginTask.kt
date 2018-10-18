@@ -16,6 +16,10 @@ open class DownloadKotlinPluginTask : ConventionTask() {
         get() = ideaVersion(extension.idea.version)
 
     @get:Input
+    val isTempDirInHome: Boolean
+        get() = extension.isTempDirInHome()
+
+    @get:Input
     @get:Optional
     val version: String?
         get() = extension.plugins.kotlin.version
@@ -28,7 +32,7 @@ open class DownloadKotlinPluginTask : ConventionTask() {
     @get:OutputDirectory
     @get:Optional
     val archiveDirectory: File?
-        get() = location?.let { kotlinPluginArchiveDirectory(it) }
+        get() = location?.let { kotlinPluginDownloadDirectory(it, isTempDirInHome) }
 
     @Suppress("unused")
     @TaskAction
@@ -42,7 +46,7 @@ open class DownloadKotlinPluginTask : ConventionTask() {
         if (version == null) exception(this, "Expected version for kotlin plugin $location")
         if (location == null) exception(this, "Expected url for kotlin plugin $version")
         checkCompatibility(this, version, ideaVersion)
-        Downloader(logger).download(location, archiveDirectory!!)
+        Downloader(logger).download(location, isTempDirInHome, archiveDirectory!!)
     }
 
     @get:Internal

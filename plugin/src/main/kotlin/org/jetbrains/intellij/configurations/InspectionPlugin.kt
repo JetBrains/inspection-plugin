@@ -19,19 +19,18 @@ private const val DEFAULT_IDEA_VERSION = "ideaIC:2017.3"
 
 const val REFORMAT_SHORT_TASK_NAME = "reformat"
 
-private val TEMP_DIRECTORY = File(System.getProperty("java.io.tmpdir"))
+private val TEMP_DIRECTORY_IN_TEMP = File(System.getProperty("java.io.tmpdir"))
 
-private val BASE_CACHE_DIRECTORY = File(TEMP_DIRECTORY, "inspection-plugin")
+private val TEMP_DIRECTORY_IN_HOME = File(System.getProperty("user.home"))
 
-val MARKERS_DIRECTORY = File(BASE_CACHE_DIRECTORY, "markers")
+private fun tempDirectory(inHome: Boolean) = if (inHome) TEMP_DIRECTORY_IN_HOME else TEMP_DIRECTORY_IN_TEMP
 
-private val DEPENDENCY_SOURCE_DIRECTORY = File(BASE_CACHE_DIRECTORY, "dependencies")
+private fun baseCacheDirectory(inHome: Boolean) = File(tempDirectory(inHome), "inspection-plugin")
 
-private val DOWNLOAD_DIRECTORY = File(BASE_CACHE_DIRECTORY, "downloads")
+// Base directory for unzipped IDEA & plugins
+private fun baseUnzippedDependenciesDirectory(inHome: Boolean) = File(baseCacheDirectory(inHome), "dependencies")
 
-val IDEA_SYSTEM_DIRECTORY = File(BASE_CACHE_DIRECTORY, "system")
-
-val LOCKS_DIRECTORY = File(BASE_CACHE_DIRECTORY, "locks")
+fun markersDirectory(inHome: Boolean) = File(baseCacheDirectory(inHome), "markers")
 
 private val String.normalizedVersion: String
     get() = replace(':', '_').replace('.', '_')
@@ -41,17 +40,34 @@ fun ideaVersion(ideaVersion: String?) = ideaVersion ?: DEFAULT_IDEA_VERSION
 fun kotlinPluginLocation(version: String?, ideaVersion: String) =
         version?.let { getUrl(it, ideaVersion) }
 
-fun kotlinPluginArchiveDirectory(location: String): File {
+// Used to download plugins
+private fun pluginDownloadDirectory(inHome: Boolean) = File(baseCacheDirectory(inHome), "downloads")
+
+fun kotlinPluginDownloadDirectory(location: String, tempInHome: Boolean): File {
     val hash = HashUtil.createCompactMD5(location)
     val name = "kotlin-plugin-$hash"
-    return File(DOWNLOAD_DIRECTORY, name)
+    return File(pluginDownloadDirectory(tempInHome), name)
 }
 
-fun kotlinPluginDirectory(kotlinPluginVersion: String?, ideaVersion: String): File {
+// Used to store unzipped Kotlin plugin. Both plugin & IDEA version-dependent.
+fun kotlinPluginDirectory(kotlinPluginVersion: String?, ideaVersion: String, inHome: Boolean): File {
     val normIdeaVersion = ideaVersion.normalizedVersion
     val normKotlinPluginVersion = kotlinPluginVersion.toString().normalizedVersion
     val name = "Kotlin-$normKotlinPluginVersion-$normIdeaVersion"
-    return File(DEPENDENCY_SOURCE_DIRECTORY, "$name/Kotlin")
+    return File(baseUnzippedDependenciesDirectory(inHome), "$name/Kotlin")
 }
 
-fun ideaDirectory(version: String) = File(DEPENDENCY_SOURCE_DIRECTORY, version.normalizedVersion)
+// Used to store unzipped IDEA. Version-dependent.
+fun ideaDirectory(version: String, inHome: Boolean): File {
+    return File(baseUnzippedDependenciesDirectory(inHome), version.normalizedVersion)
+}
+
+// Used to store IDEA caches etc. Version-dependent.
+// NB: this directory is always located in home directory, as regular IDEA launch does
+fun ideaSystemDirectory(version: String): File {
+    return File(baseCacheDirectory(inHome = true), "system_" + version.normalizedVersion)
+}
+
+// Used to store locks.
+// NB: this directory is always located in temp directory
+val LOCKS_DIRECTORY = File(baseCacheDirectory(inHome = false), "locks")

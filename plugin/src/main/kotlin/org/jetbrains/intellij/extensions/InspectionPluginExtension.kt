@@ -24,6 +24,12 @@ open class InspectionPluginExtension(
     var isQuiet: Boolean? = null
 
     /**
+     * Whether temp directory (with all caches) is located in home.
+     * By default, it's located in temp
+     */
+    var isTempDirInHome: Boolean? = null
+
+    /**
      * If this value is <tt>true</tt> implementation of inspections will be found in IDEA
      * profile with given {@profileName}.
      */
@@ -85,6 +91,8 @@ open class InspectionPluginExtension(
         set(value) {
             warnings.max = value
         }
+
+    fun isTempDirInHome() = isTempDirInHome ?: false
 
     /**
      * @see IdeaExtension.version

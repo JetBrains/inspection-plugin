@@ -9,10 +9,7 @@ import org.gradle.api.invocation.Gradle
 import org.gradle.api.tasks.*
 import org.gradle.api.tasks.Optional
 import org.jetbrains.intellij.*
-import org.jetbrains.intellij.configurations.IDEA_SYSTEM_DIRECTORY
-import org.jetbrains.intellij.configurations.ideaDirectory
-import org.jetbrains.intellij.configurations.ideaVersion
-import org.jetbrains.intellij.configurations.kotlinPluginDirectory
+import org.jetbrains.intellij.configurations.*
 import org.jetbrains.intellij.extensions.InspectionPluginExtension
 import org.jetbrains.intellij.extensions.InspectionsExtension
 import org.jetbrains.intellij.parameters.InspectionParameters
@@ -86,12 +83,19 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
     /**
      * Whether rule violations are to be displayed on the console.
      *
-     * @return false if violations should be displayed on console, true otherwise
+     * @return false if violations should be displayed on console (default), true otherwise
      */
     @get:Console
     open val isQuiet: Boolean
         get() = extension.isQuiet ?: false
 
+    /**
+     * Whether temp directory (with all caches) is located in home.
+     *
+     * @return false if temp directory is located in java.io.tmpdir (default), true if it's located in user.home
+     */
+    open val isTempDirInHome: Boolean
+        get() = extension.isTempDirInHome()
 
     /**
      * Whether code changes can be applied.
@@ -263,8 +267,8 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
         try {
             val parameters = getInspectionsParameters()
             val ideaVersion = parameters.ideaVersion
-            val ideaDirectory = ideaDirectory(ideaVersion)
-            val ideaSystemDirectory = IDEA_SYSTEM_DIRECTORY
+            val ideaDirectory = ideaDirectory(ideaVersion, isTempDirInHome)
+            val ideaSystemDirectory = ideaSystemDirectory(ideaVersion)
             logger.info("InspectionPlugin: Idea directory: $ideaDirectory")
             val ideaClasspath = getIdeaClasspath(ideaDirectory)
             val analyzerClasspath = listOf(tryResolveRunnerJar(project))
@@ -279,7 +283,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
                 ChildFirstClassLoader(fullClasspath.toTypedArray(), parentClassLoader)
             }
             val kotlinPluginVersion = parameters.kotlinPluginVersion
-            val kotlinPluginDirectory = kotlinPluginDirectory(kotlinPluginVersion, ideaVersion)
+            val kotlinPluginDirectory = kotlinPluginDirectory(kotlinPluginVersion, ideaVersion, isTempDirInHome)
             val plugins = listOf(kotlinPluginDirectory)
             var success = true
             val inspectionsThread = thread(start = false) {

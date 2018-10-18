@@ -17,6 +17,10 @@ open class UnzipKotlinPluginTask : ConventionTask() {
         get() = ideaVersion(extension.idea.version)
 
     @get:Input
+    val isTempDirInHome: Boolean
+        get() = extension.isTempDirInHome()
+
+    @get:Input
     @get:Optional
     val version: String?
         get() = extension.plugins.kotlin.version
@@ -29,11 +33,11 @@ open class UnzipKotlinPluginTask : ConventionTask() {
     @get:InputFile
     @get:Optional
     val archive: File?
-        get() = location?.let { kotlinPluginArchiveDirectory(it).listFiles()?.firstOrNull() }
+        get() = location?.let { kotlinPluginDownloadDirectory(it, isTempDirInHome).listFiles()?.firstOrNull() }
 
     @get:OutputDirectory
     val plugin: File
-        get() = kotlinPluginDirectory(version, ideaVersion)
+        get() = kotlinPluginDirectory(version, ideaVersion, isTempDirInHome)
 
     @Suppress("unused")
     @TaskAction
@@ -47,7 +51,7 @@ open class UnzipKotlinPluginTask : ConventionTask() {
         val unzip = Unzip(project)
         val copy = Copy(project)
         val unpacker = Unpacker(logger, unzip, copy)
-        unpacker.unpack(archive!!, plugin.parentFile)
+        unpacker.unpack(archive!!, isTempDirInHome, plugin.parentFile)
     }
 
     @get:Internal
