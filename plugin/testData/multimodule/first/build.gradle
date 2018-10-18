@@ -1,0 +1,42 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        mavenLocal()
+    }
+}
+
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.2.60'
+    id 'org.jetbrains.intellij.inspections'
+}
+
+group 'test'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+dependencies {
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    compile project(":m1")
+    compile project(":m2")
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
+allprojects {
+    apply plugin: 'org.jetbrains.intellij.inspections'
+
+    inspections {
+        idea.version "ideaIC:2017.3"
+        inheritFromIdea = true
+    }
+}
+

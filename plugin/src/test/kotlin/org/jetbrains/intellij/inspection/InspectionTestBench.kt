@@ -176,6 +176,75 @@ class InspectionTestBench(private val taskName: String) {
         SHOULD_BE_ABSENT
     }
 
+    private fun buildTestProject(): Pair<String, Outcome?> {
+        val outputBuffer = StreamByteBuffer()
+        val syncOutput = SynchronizedOutputStream(outputBuffer.outputStream)
+        val systemOut = SynchronizedOutputStream(System.out)
+        val teeOutput = TeeOutputStream(syncOutput, systemOut)
+        val outcome = try {
+            val result = GradleRunner.create()
+                    .withProjectDir(testProjectDir.root)
+                    .withArguments("--no-daemon")
+                    .withArguments("--info", "--stacktrace", taskName)
+//                        .withDebug(true)
+                    // This applies classpath from pluginUnderTestMetadata
+                    .withPluginClasspath()
+                    // NB: this is necessary to apply actual plugin
+                    .apply { withPluginClasspath(pluginClasspath) }
+                    .forwardStdOutput(teeOutput.bufferedWriter())
+                    .forwardStdError(teeOutput.bufferedWriter())
+                    .build()
+            result.task(taskName)?.outcome?.let { Outcome.Simple(it) }
+        } catch (failure: UnexpectedBuildFailure) {
+            println("InspectionTestBench: Exception caught in test.")
+            failure.buildResult.task(taskName)?.outcome?.let { Outcome.Simple(it) }
+        } catch (ex: Throwable) {
+            System.err.println("InspectionTestBench: Test fished with error ${ex.javaClass}: ${ex.message}")
+            ex.printStackTrace(System.err)
+            Outcome.Error(ex.toString())
+        }
+        return outputBuffer.readAsString()!! to outcome
+    }
+
+    private fun assertInspectionOutcome(log: String, expectedOutcome: Outcome, outcome: Outcome?) {
+        when (expectedOutcome) {
+            is Outcome.Error -> {
+                val message = expectedOutcome.message
+                Assert.assertTrue("Error '$message' not happened", outcome is Outcome.Error)
+                Assert.assertTrue("Error '$message' is not found", message in log)
+            }
+            is Outcome.Simple -> when (outcome) {
+                is Outcome.Simple -> Assert.assertEquals(expectedOutcome.instance, outcome.instance)
+                is Outcome.Error -> {
+                    val expected = expectedOutcome.instance
+                    val message = outcome.message
+                    Assert.assertTrue("Expected simple outcome $expected but found error '$message'", false)
+                }
+            }
+        }
+    }
+
+    private fun ejectDaemonPid(log: String) = log.split('\n')
+            .asSequence()
+            .map { it.replace("\r", "") }
+            .mapNotNull { it.removePrefix("InspectionPlugin: Daemon PID is ") }
+            .firstOrNull()
+
+    private fun waitIdeaRelease(daemonPid: String) {
+        val startTime = System.currentTimeMillis()
+        println("InspectionTestBench: Start waiting of idea finalize")
+        val lockFile = LOCKS_DIRECTORY.listFiles()?.find { it.name == "$daemonPid.idea-lock" } ?: run {
+            println("InspectionTestBench: lock file not found")
+            return
+        }
+        val ideaLockChannel = FileChannel.open(lockFile.toPath(), StandardOpenOption.WRITE) ?: return
+        while (ideaLockChannel.tryLock() == null) Thread.yield()
+        ideaLockChannel.close()
+        val endTime = System.currentTimeMillis()
+        val delay = (endTime - startTime).toDouble() / 1000.0
+        println("InspectionTestBench: End waiting of idea finalize. Took $delay secs")
+    }
+
     private inner class InspectionTestConfiguration(
             val testDir: File,
             val sources: List<File>,
@@ -258,36 +327,6 @@ class InspectionTestBench(private val taskName: String) {
             return testFiles
         }
 
-        private fun buildTestProject(): Pair<String, Outcome?> {
-            val outputBuffer = StreamByteBuffer()
-            val syncOutput = SynchronizedOutputStream(outputBuffer.outputStream)
-            val systemOut = SynchronizedOutputStream(System.out)
-            val teeOutput = TeeOutputStream(syncOutput, systemOut)
-            val outcome = try {
-                val result = GradleRunner.create()
-                        .withProjectDir(testProjectDir.root)
-                        .withArguments("--no-daemon")
-                        .withArguments("--info", "--stacktrace", taskName)
-//                        .withDebug(true)
-                        // This applies classpath from pluginUnderTestMetadata
-                        .withPluginClasspath()
-                        // NB: this is necessary to apply actual plugin
-                        .apply { withPluginClasspath(pluginClasspath) }
-                        .forwardStdOutput(teeOutput.bufferedWriter())
-                        .forwardStdError(teeOutput.bufferedWriter())
-                        .build()
-                result.task(taskName)?.outcome?.let { Outcome.Simple(it) }
-            } catch (failure: UnexpectedBuildFailure) {
-                println("InspectionTestBench: Exception caught in test.")
-                failure.buildResult.task(taskName)?.outcome?.let { Outcome.Simple(it) }
-            } catch (ex: Throwable) {
-                System.err.println("InspectionTestBench: Test fished with error ${ex.javaClass}: ${ex.message}")
-                ex.printStackTrace(System.err)
-                Outcome.Error(ex.toString())
-            }
-            return outputBuffer.readAsString()!! to outcome
-        }
-
         private fun assertInspectionBuildLog(log: String, outcome: Outcome?) {
             for (diagnostic in expectedDiagnostics) {
                 when (expectedDiagnosticsStatus) {
@@ -297,21 +336,7 @@ class InspectionTestBench(private val taskName: String) {
                         Assert.assertFalse("$diagnostic is found (but should not)", diagnostic in log)
                 }
             }
-            when (expectedOutcome) {
-                is Outcome.Error -> {
-                    val message = expectedOutcome.message
-                    Assert.assertTrue("Error '$message' not happened", outcome is Outcome.Error)
-                    Assert.assertTrue("Error '$message' is not found", message in log)
-                }
-                is Outcome.Simple -> when (outcome) {
-                    is Outcome.Simple -> Assert.assertEquals(expectedOutcome.instance, outcome.instance)
-                    is Outcome.Error -> {
-                        val expected = expectedOutcome.instance
-                        val message = outcome.message
-                        Assert.assertTrue("Expected simple outcome $expected but found error '$message'", false)
-                    }
-                }
-            }
+            assertInspectionOutcome(log, expectedOutcome, outcome)
         }
 
         private fun assertInspectionBuildXmlReport() {
@@ -358,29 +383,6 @@ class InspectionTestBench(private val taskName: String) {
                 Assert.assertEquals(expectedCode, actualCode)
             }
         }
-
-        private fun String.removePrefix(prefix: String) = if (startsWith(prefix)) substring(prefix.length) else null
-
-        private fun ejectDaemonPid(log: String) = log.split('\n')
-                .asSequence()
-                .map { it.replace("\r", "") }
-                .mapNotNull { it.removePrefix("InspectionPlugin: Daemon PID is ") }
-                .firstOrNull()
-
-        private fun waitIdeaRelease(daemonPid: String) {
-            val startTime = System.currentTimeMillis()
-            println("InspectionTestBench: Start waiting of idea finalize")
-            val lockFile = LOCKS_DIRECTORY.listFiles()?.find { it.name == "$daemonPid.idea-lock" } ?: run {
-                println("InspectionTestBench: lock file not found")
-                return
-            }
-            val ideaLockChannel = FileChannel.open(lockFile.toPath(), StandardOpenOption.WRITE) ?: return
-            while (ideaLockChannel.tryLock() == null) Thread.yield()
-            ideaLockChannel.close()
-            val endTime = System.currentTimeMillis()
-            val delay = (endTime - startTime).toDouble() / 1000.0
-            println("InspectionTestBench: End waiting of idea finalize. Took $delay secs")
-        }
     }
 
     private fun File.toMavenLayout(): File {
@@ -388,6 +390,24 @@ class InspectionTestBench(private val taskName: String) {
             isKotlinSource -> File("src/main/kotlin", path)
             isJavaSource -> File("src/main/java", path)
             else -> throw IllegalArgumentException("Undefined language of source file ${this}")
+        }
+    }
+
+    fun doMultiModuleTest(testDir: File, extension: InspectionPluginExtension) {
+        testProjectDir.create()
+        try {
+            testDir.copyRecursively(testProjectDir.root)
+            testProjectDir.newFolder("build")
+            val (log, outcome) = buildTestProject()
+            try {
+                assertInspectionOutcome(log, Outcome.Simple(TaskOutcome.SUCCESS), outcome)
+            } finally {
+                val daemonPid = ejectDaemonPid(log)
+                println("InspectionTestBench: Daemon PID is $daemonPid")
+                if (daemonPid != null) waitIdeaRelease(daemonPid)
+            }
+        } finally {
+            testProjectDir.delete()
         }
     }
 
