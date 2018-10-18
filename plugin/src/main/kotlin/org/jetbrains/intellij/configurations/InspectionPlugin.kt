@@ -15,7 +15,7 @@ const val UNZIP_KOTLIN_PLUGIN_TASK_NAME = "unzip-kotlin-plugin"
 
 const val IDEA_TASK_NAME = "idea"
 
-const val DEFAULT_IDEA_VERSION = "ideaIC:2017.3"
+private const val DEFAULT_IDEA_VERSION = "ideaIC:2017.3"
 
 const val REFORMAT_SHORT_TASK_NAME = "reformat"
 
@@ -25,9 +25,9 @@ private val BASE_CACHE_DIRECTORY = File(TEMP_DIRECTORY, "inspection-plugin")
 
 val MARKERS_DIRECTORY = File(BASE_CACHE_DIRECTORY, "markers")
 
-val DEPENDENCY_SOURCE_DIRECTORY = File(BASE_CACHE_DIRECTORY, "dependencies")
+private val DEPENDENCY_SOURCE_DIRECTORY = File(BASE_CACHE_DIRECTORY, "dependencies")
 
-val DOWNLOAD_DIRECTORY = File(BASE_CACHE_DIRECTORY, "downloads")
+private val DOWNLOAD_DIRECTORY = File(BASE_CACHE_DIRECTORY, "downloads")
 
 val IDEA_SYSTEM_DIRECTORY = File(BASE_CACHE_DIRECTORY, "system")
 
