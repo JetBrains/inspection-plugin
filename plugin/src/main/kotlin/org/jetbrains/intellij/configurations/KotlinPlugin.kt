@@ -91,6 +91,8 @@ private fun getId(shortVersion: String, platformVersion: String) = when (platfor
         else -> null
     }
     "IJ2017.3" -> when (shortVersion) {
+        "1.2.71" -> 50253
+        "1.2.70" -> 49919
         "1.2.61" -> 49053
         "1.2.60" -> 48409
         "1.2.51" -> 47477
@@ -103,6 +105,8 @@ private fun getId(shortVersion: String, platformVersion: String) = when (platfor
         else -> null
     }
     "IJ2018.1" -> when (shortVersion) {
+        "1.2.71" -> 50254
+        "1.2.70" -> 49920
         "1.2.61" -> 49054
         "1.2.60" -> 48410
         "1.2.51" -> 47478
@@ -115,6 +119,8 @@ private fun getId(shortVersion: String, platformVersion: String) = when (platfor
         else -> null
     }
     "IJ2018.2" -> when (shortVersion) {
+        "1.2.71" -> 50255
+        "1.2.70" -> 49921
         "1.2.61" -> 49055
         "1.2.60" -> 48411
         "1.2.51" -> 47479
