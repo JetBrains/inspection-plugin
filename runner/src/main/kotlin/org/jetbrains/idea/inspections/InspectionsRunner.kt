@@ -67,9 +67,11 @@ class InspectionsRunner : FileInfoRunner<InspectionPluginParameters>() {
 
     private fun getInspectionWrappersInheritFromIdea(parameters: InspectionPluginParameters, project: Project): List<PluginInspectionWrapper<*>> {
         val inspectionProfileManager = ApplicationInspectionProfileManager.getInstanceImpl()
-        val profile = parameters.profileName
-                ?.let { File(project.basePath, "$INSPECTION_PROFILES_PATH/$it") }
-                ?.let { inspectionProfileManager.loadProfile(it.absolutePath) }
+        // TODO: we should ProjectInspectionProfileManager instead of explicitly given Project_Default.xml here
+        // However, for some reason this does not work
+        val profileName = parameters.profileName ?: "Project_Default.xml"
+        val profile = File(project.basePath, "$INSPECTION_PROFILES_PATH/$profileName")
+                .let { inspectionProfileManager.loadProfile(it.absolutePath) }
                 ?: inspectionProfileManager.currentProfile
         logger.info("InspectionPlugin: Profile file = ${profile.name}")
         return profile.getAllEnabledInspectionTools(project).map {

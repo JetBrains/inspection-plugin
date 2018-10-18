@@ -225,17 +225,6 @@ class InspectionTestBench(private val taskName: String) {
                     val inspectionProfileContent = generateInspectionProfileFile(errors, warnings, info)
                     println(inspectionProfileContent)
                     writeFile(inspectionProfileFile, inspectionProfileContent)
-                    val profilesSettingFile = testProjectDir.newFile(".idea/inspectionProfiles/profiles_settings.xml")
-                    writeFile(profilesSettingFile, """
-                        <component name="InspectionProjectProfileManager">
-                          <settings>
-                            <option name="PROJECT_PROFILE" value="Project Default" />
-                            <option name="USE_PROJECT_PROFILE" value="true" />
-                            <version value="1.0" />
-                          </settings>
-                        </component>
-                        """.trimIndent()
-                    )
                 }
             }
         }
