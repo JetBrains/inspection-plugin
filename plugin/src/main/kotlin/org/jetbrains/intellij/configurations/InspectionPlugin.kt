@@ -31,7 +31,7 @@ val DOWNLOAD_DIRECTORY = File(BASE_CACHE_DIRECTORY, "downloads")
 
 val IDEA_SYSTEM_DIRECTORY = File(BASE_CACHE_DIRECTORY, "system")
 
-val LOCKS_DIRECTORY = File(System.getProperty("java.io.tmpdir"), "inspection-plugin/locks")
+val LOCKS_DIRECTORY = File(BASE_CACHE_DIRECTORY, "locks")
 
 private val String.normalizedVersion: String
     get() = replace(':', '_').replace('.', '_')
