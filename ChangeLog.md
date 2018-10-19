@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 0.2.2
+
+Bug fixes:
+
+ * Use Project_Default.xml inspection profile by default (KT-27528)
+ * Add short-cuts for Kotlin plugin 1.2.70, 1.2.71
+ * Fix flaky reports of inspections with INFORMATION highlight level (KT-27529)
+ 
+Configuration update:
+
+ * Use `info` instead of `infos`
+ 
+Infrastructure:
+
+ * Handle cache directories more accurately (KT-27637)
+
 ## 0.2.1
 
 Bug fixes:
