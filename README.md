@@ -6,7 +6,7 @@
 
 This plugin is intended to run IDEA inspections during Gradle build.
 
-Current status: beta version 0.2.1 is available.
+Current status: beta version 0.2.2 is available.
 
 ## Examples
 
@@ -17,7 +17,7 @@ Current status: beta version 0.2.1 is available.
 ## Usage
 
 * Add `maven { url 'https://dl.bintray.com/kotlin/kotlin-dev' }` to your buildscript repositories (temporary location)
-* Add `classpath 'org.jetbrains.intellij.plugins:inspection-plugin:0.2.1'` to your buildscript dependencies
+* Add `classpath 'org.jetbrains.intellij.plugins:inspection-plugin:0.2.2'` to your buildscript dependencies
 * Apply plugin `'org.jetbrains.intellij.inspections'` to your gradle module
 
 This adds one inspection plugin task per source root, normally its name is `inspectionsMain` for `main` root and 
