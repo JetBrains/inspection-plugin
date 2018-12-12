@@ -1,25 +1,25 @@
 package org.jetbrains.intellij.tasks
 
 import org.gradle.api.tasks.*
-import org.jetbrains.intellij.parameters.InspectionParameters
+import org.jetbrains.intellij.parameters.InspectionsRunnerParameters
 
 
 @CacheableTask
 open class ReformatTask : AbstractInspectionsTask() {
 
-    override val errorsInspections: Map<String, InspectionParameters>
+    override val errorsInspections: Map<String, InspectionsRunnerParameters.Inspection>
         get() = emptyMap()
 
     override val maxErrors: Int?
         get() = null
 
-    override val warningsInspections: Map<String, InspectionParameters>
+    override val warningsInspections: Map<String, InspectionsRunnerParameters.Inspection>
         get() = mapOf(reformatInspectionToolParameters.name to reformatInspectionToolParameters)
 
     override val maxWarnings: Int?
         get() = null
 
-    override val infoInspections: Map<String, InspectionParameters>
+    override val infoInspections: Map<String, InspectionsRunnerParameters.Inspection>
         get() = emptyMap()
 
     override val maxInfo: Int?
@@ -36,8 +36,8 @@ open class ReformatTask : AbstractInspectionsTask() {
         get() = extension.reformat.quickFix ?: true
 
     @get:Internal
-    private val reformatInspectionToolParameters: InspectionParameters
-        get() = InspectionParameters(REFORMAT_INSPECTION_TOOL, reformatQuickFix)
+    private val reformatInspectionToolParameters: InspectionsRunnerParameters.Inspection
+        get() = InspectionsRunnerParameters.Inspection(REFORMAT_INSPECTION_TOOL, reformatQuickFix)
 
     companion object {
         private const val REFORMAT_INSPECTION_TOOL = "org.jetbrains.kotlin.idea.inspections.ReformatInspection"

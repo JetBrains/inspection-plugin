@@ -1,17 +1,11 @@
 package org.jetbrains.intellij.extensions
 
 import org.gradle.api.Action
-import org.gradle.api.plugins.quality.CodeQualityExtension
 import org.gradle.api.Project
 
 open class InspectionPluginExtension(
         @Suppress("unused") private val project: Project?
 ) : CodeQualityExtension() {
-
-    /**
-     * Run inspection Plugin in test mode
-     */
-    var testMode: Boolean? = null
 
     /**
      * Configuration of IDEA.
@@ -97,16 +91,12 @@ open class InspectionPluginExtension(
     /**
      * @see IdeaExtension.version
      */
-    @Deprecated("To be replaced with idea.version", ReplaceWith("idea.version"))
-    override fun getToolVersion() = idea.version
-
-    /**
-     * @see IdeaExtension.version
-     */
     @Deprecated("To be replaced with idea.version = n", ReplaceWith("idea.version"))
-    override fun setToolVersion(value: String?) {
-        idea.version = value
-    }
+    var toolVersion: String?
+        get() = idea.version
+        set(value) {
+            idea.version = value
+        }
 
     @Suppress("unused")
     fun error(name: String): InspectionExtension {

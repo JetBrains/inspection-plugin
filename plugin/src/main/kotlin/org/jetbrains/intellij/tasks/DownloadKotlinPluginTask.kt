@@ -27,7 +27,7 @@ open class DownloadKotlinPluginTask : ConventionTask() {
     @get:Input
     @get:Optional
     val location: String?
-        get() = extension.plugins.kotlin.location ?: kotlinPluginLocation(version, ideaVersion)
+        get() = extension.plugins.kotlin.kotlinPluginLocation(ideaVersion)
 
     @get:OutputDirectory
     @get:Optional
@@ -43,9 +43,7 @@ open class DownloadKotlinPluginTask : ConventionTask() {
             logger.info("InspectionPlugin: Using kotlin plugin inherit from idea. No downloading needed.")
             return
         }
-        if (version == null) exception(this, "Expected version for kotlin plugin $location")
         if (location == null) exception(this, "Expected url for kotlin plugin $version")
-        checkCompatibility(this, version, ideaVersion)
         Downloader(logger).download(location, isTempDirInHome, archiveDirectory!!)
     }
 

@@ -87,15 +87,15 @@ tasks {
 dependencies {
     compileOnly("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
     compileOnly(gradleApi())
-    // TODO: remove this dependency or make it compile-only
-    compile("org.jdom:jdom2:2.0.6")
 
     testCompile("junit:junit:4.12")
+    testCompile("org.jdom:jdom2:2.0.6")
     testCompile(gradleTestKit())
     testCompile("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
 
-    // Version of this library dependent from gradle api version
     compile("org.apache.httpcomponents:httpclient:4.2.2")
+    compile(project(":interface"))
+    compile(project(":frontend"))
 }
 
 configure<ProcessResources>("processResources") {

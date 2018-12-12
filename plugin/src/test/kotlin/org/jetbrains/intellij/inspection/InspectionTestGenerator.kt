@@ -32,7 +32,6 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
         Parameter<String>(parameters("profileName")) { profileName = it }
         Parameter<Int>(parameters("maxErrors")) { errors.max = it }
         Parameter<Int>(parameters("maxWarnings")) { warnings.max = it }
-        Parameter<Boolean>(parameters("testMode")) { testMode = it }
         Parameter<Set<String>>(parameters("errors.inspections"))?.forEach { error(it) }
         Parameter<Set<String>>(parameters("warnings.inspections"))?.forEach { warning(it) }
         Parameter<Set<String>>(parameters("info.inspections"))?.forEach { info(it) }
@@ -105,7 +104,7 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
                 diagnosticParameters[name] ?: sourceParameters(name)
             }
             val extension = parseInspectionParameters(parameters)
-            val name = test.name.capitalize().replace('-', '_')
+            val name = test.name.capitalize().replace('-', '_').replace('.', '_').replace(':', '_')
             val base = System.getProperty("user.dir")
 
             val ignoreAnnotation = ignore?.let { "@Ignore" } ?: ""
@@ -114,7 +113,6 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
                 @Test
                 fun test$name() {
                     val extension = InspectionPluginExtension(null)
-                    extension.testMode = true
                     <extension>
                     testBench.doTest(${test.kotlinCode(base)}, extension)
                 }
@@ -129,7 +127,7 @@ class InspectionTestGenerator(private val testsDir: File, private val testDataDi
                         inheritFromIdea?.kotlinCode?.let { "extension.inheritFromIdea = $it" },
                         profileName?.kotlinCode?.let { "extension.profileName = $it" },
                         reportsDir?.kotlinCode(base)?.let { "extension.reportsDir = $it" },
-                        isIgnoreFailures.let { if (it) "extension.isIgnoreFailures = $it" else "" },
+                        isIgnoreFailures?.kotlinCode?.let { "extension.isIgnoreFailures = $it" },
                         idea.version?.kotlinCode?.let { "extension.idea.version = $it" },
                         plugins.kotlin.version?.kotlinCode?.let { "extension.plugins.kotlin.version = $it" },
                         plugins.kotlin.location?.kotlinCode?.let { "extension.plugins.kotlin.location = $it" },

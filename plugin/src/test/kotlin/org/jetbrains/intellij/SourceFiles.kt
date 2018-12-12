@@ -28,3 +28,11 @@ val File.isKotlinExpectedSource: Boolean
 
 fun File.isSourceFor(expected: File) =
         nameWithoutExtension == expected.nameWithoutExtension && parentFile.path == expected.parentFile.path
+
+fun File.toMavenLayout(): File {
+    return when {
+        isKotlinSource -> File("src/main/kotlin", path)
+        isJavaSource -> File("src/main/java", path)
+        else -> throw IllegalArgumentException("Undefined language of source file $this")
+    }
+}

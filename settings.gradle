@@ -1,9 +1,12 @@
 rootProject.name = 'inspections'
+include 'interface'
 include 'runner'
 include 'plugin'
 include 'sample'
+include 'frontend'
 
 // It flag provided stable plugin publishing (configuration of publishing
 // task will be in-place but not a in end of build configuration). It needed
 // for supporting gradle with version 5.0.
 enableFeaturePreview("STABLE_PUBLISHING")
+
