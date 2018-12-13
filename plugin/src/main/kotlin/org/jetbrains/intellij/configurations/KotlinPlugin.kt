@@ -123,5 +123,13 @@ private fun getId(shortVersion: String, platformVersion: String) = when (platfor
         "1.2.40" -> 45192
         else -> null
     }
+    "IJ2018.3" -> when (shortVersion) {
+        "1.3.11" -> 52914
+        "1.3.10" -> 52011
+        "1.3.0" -> 51537
+        "1.2.71" -> 50256
+        "1.2.70" -> 49922
+        else -> null
+    }
     else -> null
 }
