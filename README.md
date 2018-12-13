@@ -6,7 +6,8 @@
 
 This plugin is intended to run IDEA inspections during Gradle build.
 
-Current status: beta version 0.2.2 is available.
+Current status: beta version 0.2.2 is available. 
+Also, beta-candidate version 0.3.0-rc-1 is available which fixes a set of bugs and support a bunch of new features.
 
 ## Examples
 
@@ -35,9 +36,14 @@ inspections {
 
 In this example inspections will be taken from IDEA CE version 2017.3. 
 Plugin works at least with IDEA CE versions 2017.1, 2017.2, 2017.2.x, 2017.3, 2017.3.x, 2018.1, 2018.1.x, 2018.2, 2018.2.x.
+IDEA CE 2018.3 and 2018.3.x is supported in plugins 0.3.0+ only.
 If you have multi-platform project, it's recommended to use IDEA CE 2018.2 or later.
-Kotlin plugin versions from 1.2.21 to 1.2.61 are supported directly (required version for your IDE is chosen and downloaded auromatically),
+Kotlin plugin versions from 1.2.21 to 1.2.71 are supported directly (required version for your IDE is chosen and downloaded auromatically),
 otherwise you will have to specify download URL (see below, `plugins.kotlin.location`).
+Kotlin plugin versions 1.3.0 to 1.3.11 are supported directly in plugins 0.3.0+ only.
+
+Plugins 0.2.2 and earlier support only so-called local inspections (most Kotlin inspections fall into this category).
+Global inspections (e.g. most Android Lint and part of Java inspections) are supported only in 0.3.0+.
 
 There are three ways to specify inspections for code analysis:
 
@@ -62,6 +68,28 @@ inspections {
 ```
 In this case inspections from manually defined list will be in use.
 
+Plugins 0.3.0+ allows shorter format (class name only without Inspection suffix):
+```groovy
+inspections {
+    error('DataClassPrivateConstructor')
+    error('UseExpressionBody')
+    warning('RedundantVisibilityModifier')
+    warning('AddVarianceModifier')
+    info('ClassHasNoToStringMethod')
+}
+```
+
+or this way (via displayable inspection names):
+```groovy
+inspections {
+    error("Private data class constructor is exposed via the 'copy' method")
+    error("Expression body syntax is preferable here")
+    warning("Redundant visibility modifier")
+    warning("Type parameter can have 'in' or 'out' variance")
+    info("Class does not override 'toString()' method")
+}
+```
+
 ### Mixing definition
 ```groovy
 inspections {
@@ -79,8 +107,6 @@ To run inspections, execute from terminal: `gradlew inspectionsMain`.
 This will download IDEA artifact to gradle cache,
 unzip it to cached temporary dir and launch all inspections.
 You will see inspection messages in console as well as in report XML / HTML located in `build/reports/inspections`.
-
-You can find example usage in `sample` project subdirectory.
 
 ### Auto-formatting
 
@@ -115,6 +141,7 @@ inspections {
     reformat.quickFix = true
     plugins.kotlin.version = '1.2.60'
     plugins.kotlin.location = 'https://plugins.jetbrains.com/plugin/download?rel=true&updateId=48409'
+    tempDirInHome = true
 }
 ```
 
@@ -130,6 +157,7 @@ The meaning of the parameters is the following:
 * `reformat.quickFix`: apply quick fixes for fixed code-style errors (true by default)
 * `plugins.kotlin.version`: version of downloading kotlin plugin (by default used bundled to IDEA)
 * `plugins.kotlin.location`: URL of downloading kotlin plugin
+* `tempDirInHome`: chooses to store plugin data (like unzipped IDEA or Kotlin plugin) either in home directory (true) or in temp directory (false, default).
 
 If you wish to change location of report file, you should specify it in closure for particular task, e.g.
 
@@ -163,9 +191,8 @@ and attach `inspections.log` to the issue.
 Also it's very helpful to specify Gradle version, OS and 
 IDEA version used in inspection plugin (which is set in `idea.version` parameter).
 
-Known bugs / problems at this moment (version 0.2.1):
+Known bugs / problems at this moment (versions 0.2.2, 0.3.0):
 
 * plugin does not work yet with Ultimate IDEA versions, like ideaIU:2017.3
 * analysis of Kotlin JS and common modules is only partially supported
-* Kotlin JVM module with common library in dependencies (like kotlin-stdlib-common or kotlin-test) is configured correctly only in IDEA 2018.2, e.g. IC:2018.2 
-* part of inspection tools (so-called global inspections) are not supported yet. Most Kotlin inspections are supported.
+* Kotlin JVM module with common library in dependencies (like kotlin-stdlib-common or kotlin-test) is configured correctly only in IDEA 2018.2 or later, e.g. IC:2018.2 
