@@ -1,6 +1,6 @@
 {
   "runner": "~/.m2/repository/org/jetbrains/intellij/plugins/inspection-runner/0.3.0-SNAPSHOT/inspection-runner-0.3.0-SNAPSHOT.jar",
-  "idea": "~/Documents/projects/inspection-plugin/runner/build/ideaIC_2018_2",
+  "idea": "~/ideaIC_2018_2",
   "inheritFromIdea": false,
   "profileName": null,
   "errors": {
