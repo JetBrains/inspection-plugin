@@ -36,6 +36,13 @@ fun markersDirectory(inHome: Boolean) = File(baseCacheDirectory(inHome), "marker
 private val String.normalizedVersion: String
     get() = replace(':', '_').replace('.', '_')
 
+private val String.majorVersion: String
+    get() = when (count { it == '_' }) {
+        // E.g.: ideaIC_2018_2_4
+        3 -> substringBeforeLast("_")
+        else -> this
+    }
+
 fun ideaVersion(ideaVersion: String?) = ideaVersion ?: DEFAULT_IDEA_VERSION
 
 fun PluginExtension.kotlinPluginLocation(ideaVersion: String): String? {
@@ -78,9 +85,11 @@ fun PluginExtension.kotlinPluginDirectory(ideaVersion: String, inHome: Boolean):
         val hash = HashUtil.createCompactMD5(location)
         "kotlin-plugin-$hash"
     } else {
+        val normKotlinPluginVersion = version?.normalizedVersion
+                ?: return bundledKotlinPluginDirectory(ideaVersion, inHome)
         val normIdeaVersion = ideaVersion.normalizedVersion
-        val normKotlinPluginVersion = version?.normalizedVersion ?: "bundled"
-        "kotlin-plugin-$normKotlinPluginVersion-$normIdeaVersion"
+        val majorIdeaVersion = normIdeaVersion.majorVersion
+        "kotlin-plugin-$normKotlinPluginVersion-$majorIdeaVersion"
     }
     return File(baseUnzippedDependenciesDirectory(inHome), "$name/Kotlin")
 }
