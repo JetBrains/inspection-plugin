@@ -226,7 +226,11 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
         logger.info("Enabled plugins: ${enabledPlugins.map { it.name to it.pluginId }.toMap()}")
         logger.info("Disabled plugins ${disabledPlugins.toList()}")
         plugins.forEach { checkCompatibility(it, enabledPlugins, buildNumber, ideaVersion) }
-        return ApplicationManagerEx.getApplicationEx().apply { load() }
+        return ApplicationManagerEx.getApplicationEx().apply {
+            invokeAndWait {
+                load()
+            }
+        }
     }
 
     override fun finalize() {
