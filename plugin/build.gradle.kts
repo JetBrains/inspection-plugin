@@ -84,12 +84,21 @@ tasks {
     }
 }
 
+configurations {
+    create("submodules")
+    get("compileOnly").extendsFrom(get("submodules"))
+}
+
 dependencies {
     compileOnly("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
     compileOnly(gradleApi())
     compile("org.apache.httpcomponents:httpclient:4.2.2")
-    compile(project(":interface"))
-    compile(project(":frontend"))
+    add("submodules", project(":interface"))
+    add("submodules", project(":frontend"))
+}
+
+configure<Jar>("jar") {
+    from(configurations["submodules"].map { if (it.isDirectory) it as Any else zipTree(it) })
 }
 
 configure<ProcessResources>("processResources") {

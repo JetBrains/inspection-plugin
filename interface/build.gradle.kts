@@ -28,6 +28,6 @@ repositories {
 }
 
 dependencies {
-    compile("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
+    compileOnly("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
     implementation("com.googlecode.json-simple:json-simple:1.1")
 }
