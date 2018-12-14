@@ -240,8 +240,18 @@ class PluginTestBench(private val taskName: String) : TestBench<InspectionPlugin
         private fun buildTestProject(): BuildResult = try {
             val workingDirectory = System.getProperty("user.dir")
             val inspectionPluginProjectDirectory = File(workingDirectory, "..").canonicalFile
-            val pluginUnderTestMetadata = File(inspectionPluginProjectDirectory, "plugin/build/pluginUnderTestMetadata/plugin-under-test-metadata.properties")
-            val pluginClasspath = PluginUnderTestMetadataReading.readImplementationClasspath(pluginUnderTestMetadata.toURI().toURL())
+            val pluginUnderTestMetadata = File(
+                    inspectionPluginProjectDirectory,
+                    "plugin/build/pluginUnderTestMetadata/plugin-under-test-metadata.properties"
+            )
+            val pluginClasspath = PluginUnderTestMetadataReading.readImplementationClasspath(
+                    pluginUnderTestMetadata.toURI().toURL()
+            ) + listOf(
+                    File(inspectionPluginProjectDirectory, "interface/build/classes/kotlin/main"),
+                    File(inspectionPluginProjectDirectory, "frontend/build/classes/kotlin/main")
+            ).map {
+                it.absoluteFile
+            }
             GradleRunner.create()
                     .withProjectDir(testProjectDir.root)
                     .withArguments("--no-daemon")
