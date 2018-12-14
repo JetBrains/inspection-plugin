@@ -1,51 +1,45 @@
 package org.jetbrains.intellij.configurations
 
-private val LONG_VERSION_PATTERN = """(\d{1,2}\.\d{1,2}\.\d{1,2})-release-(.+)""".toRegex()
+private val LONG_KOTLIN_PLUGIN_VERSION_PATTERN = """(\d{1,2}\.\d{1,2}\.\d{1,2})-release-(.+)""".toRegex()
 
-private val SHORT_VERSION_PATTERN = """(\d{1,2}\.\d{1,2}\.\d{1,2})""".toRegex()
+private val SHORT_KOTLIN_PLUGIN_VERSION_PATTERN = """(\d{1,2}\.\d{1,2}\.\d{1,2})""".toRegex()
 
-private fun isLongVersion(version: String): Boolean = LONG_VERSION_PATTERN.matches(version)
+private fun isLongVersion(pluginVersion: String): Boolean = LONG_KOTLIN_PLUGIN_VERSION_PATTERN.matches(pluginVersion)
 
-private fun isShortVersion(version: String): Boolean = SHORT_VERSION_PATTERN.matches(version)
+private fun isShortVersion(pluginVersion: String): Boolean = SHORT_KOTLIN_PLUGIN_VERSION_PATTERN.matches(pluginVersion)
 
-private fun destructVersion(version: String): Pair<String, String>? {
-    val entire = LONG_VERSION_PATTERN.matchEntire(version) ?: return null
+private fun destructLongVersion(pluginVersion: String): Pair<String, String>? {
+    val entire = LONG_KOTLIN_PLUGIN_VERSION_PATTERN.matchEntire(pluginVersion) ?: return null
     val (shortVersion, platformVersion) = entire.destructured
     val unifiedPlatformVersion = getUnifiedPlatformVersion(platformVersion)
     return Pair(shortVersion, unifiedPlatformVersion)
 }
 
-fun getUrl(version: String, ideaVersion: String): String? = when {
-    isShortVersion(version) -> getUrlForShortVersion(version, ideaVersion)
-    isLongVersion(version) -> getUrlForLongVersion(version)
+fun getUrl(pluginVersion: String, ideaArtifactVersion: String): String? = when {
+    isShortVersion(pluginVersion) -> getUrlForShortVersion(pluginVersion, ideaArtifactVersion)
+    isLongVersion(pluginVersion) -> getUrlForLongVersion(pluginVersion)
     else -> null
 }
 
-private fun getUnifiedPlatformVersion(platformVersion: String) = when (platformVersion) {
-    "IJ2017.1-1" -> "IJ2017.1"
-    "IJ2017.2-1" -> "IJ2017.2"
-    "IJ2017.3-1" -> "IJ2017.3"
-    "IJ2018.1-1" -> "IJ2018.1"
-    "IJ2018.2-1" -> "IJ2018.2"
-    else -> platformVersion
-}
+// Transforms e.g. IJ2018.2-1 to IJ2018.2
+private fun getUnifiedPlatformVersion(platformVersion: String): String = platformVersion.substringBeforeLast("-")
 
-private fun getPlatformVersion(ideaVersion: String): String? = when (ideaVersion) {
-    "ideaIC:2017.1" -> "IJ2017.1"
-    "ideaIC:2017.2" -> "IJ2017.2"
-    "ideaIC:2017.3" -> "IJ2017.3"
-    "ideaIC:2018.1" -> "IJ2018.1"
-    "ideaIC:2018.2" -> "IJ2018.2"
-    else -> null
+// Transforms e.g. ideaIC:2018.2.4 to IJ2018.2.4
+private fun getPlatformVersion(ideaArtifactVersion: String): String? {
+    return when {
+        ideaArtifactVersion.startsWith("ideaIC:") || ideaArtifactVersion.startsWith("ideaIU:") ->
+            return "IJ" + ideaArtifactVersion.substringAfter(":")
+        else -> null
+    }
 }
 
 private fun getUrlForLongVersion(longVersion: String): String? {
-    val (shortVersion, platformVersion) = destructVersion(longVersion) ?: return null
+    val (shortVersion, platformVersion) = destructLongVersion(longVersion) ?: return null
     return getUrlForShortVersionWithPlatformVersion(shortVersion, platformVersion)
 }
 
-private fun getUrlForShortVersion(shortVersion: String, ideaVersion: String): String? {
-    val platformVersion = getPlatformVersion(ideaVersion) ?: return null
+private fun getUrlForShortVersion(shortVersion: String, ideaArtifactVersion: String): String? {
+    val platformVersion = getPlatformVersion(ideaArtifactVersion) ?: return null
     return getUrlForShortVersionWithPlatformVersion(shortVersion, platformVersion)
 }
 
