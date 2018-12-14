@@ -1,7 +1,4 @@
-import com.github.jengelman.gradle.plugins.shadow.ShadowExtension
-import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import com.jfrog.bintray.gradle.BintrayExtension
-import org.gradle.api.tasks.bundling.Jar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.idea.inspections.*
 
@@ -18,7 +15,6 @@ buildscript {
 
     dependencies {
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
-        classpath("com.github.jengelman.gradle.plugins:shadow:2.0.1")
         classpath("com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.4")
     }
 }
@@ -30,19 +26,13 @@ plugins {
 }
 
 apply {
-    plugin("kotlin")
     plugin("java-gradle-plugin")
     plugin("maven-publish")
-    plugin("com.github.johnrengelman.shadow")
     plugin("com.jfrog.bintray")
+    plugin("kotlin")
 }
 
 val projectName = "inspection-plugin"
-
-configure<ShadowJar>("shadowJar") {
-    baseName = projectName
-    classifier = ""
-}
 
 configure<PublishingExtension> {
     repositories {
@@ -52,9 +42,7 @@ configure<PublishingExtension> {
     }
     publications {
         create<MavenPublication>("Plugin") {
-            configure<ShadowExtension> {
-                component(this@create)
-            }
+            from(components.getByName("java"))
             version = projectVersion
             groupId = projectGroup
             artifactId = projectName
