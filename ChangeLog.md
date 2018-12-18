@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## 0.3.0-rc-3
+
+Additional features:
+
+ * KT-27522: support of global inspection tools (yet experimental)
+ * KT-27764 (10): support of shorter inspection format in configuration 
+
+Bug fixes:
+
+ * KT-27521: no more loader constraint violation during various inspections in Android
+ * KT-27715: Kotlin plugin version could be used for minor IDEA versions now
+ * KT-27529: no inspections without highlighting in IDEA reported
+ * KT-28815 (13): don't miss custom source sets
+ * 12: no more problem with XML factory in 2018.3
+ 
+Infrastructure: 
+
+ * KT-28784: support of IDEA CE 2018.3
+ * KT-28839, KT-27516: Kotlin plugin 1.3.0, 1.3.10, 1.3.11
+ * 4: Android project support
+
 ## 0.2.2
 
 Bug fixes:
