@@ -1,5 +1,6 @@
 package org.jetbrains.idea.inspections.runners
 
+import com.intellij.analysis.AnalysisScope
 import com.intellij.codeInsight.FileModificationService
 import com.intellij.codeInspection.*
 import com.intellij.codeInspection.ex.*
@@ -144,7 +145,9 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
                     results[inspectionClass] = inspectionWrapper.applyGlobalSimpleInspection(project, files, checker)
                 }
                 is GlobalInspectionTool -> {
-                    logger.warn("Global inspection tool '$inspectionClass' is unsupported")
+                    @Suppress("UNCHECKED_CAST")
+                    inspectionWrapper as PluginInspectionWrapper<GlobalInspectionTool>
+                    results[inspectionClass] = inspectionWrapper.applyGlobalInspectionTool(project, files, checker)
                 }
                 else -> {
                     logger.error("Unexpected $inspectionClass which is neither local nor global")
@@ -256,6 +259,49 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
         return InspectionResult(this, inspectionResults)
     }
 
+    private fun PluginInspectionWrapper<GlobalInspectionTool>.applyGlobalInspectionTool(
+            project: Project,
+            files: Collection<FileInfo>,
+            checker: InspectionChecker
+    ): InspectionResult<GlobalInspectionTool> {
+        val displayName = extension?.displayName ?: "<Unknown diagnostic>"
+        val inspectionManager = InspectionManager.getInstance(project)
+        val contentManager = (inspectionManager as InspectionManagerEx).contentManager
+        val context = GlobalInspectionContextImpl(project, contentManager)
+        val problemProcessor = DefaultInspectionToolPresentation(wrapper, context)
+        val scope = AnalysisScope(project, files.map { it.virtualFile })
+        var problems: List<DisplayableProblemDescriptor<*>> = mutableListOf()
+        if (level == null) return InspectionResult(this, problems)
+        runReadAction {
+            val task = Runnable {
+                try {
+                    val documents = files.map { it.virtualFile.path to it.document }.toMap()
+                    logger.info("($level) Global inspection '$displayName' analyzing started")
+                    tool.runInspection(scope, inspectionManager, context, problemProcessor)
+                    problems = problemProcessor.resolvedElements.map {
+                        problemProcessor.getResolvedProblems(it).mapNotNull { problem ->
+                            if (problem is ProblemDescriptor) {
+                                val document = documents[problem.psiElement.containingFile.virtualFile.path]
+                                if (document != null) {
+                                    PinnedProblemDescriptor.createIfProblem(problem, document, displayName, level)
+                                } else {
+                                    DisplayableProblemDescriptorImpl.createIfProblem(problem, it, displayName, level)
+                                }
+                            } else {
+                                DisplayableProblemDescriptorImpl.createIfProblem(problem, it, displayName, level)
+                            }
+                        }
+                    }.flatten()
+                } catch (exception: Throwable) {
+                    logger.exception(exception)
+                }
+            }
+            ProgressManager.getInstance().runProcess(task, EmptyProgressIndicator())
+        }
+        problems.forEach { checker.apply(it.level) }
+        return InspectionResult(this, problems)
+    }
+
     private fun reportProblems(parameters: InspectionsRunnerParameters, results: Map<String, InspectionResult<*>>) {
         val numProblems = results.values.map { it.problems }.flatten().count()
         logger.info("Total of $numProblems problem(s) found")
@@ -288,6 +334,8 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
 
     private fun Entity<*>.asFile(): PsiFile? = when (this) {
         is Entity.Element -> SharedImplUtil.getContainingFile(reference.node)?.invalidateIfInvalid()
+        is Entity.File -> reference.element
+        else -> null
     }
 
     private fun quickFixProblems(
