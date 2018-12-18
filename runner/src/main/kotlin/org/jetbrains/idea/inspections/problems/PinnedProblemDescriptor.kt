@@ -9,6 +9,8 @@ import org.jetbrains.idea.inspections.getRow
 import org.jetbrains.idea.inspections.relativeFilePath
 import com.intellij.openapi.util.text.StringUtil.replace
 import com.intellij.psi.PsiElement
+import org.jetbrains.idea.inspections.getLine
+import org.jetbrains.idea.inspections.getRow
 
 class PinnedProblemDescriptor private constructor(
         private val descriptor: ProblemDescriptor,

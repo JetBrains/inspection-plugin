@@ -1,8 +1,10 @@
 package org.jetbrains.idea.inspections.runners
 
+import com.intellij.analysis.AnalysisScope
 import com.intellij.codeInsight.FileModificationService
 import com.intellij.codeInspection.*
 import com.intellij.codeInspection.ex.*
+import com.intellij.codeInspection.reference.*
 import com.intellij.codeInspection.ui.DefaultInspectionToolPresentation
 import com.intellij.lang.java.JavaLanguage
 import com.intellij.openapi.command.WriteCommandAction
@@ -13,6 +15,7 @@ import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiManager
 import com.intellij.psi.impl.source.tree.SharedImplUtil
 import org.jetbrains.idea.inspections.*
 import org.jetbrains.idea.inspections.generators.HTMLGenerator
@@ -261,6 +264,70 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
         return InspectionResult(this, inspectionResults)
     }
 
+    private fun InspectionManagerEx.getGlobalContext(
+            toolWrapper: PluginInspectionWrapper<GlobalInspectionTool>,
+            project: Project,
+            scope: AnalysisScope
+    ): GlobalInspectionContextImpl {
+        val context = createNewGlobalContext(false)
+        context.currentScope = scope
+        val psiManager = PsiManager.getInstance(project)
+        val refManager = context.refManager as RefManagerImpl
+        if (toolWrapper.tool.isGraphNeeded) {
+            try {
+                refManager.findAllDeclarations()
+            } catch (e: Throwable) {
+                context.stdJobDescriptors.BUILD_GRAPH.doneAmount = 0
+                throw e
+            }
+        }
+        psiManager.startBatchFilesProcessingMode()
+        refManager.inspectionReadActionStarted()
+        return context
+    }
+
+    private fun PluginInspectionWrapper<GlobalInspectionTool>.applyGlobalInspectionTool(
+            project: Project,
+            files: Collection<FileInfo>,
+            checker: InspectionChecker
+    ): InspectionResult<GlobalInspectionTool> {
+        val displayName = extension?.displayName ?: "<Unknown diagnostic>"
+        val inspectionManager = InspectionManager.getInstance(project)
+        val contentManager = (inspectionManager as InspectionManagerEx).contentManager
+        val context = GlobalInspectionContextImpl(project, contentManager)
+        val problemProcessor = DefaultInspectionToolPresentation(wrapper, context)
+        val scope = AnalysisScope(project, files.map { it.virtualFile })
+        var problems: List<DisplayableProblemDescriptor<*>> = ArrayList()
+        runReadAction {
+            val task = Runnable {
+                try {
+                    val documents = files.map { it.virtualFile.path to it.document }.toMap()
+                    logger.info("($level) Global inspection '$displayName' analyzing started")
+                    tool.runInspection(scope, inspectionManager, context, problemProcessor)
+                    problems = problemProcessor.resolvedElements.map {
+                        problemProcessor.getResolvedProblems(it).mapNotNull { problem ->
+                            if (problem is ProblemDescriptor) {
+                                val document = documents[problem.psiElement.containingFile.virtualFile.path]
+                                if (document != null) {
+                                    PinnedProblemDescriptor.createIfProblem(problem, document, displayName, level)
+                                } else {
+                                    DisplayableProblemDescriptorImpl<RefEntity>(problem, it, displayName, level)
+                                }
+                            } else {
+                                DisplayableProblemDescriptorImpl<RefEntity>(problem, it, displayName, level)
+                            }
+                        }
+                    }.flatten()
+                } catch (exception: Throwable) {
+                    logger.exception(exception)
+                }
+            }
+            ProgressManager.getInstance().runProcess(task, EmptyProgressIndicator())
+        }
+        problems.forEach { checker.apply(it.level) }
+        return InspectionResult(this, problems)
+    }
+
     private fun reportProblems(parameters: InspectionsRunnerParameters, results: Map<String, InspectionResult<*>>) {
         val numProblems = results.values.map { it.problems }.flatten().count()
         logger.info("Total of $numProblems problem(s) found")
@@ -293,6 +360,8 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
 
     private fun Entity<*>.asFile(): PsiFile? = when (this) {
         is Entity.Element -> SharedImplUtil.getContainingFile(reference.node)?.invalidateIfInvalid()
+        is Entity.File -> reference.element
+        else -> null
     }
 
     private fun quickFixProblems(
