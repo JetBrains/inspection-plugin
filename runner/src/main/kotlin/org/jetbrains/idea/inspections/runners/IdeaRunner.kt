@@ -328,7 +328,9 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
                 "org.jetbrains.idea.maven", // Maven Integration
                 "com.intellij.properties", // Properties Support
                 "org.intellij.groovy", // Groovy
-                "JUnit" // JUnit
+                "JUnit", // JUnit
+                "com.android.tools.idea.smali", // Smali, required for Android
+                "org.jetbrains.android" // Android
         )
 
         private const val KT_LIB = "kotlin-stdlib"
