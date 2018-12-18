@@ -48,3 +48,11 @@ compileKotlin {
 compileTestKotlin {
     kotlinOptions.jvmTarget = "1.8"
 }
+
+sourceSets {
+    main {
+        kotlin {
+            srcDirs += 'extra'
+        }
+    }
+}

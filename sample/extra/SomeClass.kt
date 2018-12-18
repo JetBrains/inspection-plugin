@@ -1,0 +1,1 @@
+data class SomeClass private constructor(val s: String)
