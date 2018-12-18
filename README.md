@@ -7,7 +7,7 @@
 This plugin is intended to run IDEA inspections during Gradle build.
 
 Current status: beta version 0.2.2 is available. 
-Also, beta-candidate version 0.3.0-rc-1 is available which fixes a set of bugs and support a bunch of new features.
+Also, beta-candidate version 0.3.0-rc-3 is available which fixes a set of bugs and support a bunch of new features.
 
 ## Examples
 
