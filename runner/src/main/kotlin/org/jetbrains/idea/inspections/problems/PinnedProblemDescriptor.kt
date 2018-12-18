@@ -38,7 +38,7 @@ class PinnedProblemDescriptor private constructor(
                 descriptor: ProblemDescriptor,
                 document: Document,
                 displayName: String,
-                problemLevel: ProblemLevel?
+                problemLevel: ProblemLevel
         ): PinnedProblemDescriptor? {
             val level = actualLevel(problemLevel, descriptor.highlightType) ?: return null
             val lineNumber = descriptor.psiElement.getLine(document)
@@ -47,7 +47,7 @@ class PinnedProblemDescriptor private constructor(
             return PinnedProblemDescriptor(descriptor, fileName, lineNumber, rowNumber, displayName, level)
         }
 
-        private fun actualLevel(ideaLevel: ProblemLevel?, highlightType: ProblemHighlightType): ProblemLevel? {
+        private fun actualLevel(ideaLevel: ProblemLevel, highlightType: ProblemHighlightType): ProblemLevel? {
             return when (highlightType) {
                 // Default (use level either from IDEA configuration or plugin configuration)
                 ProblemHighlightType.GENERIC_ERROR_OR_WARNING -> ideaLevel

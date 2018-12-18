@@ -203,7 +203,7 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
             val task = Runnable {
                 try {
                     for ((psiFile, document) in files) {
-                        if (!inspectionEnabledForFile(psiFile)) continue
+                        if (!inspectionEnabledForFile(psiFile) || level == null) continue
                         val fileName = psiFile.name
                         logger.info("($level) Inspection '$displayName' analyzing started for $fileName")
                         val problems = tool.analyze(psiFile, document, displayName, level)
@@ -235,7 +235,7 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
             val task = Runnable {
                 try {
                     for ((psiFile, document) in files) {
-                        if (!inspectionEnabledForFile(psiFile)) continue
+                        if (!inspectionEnabledForFile(psiFile) || level == null) continue
                         val fileName = psiFile.name
                         val holder = ProblemsHolder(inspectionManager, psiFile, false)
                         logger.info("($level) Global simple inspection '$displayName' analyzing started for $fileName")
@@ -410,7 +410,7 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
             file: PsiFile,
             document: Document,
             displayName: String,
-            problemLevel: ProblemLevel?
+            problemLevel: ProblemLevel
     ): List<PinnedProblemDescriptor> {
         val holder = ProblemsHolder(InspectionManager.getInstance(file.project), file, false)
         val session = LocalInspectionToolSession(file, file.textRange.startOffset, file.textRange.endOffset)
