@@ -94,6 +94,10 @@ private fun getId(shortVersion: String, platformVersion: String): Int? {
             else -> null
         }
         "IJ2018.1" -> when (shortVersion) {
+            "1.3.31" -> 61404
+            "1.3.30" -> 60765
+            "1.3.21" -> 57875
+            "1.3.20" -> 54390
             "1.3.11" -> 52912
             "1.3.10" -> 52009
             "1.3.0" -> 51534
@@ -111,6 +115,12 @@ private fun getId(shortVersion: String, platformVersion: String): Int? {
             else -> null
         }
         "IJ2018.2" -> when (shortVersion) {
+            "1.3.41" -> 65064
+            "1.3.40" -> 64315
+            "1.3.31" -> 61405
+            "1.3.30" -> 60766
+            "1.3.21" -> 57876
+            "1.3.20" -> 54391
             "1.3.11" -> 52913
             "1.3.10" -> 52010
             "1.3.0" -> 51536
@@ -125,11 +135,25 @@ private fun getId(shortVersion: String, platformVersion: String): Int? {
             else -> null
         }
         "IJ2018.3" -> when (shortVersion) {
+            "1.3.41" -> 65065
+            "1.3.40" -> 64316
+            "1.3.31" -> 61406
+            "1.3.30" -> 60767
+            "1.3.21" -> 57877
+            "1.3.20" -> 54392
             "1.3.11" -> 52914
             "1.3.10" -> 52011
             "1.3.0" -> 51537
             "1.2.71" -> 50256
             "1.2.70" -> 49922
+            else -> null
+        }
+        "IJ2019.1" -> when (shortVersion) {
+            "1.3.41" -> 65066
+            "1.3.40" -> 64317
+            "1.3.31" -> 61407
+            "1.3.30" -> 60768
+            "1.3.21" -> 60307
             else -> null
         }
         else -> null
