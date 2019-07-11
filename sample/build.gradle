@@ -13,7 +13,7 @@ buildscript {
     }
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath "org.jetbrains.intellij.plugins:inspection-plugin:0.3.0-rc-4"
+        classpath "org.jetbrains.intellij.plugins:inspection-plugin:0.3.0"
     }
 }
 
