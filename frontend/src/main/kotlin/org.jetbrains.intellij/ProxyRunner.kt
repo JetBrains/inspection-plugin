@@ -75,15 +75,15 @@ class ProxyRunner(jar: File, ideaHomeDirectory: File, private val logger: Logger
 
     init {
         val separator = System.getProperty("path.separator")
-        val javaHome = File(System.getenv("JAVA_HOME"))
-        val tools = File(javaHome, "/lib/tools.jar").canonicalFile
-        if (!tools.exists()) {
-            logger.error("$tools not found, check your JAVA_HOME=$javaHome")
-            throw IllegalStateException("$tools not found")
+        val javaHomePath: String? = System.getenv("JAVA_HOME") ?: System.getProperty("java.home")
+        val javaHome = javaHomePath?.let { File(it) }
+        val tools = javaHome?.let { File(it, "/lib/tools.jar").canonicalFile }
+        if (tools == null || !tools.exists()) {
+            logger.error("$tools not found, check your JAVA_HOME=$javaHomePath")
         }
         val ideaClasspath = getIdeaClasspath(ideaHomeDirectory)
         logger.info("Idea classpath: $ideaClasspath")
-        val classpath = (listOf(jar, tools) + ideaClasspath).joinToString(separator) { it.absolutePath }
+        val classpath = (listOfNotNull(jar, tools) + ideaClasspath).joinToString(separator) { it.absolutePath }
         val command = listOf("java", "-cp", classpath, "org.jetbrains.idea.inspections.ProxyRunnerImpl")
         process = ProcessBuilder(command).redirectErrorStream(true).start()
         logger.info("Process started: ${command.joinToString(" ")}")
