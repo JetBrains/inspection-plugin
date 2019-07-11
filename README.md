@@ -7,7 +7,7 @@
 This plugin is intended to run IDEA inspections during Gradle build.
 
 Current status: beta version 0.2.2 is available. 
-Also, beta-candidate version 0.3.0-rc-3 is available which fixes a set of bugs and support a bunch of new features.
+Also, beta-candidate version 0.3.0-rc-4 is available which fixes a set of bugs and support a bunch of new features.
 
 ## Examples
 
@@ -36,11 +36,11 @@ inspections {
 
 In this example inspections will be taken from IDEA CE version 2017.3. 
 Plugin works at least with IDEA CE versions 2017.1, 2017.2, 2017.2.x, 2017.3, 2017.3.x, 2018.1, 2018.1.x, 2018.2, 2018.2.x.
-IDEA CE 2018.3 and 2018.3.x is supported in plugins 0.3.0+ only.
+IDEA CE 2018.3, 2018.3.x, 2019.1, 2019.1.x are supported in plugins 0.3.0+ only.
 If you have multi-platform project, it's recommended to use IDEA CE 2018.2 or later.
 Kotlin plugin versions from 1.2.21 to 1.2.71 are supported directly (required version for your IDE is chosen and downloaded auromatically),
 otherwise you will have to specify download URL (see below, `plugins.kotlin.location`).
-Kotlin plugin versions 1.3.0 to 1.3.11 are supported directly in plugins 0.3.0+ only.
+Kotlin plugin versions 1.3.0 to 1.3.41 are supported directly in plugins 0.3.0+ only.
 
 Plugins 0.2.2 and earlier support only so-called local inspections (most Kotlin inspections fall into this category).
 Global inspections (e.g. most Android Lint and part of Java inspections) are supported only in 0.3.0+.
