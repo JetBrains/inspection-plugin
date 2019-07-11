@@ -38,8 +38,7 @@ abstract class FileInfoRunner<T>(logger: ProxyLogger) : IdeaRunner<FileInfoRunne
                         continue
                     }
                     if (!fileIndex.isInSource(virtualFile)) {
-                        logger.warn("File $file is not in sources")
-                        continue
+                        logger.info("File $file is not in sources")
                     }
                     val psiFile = psiManager.findFile(virtualFile)
                     if (psiFile == null) {
