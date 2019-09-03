@@ -136,6 +136,26 @@ abstract class IdeaRunner<T>(logger: ProxyLogger) : Runner<IdeaRunnerParameters<
                 application?.doNotSave()
                 application?.configureJdk()
                 val project = openProject(projectDir, projectName, moduleName)
+
+                val codeStyleFile = File(ideaHomeDirectory, "config/codestyles/Default.xml")
+                if (!codeStyleFile.exists()) {
+                    codeStyleFile.parentFile.mkdirs()
+                    val writer = codeStyleFile.bufferedWriter()
+                    writer.write(
+                        """
+<code_scheme name="Default" version="173">
+  <JetCodeStyleSettings>
+    <option name="CODE_STYLE_DEFAULTS" value="KOTLIN_OFFICIAL" />
+  </JetCodeStyleSettings>
+  <codeStyleSettings language="kotlin">
+    <option name="CODE_STYLE_DEFAULTS" value="KOTLIN_OFFICIAL" />
+  </codeStyleSettings>
+</code_scheme>                            
+                        """.trimIndent()
+                    )
+                    writer.close()
+                }
+
                 return analyze(project, parameters.childParameters)
             }
         } catch (e: Throwable) {
