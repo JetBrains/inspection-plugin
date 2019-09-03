@@ -476,6 +476,6 @@ class InspectionsRunner(logger: ProxyLogger) : FileInfoRunner<InspectionsRunnerP
     companion object {
         private const val INSPECTION_PROFILES_PATH = ".idea/inspectionProfiles"
         private val KOTLIN_FILE_APPLICABLE_LANGUAGES = setOf(null, "kotlin", "UAST")
-        private val JAVA_FILE_APPLICABLE_LANGUAGES = setOf(null, "java", "UAST", JavaLanguage.INSTANCE.id)
+        private val JAVA_FILE_APPLICABLE_LANGUAGES = setOf(null, "java", "UAST", "JAVA")
     }
 }
