@@ -76,10 +76,22 @@ class ProxyRunner(jar: File, ideaHomeDirectory: File, private val logger: Logger
     init {
         val separator = System.getProperty("path.separator")
         val javaHomePath: String? = System.getenv("JAVA_HOME") ?: System.getProperty("java.home")
-        val javaHome = javaHomePath?.let { File(it) }
-        val tools = javaHome?.let { File(it, "/lib/tools.jar").canonicalFile }
-        if (tools == null || !tools.exists()) {
-            logger.error("$tools not found, check your JAVA_HOME=$javaHomePath")
+        val tools = if (javaHomePath == null) {
+            logger.error("Both JAVA_HOME & java.home aren't set")
+            null
+        } else {
+            val javaHome = File(javaHomePath)
+            val toolsVariants = listOf(
+                // JAVA_HOME points to JDK root
+                File(javaHome, "/lib/tools.jar").canonicalFile,
+                // JAVA_HOME points to JDK/jre
+                File(javaHome, "../lib/tools.jar").canonicalFile
+            )
+            val tools = toolsVariants.firstOrNull { it.exists() }
+            if (tools == null) {
+                logger.error("$toolsVariants not found, check your JAVA_HOME=$javaHomePath")
+            }
+            tools
         }
         val ideaClasspath = getIdeaClasspath(ideaHomeDirectory)
         logger.info("Idea classpath: $ideaClasspath")
