@@ -1,7 +1,7 @@
 package org.jetbrains.intellij.utils
 
 import org.apache.http.client.methods.HttpGet
-import org.apache.http.impl.client.DefaultHttpClient
+import org.apache.http.impl.client.HttpClientBuilder
 import org.gradle.api.logging.Logger
 import org.gradle.internal.hash.HashUtil
 import org.jetbrains.intellij.configurations.markersDirectory
@@ -15,7 +15,7 @@ class Downloader(private val logger: Logger) {
             logger.info("InspectionPlugin: No downloading needed.")
             return
         }
-        val client = DefaultHttpClient()
+        val client = HttpClientBuilder.create().build()
         val request = HttpGet(url)
         request.addHeader("User-Agent", "User-Agent")
         val response = client.execute(request)
