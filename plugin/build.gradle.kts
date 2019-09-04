@@ -92,7 +92,7 @@ configurations {
 dependencies {
     compileOnly("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
     compileOnly(gradleApi())
-    compile("org.apache.httpcomponents:httpclient:4.3.6")
+    compile("org.apache.httpcomponents:httpclient:4.5.5")
     compile("com.googlecode.json-simple:json-simple:1.1")
     add("submodules", project(":interface"))
     add("submodules", project(":frontend"))
