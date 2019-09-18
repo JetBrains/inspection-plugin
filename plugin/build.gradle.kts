@@ -89,12 +89,6 @@ configurations {
     get("compileOnly").extendsFrom(get("submodules"))
 }
 
-configurations.all {
-    resolutionStrategy {
-        force("org.apache.httpcomponents:httpclient:4.5.5")
-    }
-}
-
 dependencies {
     compileOnly("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
     compileOnly(gradleApi())
