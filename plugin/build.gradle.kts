@@ -15,7 +15,6 @@ buildscript {
 
     dependencies {
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
-        classpath("com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.4")
     }
 }
 
@@ -23,6 +22,7 @@ val kotlinVersion: String by extra
 
 plugins {
     java
+    id("com.jfrog.bintray") version "1.8.4"
 }
 
 apply {
@@ -87,6 +87,12 @@ tasks {
 configurations {
     create("submodules")
     get("compileOnly").extendsFrom(get("submodules"))
+}
+
+configurations.all {
+    resolutionStrategy {
+        force("org.apache.httpcomponents:httpclient:4.5.5")
+    }
 }
 
 dependencies {
