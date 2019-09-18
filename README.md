@@ -195,4 +195,4 @@ Known bugs / problems at this moment (version 0.3.2):
 * plugin does not work yet with Ultimate IDEA versions, like ideaIU:2017.3
 * analysis of Kotlin JS and common modules is only partially supported
 * Kotlin JVM module with common library in dependencies (like kotlin-stdlib-common or kotlin-test) is configured correctly only in IDEA 2018.2 or later, e.g. IC:2018.2 
-* IDEA versions 2019.2 or higher aren't supported in plugin 0.3.0 version
+* IDEA versions 2019.2 or higher aren't supported
