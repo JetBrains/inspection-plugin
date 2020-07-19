@@ -196,3 +196,11 @@ Known bugs / problems at this moment (version 0.3.2):
 * analysis of Kotlin JS and common modules is only partially supported
 * Kotlin JVM module with common library in dependencies (like kotlin-stdlib-common or kotlin-test) is configured correctly only in IDEA 2018.2 or later, e.g. IC:2018.2 
 * IDEA versions 2019.2 or higher aren't supported
+
+## Build and Test
+Test code is in `testing` module.
+
+Must do tasks before `:testing:test` task:
+- `:cli:publishCliPublicationToMavenLocal`
+- `:runner:publishRunnerPublicationToMavenLocal`
+- `:plugin:build`
