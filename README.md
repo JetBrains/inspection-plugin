@@ -175,7 +175,7 @@ inspectionsMain {
 
 ## Bugs and Problems
 
-You can report issues on the relevant tab: https://github.com/mglukhikh/inspection-plugin/issues
+You can report issues on the relevant tab: https://github.com/JetBrains/inspection-plugin/issues
 
 It's quite probable that plugin does not work yet in some environment.
 It may result in various exceptions during IDEA configuration process. 
