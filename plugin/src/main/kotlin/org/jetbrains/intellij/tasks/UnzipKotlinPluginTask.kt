@@ -46,7 +46,7 @@ open class UnzipKotlinPluginTask : ConventionTask() {
             logger.info("InspectionPlugin: Using kotlin plugin inherit from idea.")
             return
         }
-        UpToDateChecker(HashUtil.sha256(archive).asHexString(), isTempDirInHome).apply {
+        UpToDateChecker(HashUtil.sha256(archive!!).asHexString(), isTempDirInHome).apply {
             onUpToDate {
                 logger.info("InspectionPlugin: No unzipping needed.")
             }
@@ -59,7 +59,6 @@ open class UnzipKotlinPluginTask : ConventionTask() {
         }
     }
 
-    @get:Internal
     private val extension: InspectionPluginExtension
         get() = project.extensions.findByType(InspectionPluginExtension::class.java)!!
 }

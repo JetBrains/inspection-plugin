@@ -99,16 +99,13 @@ class PluginTestBench(private val taskName: String) : TestBench<InspectionPlugin
                             appendln("    plugins.kotlin.location $it")
                         }
                         "xmlDestination" -> if (xmlReport) {
-                            appendln("            destination \"build/report.xml\"")
+                            appendln("            destination file(\"build/report.xml\")")
                         }
                         "htmlDestination" -> if (htmlReport) {
-                            appendln("            destination \"build/report.html\"")
+                            appendln("            destination file(\"build/report.html\")")
                         }
                         "kotlin-stdlib" -> if (kotlinNeeded) {
                             appendln("    compile \"org.jetbrains.kotlin:kotlin-stdlib\"")
-                        }
-                        "kotlin-runtime" -> if (kotlinNeeded) {
-                            appendln("    compile \"org.jetbrains.kotlin:kotlin-runtime\"")
                         }
                         "compile-kotlin" -> if (kotlinNeeded) {
                             appendln("""

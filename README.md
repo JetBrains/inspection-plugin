@@ -164,10 +164,10 @@ If you wish to change location of report file, you should specify it in closure 
 inspectionsMain {
     reports {
         xml {
-            destination "reportFileName"
+            destination file("reportFileName")
         }
         html {
-            destination "reportFileName"
+            destination file("reportFileName")
         }
     }
 }

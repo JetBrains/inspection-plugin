@@ -31,11 +31,9 @@ open class ReformatTask : AbstractInspectionsTask() {
     override val profileName: String?
         get() = null
 
-    @get:Internal
     private val reformatQuickFix: Boolean
         get() = extension.reformat.quickFix ?: true
 
-    @get:Internal
     private val reformatInspectionToolParameters: InspectionsRunnerParameters.Inspection
         get() = InspectionsRunnerParameters.Inspection("Reformat", reformatQuickFix)
 }

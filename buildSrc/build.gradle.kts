@@ -1,3 +1,7 @@
+plugins {
+    `kotlin-dsl`
+}
+
 buildscript {
     extra["kotlinVersion"] = "1.2.0"
     val kotlinVersion: String by extra
@@ -14,14 +18,10 @@ buildscript {
 
 val kotlinVersion: String by extra
 
-apply {
-    plugin("kotlin")
-}
-
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    compile("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
+    compile("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
 }

@@ -53,7 +53,7 @@ abstract class TestBench<in T> {
         }.flatten()
         val xmlReport = lines.getParameterValue("xmlReport", "false").toBoolean()
         val htmlReport = lines.getParameterValue("htmlReport", "false").toBoolean()
-        val kotlinVersion = lines.getParameterValue("kotlinVersion", "1.2.0")
+        val kotlinVersion = lines.getParameterValue("kotlinVersion", "1.3.72")
         val expectedDiagnosticsStatus = lines.asSequence()
                 .map { it.trim() }
                 .find { it == "// SHOULD_BE_ABSENT" }

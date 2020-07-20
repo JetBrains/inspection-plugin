@@ -87,6 +87,7 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
      *
      * @return false if temp directory is located in java.io.tmpdir (default), true if it's located in user.home
      */
+    @get:Input
     open val isTempDirInHome: Boolean
         get() = extension.isTempDirInHome()
 
@@ -169,18 +170,16 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
     open val maxInfo: Int?
         get() = extension.info.max
 
-    @get:Internal
     private val inspections: Map<String, InspectionsRunnerParameters.Inspection>
         get() = errorsInspections + warningsInspections + infoInspections
 
     @Internal
     private var ignoreFailures: Boolean? = null
 
-    @get:Internal
+    @get:Nested
     protected val extension: InspectionPluginExtension
         get() = project.extensions.findByType(InspectionPluginExtension::class.java)!!
 
-    @Internal
     private fun getInspections(ex: InspectionsExtension): Map<String, InspectionsRunnerParameters.Inspection> {
         val inspections = ex.inspections.map {
             val quickFix = it.value.quickFix ?: false
@@ -197,7 +196,6 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
     @get:Optional
     open val html: File? = null
 
-    @Internal
     private fun getIdeaRunnerParameters(): IdeaRunnerParameters<FileInfoRunnerParameters<InspectionsRunnerParameters>> {
         val ideaDirectory = ideaDirectory(ideaVersion, isTempDirInHome)
         val ideaSystemDirectory = ideaSystemDirectory(ideaVersion)
@@ -215,7 +213,6 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
         )
     }
 
-    @Internal
     private fun getFileInfoParameters(): FileInfoRunnerParameters<InspectionsRunnerParameters> {
         return FileInfoRunnerParameters(
                 files = getSource().files.toList(),
@@ -223,7 +220,6 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
         )
     }
 
-    @Internal
     private fun getInspectionsRunnerParameters(): InspectionsRunnerParameters {
         val reportParameters = InspectionsRunnerParameters.Report(isQuiet, xml, html)
         val errors = InspectionsRunnerParameters.Inspections(errorsInspections, maxErrors)
@@ -325,15 +321,16 @@ abstract class AbstractInspectionsTask : SourceTask(), VerificationTask {
     }
 
     inner class IdeaFinishingListener : BuildListener {
-        override fun buildFinished(result: BuildResult?) = Runner.finalize(logger)
 
-        override fun projectsLoaded(gradle: Gradle?) {}
+        override fun buildFinished(result: BuildResult) = Runner.finalize(logger)
 
-        override fun buildStarted(gradle: Gradle?) {}
+        override fun projectsLoaded(gradle: Gradle) {}
 
-        override fun projectsEvaluated(gradle: Gradle?) {}
+        override fun buildStarted(gradle: Gradle) {}
 
-        override fun settingsEvaluated(settings: Settings?) {}
+        override fun projectsEvaluated(gradle: Gradle) {}
+
+        override fun settingsEvaluated(settings: Settings) {}
     }
 
     init {

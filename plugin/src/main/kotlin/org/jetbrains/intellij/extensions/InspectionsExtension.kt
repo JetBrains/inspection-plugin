@@ -1,5 +1,8 @@
 package org.jetbrains.intellij.extensions
 
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.Internal
+import org.gradle.api.tasks.Optional
 import java.util.*
 
 class InspectionsExtension {
@@ -9,11 +12,14 @@ class InspectionsExtension {
      * or setting the failure property. <tt>null</tt> value means that that there are no limits on the
      * number of problems.
      */
+    @Input
+    @Optional
     var max: Int? = null
 
     /**
      * Registered inspections settings
      */
+    @Internal
     val inspections: Map<String, InspectionExtension> = HashMap()
 
     /**

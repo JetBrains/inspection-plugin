@@ -1,11 +1,16 @@
 package org.jetbrains.intellij.extensions
 
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.Optional
+
 class IdeaExtension {
 
     /**
      * Version of IDEA
      */
     @Suppress("unused")
+    @Input
+    @Optional
     var version: String? = null
 
     /**

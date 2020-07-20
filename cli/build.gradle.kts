@@ -5,7 +5,7 @@ import org.gradle.api.tasks.bundling.Jar
 import org.jetbrains.idea.inspections.*
 
 buildscript {
-    extra["kotlinVersion"] = "1.2.0"
+    extra["kotlinVersion"] = "1.3.72"
     extra["kotlinArgParserVersion"] = "2.0.7"
     val kotlinVersion: String by extra
 
@@ -27,14 +27,10 @@ val kotlinArgParserVersion: String by extra
 
 plugins {
     java
+    kotlin("jvm") version "1.3.72"
+    `maven-publish`
+    id("com.github.johnrengelman.shadow") version "2.0.1"
     id("com.jfrog.bintray") version "1.8.4"
-}
-
-apply {
-    plugin("kotlin")
-    plugin("maven-publish")
-    plugin("com.github.johnrengelman.shadow")
-    plugin("com.jfrog.bintray")
 }
 
 val projectName = "inspection-cli"

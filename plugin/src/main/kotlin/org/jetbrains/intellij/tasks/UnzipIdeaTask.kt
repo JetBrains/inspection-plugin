@@ -52,7 +52,6 @@ open class UnzipIdeaTask : ConventionTask() {
         }
     }
 
-    @get:Internal
     private val extension: InspectionPluginExtension
         get() = project.extensions.findByType(InspectionPluginExtension::class.java)!!
 }

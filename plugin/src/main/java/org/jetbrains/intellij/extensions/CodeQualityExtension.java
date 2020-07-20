@@ -1,6 +1,6 @@
 package org.jetbrains.intellij.extensions;
 
-import org.gradle.api.tasks.SourceSet;
+import org.gradle.api.tasks.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -28,6 +28,8 @@ public class CodeQualityExtension {
         return ignoreFailures;
     }
 
+    @Input
+    @Optional
     public Boolean getIgnoreFailures() {
         return ignoreFailures;
     }
@@ -37,6 +39,7 @@ public class CodeQualityExtension {
     }
 
     @NotNull
+    @Internal
     public Collection<SourceSet> getSourceSets() {
         return sourceSets;
     }
@@ -45,6 +48,7 @@ public class CodeQualityExtension {
         this.sourceSets = sourceSets;
     }
 
+    @OutputDirectory
     public File getReportsDir() {
         return reportsDir;
     }

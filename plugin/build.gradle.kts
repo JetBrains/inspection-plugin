@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.idea.inspections.*
 
 buildscript {
-    extra["kotlinVersion"] = "1.2.0"
+    extra["kotlinVersion"] = "1.3.72"
     val kotlinVersion: String by extra
 
     repositories {
@@ -22,14 +22,10 @@ val kotlinVersion: String by extra
 
 plugins {
     java
+    kotlin("jvm") version "1.3.72"
+    `java-gradle-plugin`
+    `maven-publish`
     id("com.jfrog.bintray") version "1.8.4"
-}
-
-apply {
-    plugin("java-gradle-plugin")
-    plugin("maven-publish")
-    plugin("com.jfrog.bintray")
-    plugin("kotlin")
 }
 
 val projectName = "inspection-plugin"
@@ -90,7 +86,7 @@ configurations {
 }
 
 dependencies {
-    compileOnly("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
+    compileOnly("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
     compileOnly(gradleApi())
     compile("org.apache.httpcomponents:httpclient:4.5.5")
     compile("com.googlecode.json-simple:json-simple:1.1")

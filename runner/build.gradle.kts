@@ -6,7 +6,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.idea.inspections.*
 
 buildscript {
-    extra["kotlinVersion"] = "1.2.0"
+    extra["kotlinVersion"] = "1.3.72"
     val kotlinVersion: String by extra
 
     repositories {
@@ -26,14 +26,10 @@ val kotlinVersion: String by extra
 
 plugins {
     java
+    kotlin("jvm") version "1.3.72"
+    `maven-publish`
     id("com.jfrog.bintray") version "1.8.4"
-}
-
-apply {
-    plugin("kotlin")
-    plugin("maven-publish")
-    plugin("com.github.johnrengelman.shadow")
-    plugin("com.jfrog.bintray")
+    id("com.github.johnrengelman.shadow") version "2.0.1"
 }
 
 val projectName = "inspection-runner"
