@@ -3,10 +3,10 @@ package org.jetbrains.intellij.tasks
 import groovy.lang.Closure
 import groovy.lang.DelegatesTo
 import org.gradle.api.Action
-import org.gradle.api.internal.ClosureBackedAction
 import org.gradle.api.plugins.quality.CheckstyleReports
 import org.gradle.api.reporting.Reporting
 import org.gradle.api.tasks.*
+import org.gradle.util.ClosureBackedAction
 import org.jetbrains.intellij.IdeaCheckstyleReports
 import java.io.File
 import org.gradle.api.Project as GradleProject
@@ -32,10 +32,10 @@ open class InspectionsTask : AbstractInspectionsTask(), Reporting<CheckstyleRepo
      * inspection {
      *     reports {
      *         html {
-     *             destination "build/codenarc.html"
+     *             destination file("build/codenarc.html")
      *         }
      *         xml {
-     *             destination "build/report.xml"
+     *             destination file("build/report.xml")
      *         }
      *     }
      * }
@@ -58,7 +58,7 @@ open class InspectionsTask : AbstractInspectionsTask(), Reporting<CheckstyleRepo
      * checkstyleTask {
      *     reports {
      *         html {
-     *             destination "build/codenarc.html"
+     *             destination file("build/codenarc.html")
      *         }
      *     }
      * }

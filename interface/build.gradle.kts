@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 buildscript {
-    extra["kotlinVersion"] = "1.2.0"
+    extra["kotlinVersion"] = "1.3.72"
     val kotlinVersion: String by extra
 
     repositories {
@@ -17,10 +17,7 @@ val kotlinVersion: String by extra
 
 plugins {
     java
-}
-
-apply {
-    plugin("kotlin")
+    kotlin("jvm") version "1.3.72"
 }
 
 repositories {
@@ -28,6 +25,6 @@ repositories {
 }
 
 dependencies {
-    compileOnly("org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVersion")
+    compileOnly("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
     implementation("com.googlecode.json-simple:json-simple:1.1")
 }

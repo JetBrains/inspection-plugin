@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 buildscript {
-    extra["kotlinVersion"] = "1.2.0"
+    extra["kotlinVersion"] = "1.3.72"
     val kotlinVersion: String by extra
 
     repositories {
@@ -18,11 +18,8 @@ val kotlinVersion: String by extra
 
 plugins {
     java
-}
-
-apply {
-    plugin("kotlin")
-    plugin("java-gradle-plugin")
+    kotlin("jvm") version "1.3.72"
+    `java-gradle-plugin`
 }
 
 repositories {

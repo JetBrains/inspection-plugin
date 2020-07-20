@@ -3,12 +3,7 @@ include 'interface'
 include 'runner'
 include 'plugin'
 include 'cli'
-include 'sample'
+// FixMe: sample module is depending v0.3.2, always failed gradle sync on Gradle v6. Please remove comment out when this PR merged
+// include 'sample'
 include 'frontend'
 include 'testing'
-
-// It flag provided stable plugin publishing (configuration of publishing
-// task will be in-place but not a in end of build configuration). It needed
-// for supporting gradle with version 5.0.
-enableFeaturePreview("STABLE_PUBLISHING")
-

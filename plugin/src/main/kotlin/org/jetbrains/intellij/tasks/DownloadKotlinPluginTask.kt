@@ -47,7 +47,6 @@ open class DownloadKotlinPluginTask : ConventionTask() {
         Downloader(logger).download(location, isTempDirInHome, archiveDirectory!!)
     }
 
-    @get:Internal
     private val extension: InspectionPluginExtension
         get() = project.extensions.findByType(InspectionPluginExtension::class.java)!!
 }
