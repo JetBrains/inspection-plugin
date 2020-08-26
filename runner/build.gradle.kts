@@ -18,7 +18,7 @@ buildscript {
 
     dependencies {
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
-        classpath("com.github.jengelman.gradle.plugins:shadow:2.0.1")
+        classpath("com.github.jengelman.gradle.plugins:shadow:6.0.0")
     }
 }
 
@@ -29,7 +29,7 @@ plugins {
     kotlin("jvm") version "1.3.72"
     `maven-publish`
     id("com.jfrog.bintray") version "1.8.4"
-    id("com.github.johnrengelman.shadow") version "2.0.1"
+    id("com.github.johnrengelman.shadow") version "6.0.0"
 }
 
 val projectName = "inspection-runner"
