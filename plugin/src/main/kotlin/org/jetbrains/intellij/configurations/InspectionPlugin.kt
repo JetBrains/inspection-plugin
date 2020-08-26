@@ -16,7 +16,7 @@ const val UNZIP_KOTLIN_PLUGIN_TASK_NAME = "unzip-kotlin-plugin"
 
 const val IDEA_TASK_NAME = "idea"
 
-private const val DEFAULT_IDEA_VERSION = "ideaIC:2018.2.2"
+private const val DEFAULT_IDEA_VERSION = "ideaIC:2019.1.4"
 
 const val REFORMAT_SHORT_TASK_NAME = "reformat"
 
