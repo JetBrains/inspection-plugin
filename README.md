@@ -8,6 +8,12 @@ This plugin is intended to run IDEA inspections during Gradle build.
 
 Current status: beta version 0.3.3 is available. 
 
+## IMPORTANT: deprecation announcement
+
+After EAP start for [Qodana](https://blog.jetbrains.com/idea/2021/02/early-access-program-for-qodana-a-new-product-that-brings-the-smarts-of-jetbrains-ides-into-your-ci-pipeline/) and the planned sunset of [Bintray](https://jfrog.com/blog/into-the-sunset-bintray-jcenter-gocenter-and-chartcenter/), we decided not to support inspection plugin anymore. Beginning from 1 May 2021, inspection plugin will not be more accessible at bintray and therefore will be unusable from this date. At this point we recommend migration to [Qodana](https://blog.jetbrains.com/idea/2021/02/early-access-program-for-qodana-a-new-product-that-brings-the-smarts-of-jetbrains-ides-into-your-ci-pipeline/), as this tool has much better support and architectural stability. 
+
+This GitHub project will be archived soon.
+
 ## Examples
 
 * Regular Gradle project -- see [sample](https://github.com/JetBrains/inspection-plugin/tree/master/sample) subdirectory here
